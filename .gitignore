@@ -1,0 +1,13 @@
+# Project Documentation
+esteRoute_SRS.docx
+esteRoute_SRS.md
+esteRoute_SRS.pdf
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
