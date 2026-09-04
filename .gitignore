@@ -1,7 +1,5 @@
 # Project Documentation
-esteRoute_SRS.docx
-esteRoute_SRS.md
-esteRoute_SRS.pdf
+documentation/
 
 # OS generated files
 .DS_Store
@@ -11,3 +9,7 @@ esteRoute_SRS.pdf
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Backend
+backend/venv/
+backend/__pycache__/
