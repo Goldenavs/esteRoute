@@ -1,121 +1,62 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import UniversalLogin from './pages/UniversalLogin'
+import CitizenRegistration from './pages/CitizenRegistration'
+import PasswordRecovery from './pages/PasswordRecovery'
+import BlockageSubmissionForm from './pages/BlockageSubmissionForm'
+import SubmissionConfirmation from './pages/SubmissionConfirmation'
+import PublicEsteroStatusMap from './pages/PublicEsteroStatusMap'
+import CitizenDashboard from './pages/CitizenDashboard'
+import MainCommandDashboard from './pages/MainCommandDashboard'
+import LGUAnalyticsOverview from './pages/LGUAnalyticsOverview'
+import HistoricalArchiveView from './pages/HistoricalArchiveView'
+
+// Skeletons for Modals just to verify they exist
+import UserProfileSettings from './components/modals/UserProfileSettings'
+import ManualGPSOverride from './components/modals/ManualGPSOverride'
+import IncidentDetailSlideOver from './components/modals/IncidentDetailSlideOver'
+import CrewAssignmentStatus from './components/modals/CrewAssignmentStatus'
+import AIDiagnosticsAudit from './components/modals/AIDiagnosticsAudit'
+import DynamicWeightCalibration from './components/modals/DynamicWeightCalibration'
+
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1 className="text-4xl font-extrabold text-blue-600 bg-yellow-200 p-4 rounded-xl shadow-lg border-4 border-blue-800 inline-block">Tailwind is Working!</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
+    <Router>
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        {/* Temporary Navigation Header just to verify routing */}
+        <nav className="bg-blue-600 p-4 text-white">
+          <ul className="flex flex-wrap gap-4 text-sm font-semibold">
+            <li><Link to="/">Login</Link></li>
+            <li><Link to="/register">Register</Link></li>
+            <li><Link to="/recovery">Recovery</Link></li>
+            <li><Link to="/submit">Submit</Link></li>
+            <li><Link to="/confirmation">Confirmation</Link></li>
+            <li><Link to="/public-map">Public Map</Link></li>
+            <li><Link to="/citizen-dashboard">Citizen Dashboard</Link></li>
+            <li><Link to="/admin-dashboard">Admin Dashboard</Link></li>
+            <li><Link to="/analytics">Analytics</Link></li>
+            <li><Link to="/archive">Archive</Link></li>
           </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        </nav>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        {/* Route Configuration */}
+        <main className="flex-1 p-8">
+          <Routes>
+            <Route path="/" element={<UniversalLogin />} />
+            <Route path="/register" element={<CitizenRegistration />} />
+            <Route path="/recovery" element={<PasswordRecovery />} />
+            <Route path="/submit" element={<BlockageSubmissionForm />} />
+            <Route path="/confirmation" element={<SubmissionConfirmation />} />
+            <Route path="/public-map" element={<PublicEsteroStatusMap />} />
+            <Route path="/citizen-dashboard" element={<CitizenDashboard />} />
+            <Route path="/admin-dashboard" element={<MainCommandDashboard />} />
+            <Route path="/analytics" element={<LGUAnalyticsOverview />} />
+            <Route path="/archive" element={<HistoricalArchiveView />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   )
 }
 
