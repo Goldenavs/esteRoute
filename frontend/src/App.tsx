@@ -24,29 +24,13 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-slate-50 flex flex-col">
-        {/* Temporary Navigation Header just to verify routing */}
-        <nav className="bg-blue-600 p-4 text-white">
-          <ul className="flex flex-wrap gap-4 text-sm font-semibold">
-            <li><Link to="/">Login</Link></li>
-            <li><Link to="/register">Register</Link></li>
-            <li><Link to="/recovery">Recovery</Link></li>
-            <li><Link to="/submit">Submit</Link></li>
-            <li><Link to="/confirmation">Confirmation</Link></li>
-            <li><Link to="/public-map">Public Map</Link></li>
-            <li><Link to="/citizen-dashboard">Citizen Dashboard</Link></li>
-            <li><Link to="/admin-dashboard">Admin Dashboard</Link></li>
-            <li><Link to="/analytics">Analytics</Link></li>
-            <li><Link to="/archive">Archive</Link></li>
-          </ul>
-        </nav>
-
         {/* Route Configuration */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 flex flex-col">
           <Routes>
-            <Route path="/" element={<UniversalLogin />} />
+            <Route path="/" element={<BlockageSubmissionForm />} />
+            <Route path="/login" element={<UniversalLogin />} />
             <Route path="/register" element={<CitizenRegistration />} />
             <Route path="/recovery" element={<PasswordRecovery />} />
-            <Route path="/submit" element={<BlockageSubmissionForm />} />
             <Route path="/confirmation" element={<SubmissionConfirmation />} />
             <Route path="/public-map" element={<PublicEsteroStatusMap />} />
             <Route path="/citizen-dashboard" element={<CitizenDashboard />} />
