@@ -1,1 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700;800&family=Space+Grotesk:wght@400;600;700&display=swap');
 @import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-data: "Space Grotesk", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Core Brand Colors */
+  --color-brand-white: #F9F7F7;
+  --color-brand-light: #DBE2EF;
+  --color-brand-primary: #3F72AF;
+  --color-brand-dark: #112D4E;
+
+  /* Semantic Colors */
+  --color-semantic-urgent: #EF4444;
+  --color-semantic-warning: #F59E0B;
+  --color-semantic-success: #10B981;
+
+  /* Dynamic Theme Colors (Mapped to CSS variables below) */
+  --color-app-bg: var(--theme-app-bg);
+  --color-surface: var(--theme-surface);
+  --color-surface-subtle: var(--theme-surface-subtle);
+  --color-text-primary: var(--theme-text-primary);
+  --color-text-secondary: var(--theme-text-secondary);
+  --color-border-subtle: var(--theme-border-subtle);
+}
+
+:root {
+  /* Light Mode Defaults */
+  --theme-app-bg: var(--color-brand-white);
+  --theme-surface: #FFFFFF;
+  --theme-surface-subtle: var(--color-brand-light);
+  --theme-text-primary: var(--color-brand-dark);
+  --theme-text-secondary: #64748B;
+  --theme-border-subtle: #E2E8F0;
+}
+
+.dark {
+  /* Dark Mode Overrides */
+  --theme-app-bg: #0B1E36;
+  --theme-surface: var(--color-brand-dark);
+  --theme-surface-subtle: #1E416D;
+  --theme-text-primary: var(--color-brand-white);
+  --theme-text-secondary: #94A3B8;
+  --theme-border-subtle: rgba(63, 114, 175, 0.3); /* brand-primary at 30% opacity */
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-app-bg);
+    color: var(--color-text-primary);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
