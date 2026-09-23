@@ -11,14 +11,6 @@ import MainCommandDashboard from './pages/admin/MainCommandDashboard'
 import LGUAnalyticsOverview from './pages/admin/LGUAnalyticsOverview'
 import HistoricalArchiveView from './pages/admin/HistoricalArchiveView'
 
-// Skeletons for Modals just to verify they exist
-import UserProfileSettings from './components/modals/UserProfileSettings'
-import ManualGPSOverride from './components/modals/ManualGPSOverride'
-import IncidentDetailSlideOver from './components/modals/IncidentDetailSlideOver'
-import CrewAssignmentStatus from './components/modals/CrewAssignmentStatus'
-import AIDiagnosticsAudit from './components/modals/AIDiagnosticsAudit'
-import DynamicWeightCalibration from './components/modals/DynamicWeightCalibration'
-
 import './App.css'
 
 function DevMenu() {
