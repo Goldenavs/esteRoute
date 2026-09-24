@@ -4,7 +4,6 @@ import CitizenLayout from './layouts/CitizenLayout'
 import AdminLayout from './layouts/AdminLayout'
 
 // Auth Pages
-import TemporaryAuth from './pages/auth/TemporaryAuth'
 import UniversalLogin from './pages/auth/UniversalLogin'
 import CitizenRegistration from './pages/auth/CitizenRegistration'
 import PasswordRecovery from './pages/auth/PasswordRecovery'
@@ -28,7 +27,6 @@ function App() {
       <Routes>
         {/* Auth Routing Group */}
         <Route element={<AuthLayout />}>
-          <Route path="/" element={<TemporaryAuth />} />
           <Route path="/login" element={<UniversalLogin />} />
           <Route path="/register" element={<CitizenRegistration />} />
           <Route path="/recovery" element={<PasswordRecovery />} />
@@ -49,8 +47,8 @@ function App() {
           <Route path="archive" element={<HistoricalArchiveView />} />
         </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Fallback to Login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   )

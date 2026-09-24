@@ -3,28 +3,25 @@ import { Link } from 'react-router-dom'
 export default function UniversalLogin() { 
   return (
     <div className="w-full flex justify-center">
-      <div className="bg-surface border border-border-subtle text-text-primary p-8 rounded-lg shadow-lg w-full max-w-md relative">
-        <Link to="/" className="absolute top-4 left-4 text-sm text-blue-600 hover:underline">
-          &larr; Back to Public Form
-        </Link>
-        <div className="mt-8 text-center">
-          <h2 className="text-2xl font-bold mb-6">Sign In</h2>
+      <div className="bg-surface border border-border-subtle text-text-primary p-8 rounded-2xl shadow-xl w-full max-w-md relative">
+        <div className="mt-4 text-center">
+          <h2 className="text-3xl font-heading font-bold mb-8">Sign In</h2>
           <div className="space-y-4">
-            <input type="email" placeholder="Email" className="w-full p-3 border border-gray-300 rounded" />
-            <input type="password" placeholder="Password" className="w-full p-3 border border-gray-300 rounded" />
+            <input type="email" placeholder="Email" className="w-full p-3 bg-app-bg border border-border-subtle rounded-xl text-text-primary outline-none focus:border-brand-primary transition-colors" />
+            <input type="password" placeholder="Password" className="w-full p-3 bg-app-bg border border-border-subtle rounded-xl text-text-primary outline-none focus:border-brand-primary transition-colors" />
             
-            <div className="flex gap-2">
-              <Link to="/citizen-dashboard" className="flex-1 bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700 transition-colors text-center">
-                Login as Citizen
+            <div className="flex gap-2 pt-4">
+              <Link to="/citizen" className="flex-1 bg-brand-primary text-brand-white p-3 rounded-xl font-bold hover:opacity-90 transition-opacity text-center text-sm sm:text-base">
+                Login (Citizen)
               </Link>
-              <Link to="/admin-dashboard" className="flex-1 bg-indigo-600 text-white p-3 rounded font-bold hover:bg-indigo-700 transition-colors text-center">
-                Login as Admin
+              <Link to="/admin" className="flex-1 bg-brand-dark text-brand-white p-3 rounded-xl font-bold hover:opacity-90 transition-opacity text-center text-sm sm:text-base">
+                Login (Admin)
               </Link>
             </div>
           </div>
-          <div className="mt-6 text-sm text-text-secondary flex justify-between">
-            <Link to="/recovery" className="hover:underline">Forgot password?</Link>
-            <Link to="/register" className="hover:underline text-blue-600">Register as Citizen</Link>
+          <div className="mt-8 text-sm text-text-secondary flex justify-between">
+            <Link to="/recovery" className="hover:text-brand-primary transition-colors">Forgot password?</Link>
+            <Link to="/register" className="text-brand-primary font-bold hover:opacity-80 transition-opacity">Register as Citizen</Link>
           </div>
         </div>
       </div>
