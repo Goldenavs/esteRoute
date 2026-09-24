@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom'
 
 export default function UniversalLogin() { 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md relative">
+    <div className="w-full flex justify-center">
+      <div className="bg-surface border border-border-subtle text-text-primary p-8 rounded-lg shadow-lg w-full max-w-md relative">
         <Link to="/" className="absolute top-4 left-4 text-sm text-blue-600 hover:underline">
           &larr; Back to Public Form
         </Link>
@@ -22,7 +22,7 @@ export default function UniversalLogin() {
               </Link>
             </div>
           </div>
-          <div className="mt-6 text-sm text-gray-500 flex justify-between">
+          <div className="mt-6 text-sm text-text-secondary flex justify-between">
             <Link to="/recovery" className="hover:underline">Forgot password?</Link>
             <Link to="/register" className="hover:underline text-blue-600">Register as Citizen</Link>
           </div>

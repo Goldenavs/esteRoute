@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom'
 
 export default function CitizenRegistration() { 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center relative">
+    <div className="w-full flex justify-center">
+      <div className="bg-surface border border-border-subtle text-text-primary p-8 rounded-lg shadow-lg w-full max-w-md text-center relative">
         <Link to="/login" className="absolute top-4 left-4 text-sm text-blue-600 hover:underline">
           &larr; Back to Login
         </Link>

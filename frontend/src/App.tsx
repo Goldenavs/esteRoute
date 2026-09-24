@@ -4,6 +4,7 @@ import CitizenLayout from './layouts/CitizenLayout'
 import AdminLayout from './layouts/AdminLayout'
 
 // Auth Pages
+import TemporaryAuth from './pages/auth/TemporaryAuth'
 import UniversalLogin from './pages/auth/UniversalLogin'
 import CitizenRegistration from './pages/auth/CitizenRegistration'
 import PasswordRecovery from './pages/auth/PasswordRecovery'
@@ -27,24 +28,25 @@ function App() {
       <Routes>
         {/* Auth Routing Group */}
         <Route element={<AuthLayout />}>
+          <Route path="/" element={<TemporaryAuth />} />
           <Route path="/login" element={<UniversalLogin />} />
           <Route path="/register" element={<CitizenRegistration />} />
           <Route path="/recovery" element={<PasswordRecovery />} />
         </Route>
 
         {/* Citizen Routing Group */}
-        <Route element={<CitizenLayout />}>
-          <Route path="/" element={<BlockageSubmissionForm />} />
-          <Route path="/confirmation" element={<SubmissionConfirmation />} />
-          <Route path="/public-map" element={<PublicEsteroStatusMap />} />
-          <Route path="/citizen-dashboard" element={<CitizenDashboard />} />
+        <Route path="/citizen" element={<CitizenLayout />}>
+          <Route index element={<BlockageSubmissionForm />} />
+          <Route path="confirmation" element={<SubmissionConfirmation />} />
+          <Route path="public-map" element={<PublicEsteroStatusMap />} />
+          <Route path="dashboard" element={<CitizenDashboard />} />
         </Route>
 
         {/* Admin Routing Group */}
-        <Route element={<AdminLayout />}>
-          <Route path="/admin-dashboard" element={<MainCommandDashboard />} />
-          <Route path="/analytics" element={<LGUAnalyticsOverview />} />
-          <Route path="/archive" element={<HistoricalArchiveView />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<MainCommandDashboard />} />
+          <Route path="analytics" element={<LGUAnalyticsOverview />} />
+          <Route path="archive" element={<HistoricalArchiveView />} />
         </Route>
 
         {/* Fallback */}
