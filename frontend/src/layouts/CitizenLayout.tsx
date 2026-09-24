@@ -1,93 +1,108 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Droplets, Home, MapPin, Activity, LogOut } from 'lucide-react';
+import { Droplets, Home, MapPin, Activity, LogOut, Menu, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useState } from 'react';
 
 export default function CitizenLayout() {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { name: 'Report', path: '/citizen', icon: MapPin },
+    { name: 'Report Blockage', path: '/citizen', icon: MapPin },
     { name: 'Dashboard', path: '/citizen/dashboard', icon: Home },
     { name: 'Status Map', path: '/citizen/public-map', icon: Activity },
   ];
 
   return (
-    <div className="min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300">
-      {/* Top Header */}
-      <header className="bg-brand-primary text-brand-white p-4 flex justify-between items-center shadow-md border-b border-brand-dark sticky top-0 z-50 transition-colors duration-300">
-        <div className="flex items-center gap-8">
-          <Link to="/citizen" className="flex items-center gap-2 font-heading font-bold text-xl hover:opacity-80 transition-opacity">
-            <Droplets className="w-6 h-6" />
-            <span>esteRoute Citizen</span>
-          </Link>
-          
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-2">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
-              return (
-                <Link 
-                  key={item.path} 
-                  to={item.path}
-                  className={twMerge(
-                    clsx(
-                      "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm",
-                      isActive 
-                        ? "bg-brand-white/20 text-brand-white" 
-                        : "text-brand-light hover:bg-brand-white/10 hover:text-brand-white"
-                    )
-                  )}
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-black/10 transition-colors">
+    <div className="min-h-screen bg-app-bg text-text-primary flex flex-col md:flex-row transition-colors duration-300">
+      
+      {/* Mobile Topbar */}
+      <div className="md:hidden p-4 border-b border-border-subtle bg-surface flex justify-between items-center sticky top-0 z-50">
+        <Link to="/citizen" className="flex items-center gap-2 text-brand-primary font-heading font-bold text-xl">
+          <Droplets className="w-6 h-6" />
+          <span>esteRoute Citizen</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-surface-subtle transition-colors">
             {theme === 'light' ? '🌙' : '☀️'}
           </button>
-          <Link to="/login" className="flex items-center gap-2 text-sm font-medium hover:text-brand-light transition-colors">
-            <LogOut className="w-4 h-4 hidden sm:block" />
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 rounded-lg hover:bg-surface-subtle transition-colors">
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Sidebar / Mobile Drawer */}
+      <aside className={twMerge(
+        clsx(
+          "fixed md:static inset-y-0 left-0 z-40 w-64 bg-surface border-r border-border-subtle flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        )
+      )}>
+        <div className="p-6 border-b border-border-subtle hidden md:block">
+          <Link to="/citizen" className="flex items-center gap-2 text-brand-primary font-heading font-bold text-2xl hover:opacity-80 transition-opacity">
+            <Droplets className="w-8 h-8" />
+            <span>esteRoute</span>
+          </Link>
+          <span className="text-xs uppercase tracking-widest text-text-secondary font-bold mt-1 block pl-10">Citizen Portal</span>
+        </div>
+        
+        <nav className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto mt-4 md:mt-0">
+          <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2 ml-2">Main Menu</div>
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
+            return (
+              <Link 
+                key={item.path} 
+                to={item.path}
+                onClick={() => setMobileMenuOpen(false)}
+                className={twMerge(
+                  clsx(
+                    "flex items-center gap-3 p-3 rounded-xl transition-all font-medium",
+                    isActive 
+                      ? "bg-brand-primary text-brand-white shadow-md" 
+                      : "hover:bg-surface-subtle text-text-secondary hover:text-brand-primary"
+                  )
+                )}
+              >
+                <item.icon className={twMerge(clsx("w-5 h-5", isActive && "fill-current/20"))} />
+                <span>{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+        
+        <div className="p-4 border-t border-border-subtle">
+          <div className="flex items-center justify-between mb-4 hidden md:flex p-2 bg-app-bg rounded-xl border border-border-subtle">
+            <span className="text-sm font-medium">Theme</span>
+            <button onClick={toggleTheme} className="p-2 rounded-lg bg-surface shadow-sm hover:ring-2 ring-brand-primary/50 transition-all text-sm font-medium">
+              {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
+            </button>
+          </div>
+          <Link to="/login" className="flex items-center gap-3 p-3 rounded-xl text-semantic-urgent hover:bg-surface-subtle transition-colors font-medium">
+            <LogOut className="w-5 h-5" />
             <span>Logout</span>
           </Link>
         </div>
-      </header>
+      </aside>
+
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/50 z-30 animate-fade-in"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
 
       {/* Main Content Area */}
-      <main className="flex-1 pb-20 md:pb-8 relative animate-fade-in p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-        <Outlet />
+      <main className="flex-1 bg-app-bg overflow-x-hidden relative flex flex-col h-[calc(100vh-73px)] md:h-screen">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in">
+          <Outlet />
+        </div>
       </main>
-
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 w-full bg-surface border-t border-border-subtle flex justify-around p-3 z-50 transition-colors duration-300">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
-          return (
-            <Link 
-              key={item.path} 
-              to={item.path}
-              className={twMerge(
-                clsx(
-                  "flex flex-col items-center gap-1 text-xs transition-colors",
-                  isActive
-                    ? "text-brand-primary font-bold" 
-                    : "text-text-secondary hover:text-brand-primary"
-                )
-              )}
-            >
-              <item.icon className={twMerge(clsx("w-6 h-6", isActive && "fill-current/20"))} />
-              <span>{item.name}</span>
-            </Link>
-          );
-        })}
-      </nav>
     </div>
   );
 }
