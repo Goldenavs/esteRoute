@@ -175,35 +175,6 @@ export default function FaqsSection() {
           </AnimatePresence>
         </div>
 
-        {/* Contact Banner */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-20 border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 p-10 -skew-x-12 relative overflow-hidden bg-surface group"
-        >
-          <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none skew-x-12 scale-150" />
-          
-          <div className="skew-x-12 flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-8 relative z-10">
-            <div>
-              <h3 className="text-2xl md:text-3xl font-heading font-black text-text-primary group-hover:text-brand-primary transition-colors uppercase tracking-tight">
-                LGU Partnership Inquiry?
-              </h3>
-              <p className="text-base text-text-secondary mt-2 font-medium">
-                Want to integrate the esteRoute triage pipeline in your municipality?
-              </p>
-            </div>
-            <a 
-              href="mailto:contact@esteroute.gov" 
-              className="shrink-0 inline-flex items-center gap-3 px-8 py-4 bg-app-bg border-2 border-border-subtle group-hover:border-brand-primary font-heading font-black uppercase tracking-widest text-text-primary rounded-none hover:bg-brand-primary hover:text-brand-white transition-all duration-300 cursor-pointer -skew-x-12"
-            >
-              <div className="skew-x-12 flex items-center gap-3">
-                <Mail className="w-5 h-5" />
-                <span>contact@esteroute.gov</span>
-              </div>
-            </a>
-          </div>
-        </motion.div>
 
       </div>
     </section>

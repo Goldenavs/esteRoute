@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform, type Variants } from 'framer-motion';
-import { Camera, Sparkles, CloudRain, MonitorDot } from 'lucide-react';
+import { Camera, Sparkles, CloudRain, MonitorDot, Zap } from 'lucide-react';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -46,6 +46,10 @@ export default function FeaturesSection() {
           viewport={{ once: true, margin: "-100px" }}
           className="mb-16"
         >
+          <div className="inline-flex items-center justify-center px-4 py-2 bg-brand-primary/10 border-2 border-brand-primary/20 -skew-x-12 mb-6">
+            <Zap className="w-4 h-4 text-brand-primary skew-x-12 mr-2" />
+            <span className="skew-x-12 text-xs font-heading font-black tracking-widest text-brand-primary uppercase">Core Features</span>
+          </div>
           <h2 className="text-4xl lg:text-6xl font-heading font-black text-text-primary mb-4 flex flex-col items-start tracking-tighter uppercase">
             <ScrollWriteText>Triage infrastructure.</ScrollWriteText>
             <ScrollWriteText className="text-text-muted mt-2">Powered by AI.</ScrollWriteText>
