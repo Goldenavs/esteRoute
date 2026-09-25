@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldAlert, Navigation, MonitorDot, Camera, MapPin, Sprout, ChevronDown, ArrowRight, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { useTheme } from '../../context/ThemeContext';
 
 const AnimatedLink = ({ 
   title, 
@@ -31,6 +32,7 @@ const AnimatedLink = ({
 
 export default function UniversalLogin() {
   const [hoveredPanel, setHoveredPanel] = useState<'admin' | 'citizen' | null>(null);
+  const { theme, toggleTheme } = useTheme();
   
   // Navbar states
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -38,17 +40,12 @@ export default function UniversalLogin() {
   const [isScrolled, setIsScrolled] = useState(false);
   const isScrollingRef = useRef(false);
 
-  // Parallax Scroll Effects for Hero Section
-  const { scrollY } = useScroll();
-  // Hero fades out and shrinks slightly as we scroll down to 'features'
-  const heroOpacity = useTransform(scrollY, [0, typeof window !== 'undefined' ? window.innerHeight * 0.8 : 800], [1, 0]);
-  const heroScale = useTransform(scrollY, [0, typeof window !== 'undefined' ? window.innerHeight : 800], [1, 0.95]);
-  const heroY = useTransform(scrollY, [0, typeof window !== 'undefined' ? window.innerHeight : 800], [0, 150]);
+  // Parallax Scroll Effects for Hero Section removed for performance
 
   useEffect(() => {
     const handleScroll = () => {
-      // Show navbar pill when scrolled past 10vh
-      setIsScrolled(window.scrollY > window.innerHeight * 0.1);
+      // Show navbar when scrolled past the hero section
+      setIsScrolled(window.scrollY > window.innerHeight * 0.95);
 
       if (isScrollingRef.current) return;
       
@@ -103,25 +100,29 @@ export default function UniversalLogin() {
     <div className="min-h-screen bg-app-bg text-text-primary w-full overflow-x-hidden">
       
       {/* Sleek Floating Navbar matching the requested styling */}
-      <div className={`fixed top-0 w-full z-50 pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] ${isScrolled ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="flex flex-col items-center px-4 md:px-6 py-4 sm:py-6">
-          <div className="w-full max-w-4xl relative pointer-events-none">
+      <div className={`fixed top-4 w-full z-50 pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] ${isScrolled ? 'translate-y-0' : '-translate-y-[150%]'}`}>
+        <div className="flex flex-col items-center px-4 md:px-6">
+          <div className="w-full max-w-[95%] xl:max-w-7xl relative pointer-events-none">
             
-            <div className="w-full flex items-center justify-between lg:justify-evenly pointer-events-auto bg-surface/80 backdrop-blur-2xl border border-border-subtle rounded-full px-6 sm:px-10 py-3 shadow-lg shadow-black/5 transition-all duration-500 hover:border-border-strong hover:shadow-xl">
+            <div className="w-full flex items-center justify-between pointer-events-auto bg-surface/80 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-lg shadow-black/5 transition-all duration-500 hover:border-border-strong hover:shadow-xl -skew-x-12">
               
-              <button 
-                onClick={() => scrollTo('hero')}
-                className="font-heading relative overflow-hidden text-base sm:text-lg font-black tracking-tighter uppercase group grid shrink-0 cursor-pointer"
-              >
-                <span className={`col-start-1 row-start-1 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${activeSection === 'hero' ? '-translate-y-full text-text-primary' : 'group-hover:-translate-y-full text-text-primary'}`}>
-                  este<span className="text-brand-primary">Route</span>
-                </span>
-                <span className={`col-start-1 row-start-1 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] text-brand-primary ${activeSection === 'hero' ? 'translate-y-0' : 'translate-y-full group-hover:translate-y-0'}`}>
-                  Home<span className="text-text-primary">Page</span>
-                </span>
-              </button>
+              {/* Left: Logo */}
+              <div className="flex-1 flex justify-start skew-x-12">
+                <button 
+                  onClick={() => scrollTo('hero')}
+                  className="font-heading relative overflow-hidden text-base sm:text-lg font-black tracking-tighter uppercase group grid shrink-0 cursor-pointer"
+                >
+                  <span className={`col-start-1 row-start-1 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${activeSection === 'hero' ? '-translate-y-full text-text-primary' : 'group-hover:-translate-y-full text-text-primary'}`}>
+                    este<span className="text-brand-primary">Route</span>
+                  </span>
+                  <span className={`col-start-1 row-start-1 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] text-brand-primary ${activeSection === 'hero' ? 'translate-y-0' : 'translate-y-full group-hover:translate-y-0'}`}>
+                    Home<span className="text-text-primary">Page</span>
+                  </span>
+                </button>
+              </div>
 
-              <div className="hidden lg:flex items-center gap-8">
+              {/* Center: Navigation Links */}
+              <div className="hidden lg:flex flex-1 justify-center items-center gap-8 skew-x-12">
                 {links.map((link) => (
                   <AnimatedLink 
                     key={link.id} 
@@ -133,21 +134,36 @@ export default function UniversalLogin() {
                 ))}
               </div>
 
-              {/* Login Buttons aligned with the sleek style */}
-              <div className="hidden lg:flex items-center gap-4">
+              {/* Right: Actions (Admin, Citizen, Theme) */}
+              <div className="hidden lg:flex flex-1 justify-end items-center gap-4 skew-x-12">
+                <Link to="/admin" className="text-[10px] xl:text-xs font-bold text-text-muted hover:text-brand-primary transition-colors uppercase tracking-widest">
+                  Admin
+                </Link>
+                <div className="w-px h-4 bg-border-strong"></div>
                 <Link to="/citizen" className="text-[10px] xl:text-xs font-bold text-brand-primary hover:text-brand-primary/80 transition-colors uppercase tracking-widest">
                   Citizen
                 </Link>
                 <div className="w-px h-4 bg-border-strong"></div>
-                <Link to="/admin" className="text-[10px] xl:text-xs font-bold text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest">
-                  Admin
-                </Link>
+                <button 
+                  onClick={toggleTheme} 
+                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-muted hover:text-text-primary"
+                  aria-label="Toggle Theme"
+                >
+                  {theme === 'light' ? '🌙' : '☀️'}
+                </button>
               </div>
 
-              <div className="flex items-center shrink-0 lg:hidden">
+              {/* Mobile Actions */}
+              <div className="flex items-center gap-4 shrink-0 lg:hidden skew-x-12">
+                <button 
+                  onClick={toggleTheme} 
+                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-muted pointer-events-auto"
+                >
+                  {theme === 'light' ? '🌙' : '☀️'}
+                </button>
                 <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="flex items-center justify-center p-2 text-text-muted hover:text-brand-primary transition-colors pointer-events-auto shrink-0 bg-surface rounded-full border border-border-subtle cursor-pointer"
+                  className="flex items-center justify-center p-2 text-text-muted hover:text-brand-primary transition-colors pointer-events-auto shrink-0 bg-surface rounded-sm border border-border-subtle cursor-pointer"
                 >
                   {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
                 </button>
@@ -164,7 +180,7 @@ export default function UniversalLogin() {
                   transition={{ duration: 0.3, ease: [0.76, 0, 0.24, 1] }}
                   className="absolute top-full mt-4 left-0 w-full pointer-events-auto lg:hidden"
                 >
-                  <div className="bg-surface/95 backdrop-blur-3xl border border-border-subtle rounded-[2rem] p-6 flex flex-col gap-5 shadow-2xl">
+                  <div className="bg-surface/95 backdrop-blur-3xl border border-border-subtle rounded-sm p-6 flex flex-col gap-5 shadow-2xl">
                     {links.map((link) => (
                       <div key={link.id} className="border-b border-border-subtle/50 pb-4">
                         <AnimatedLink 
@@ -191,14 +207,13 @@ export default function UniversalLogin() {
       {/* ---------------- SECTIONS ---------------- */}
 
       {/* Hero Section */}
-      <motion.section 
+      <section 
         id="hero" 
         className="relative h-screen w-full overflow-hidden bg-app-bg"
-        style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
       >
          {/* Left Side: Dispatcher / Admin (CURRENT THEME) */}
          <motion.div 
-          className="absolute inset-0 w-full h-full bg-surface group origin-left"
+          className="absolute inset-0 w-full h-full bg-surface group origin-left overflow-hidden"
           initial={false}
           animate={{
             clipPath: hoveredPanel === 'admin' 
@@ -249,7 +264,7 @@ export default function UniversalLogin() {
 
         {/* Right Side: Citizen (OPPOSITE THEME) */}
         <motion.div 
-          className="absolute inset-0 w-full h-full bg-text-primary group origin-right"
+          className="absolute inset-0 w-full h-full bg-text-primary group origin-right overflow-hidden"
           initial={false}
           animate={{
             clipPath: hoveredPanel === 'citizen'
@@ -304,9 +319,9 @@ export default function UniversalLogin() {
           <span className="text-[10px] font-bold uppercase tracking-widest mb-2 drop-shadow-md">Explore esteRoute</span>
           <ChevronDown className="w-5 h-5 drop-shadow-md" />
         </div>
-      </motion.section>
+      </section>
 
-      <section id="features" className="min-h-screen bg-app-bg py-24 px-8 flex flex-col items-center justify-center border-t border-border-subtle">
+      <section id="features" className="min-h-screen bg-app-bg py-24 px-8 flex flex-col items-center justify-center">
         <h2 className="text-3xl md:text-5xl font-heading font-bold mb-6 text-text-primary text-center">Features Section</h2>
         <p className="text-text-secondary">Placeholder for Features (Reporting, Dispatch, etc.)...</p>
       </section>
