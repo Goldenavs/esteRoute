@@ -174,18 +174,19 @@ export default function CoreEngineSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="group bg-app-bg border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 p-8 -skew-x-12 relative overflow-hidden"
           >
-             <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none skew-x-12 scale-150" />
-             <div className="skew-x-12 h-full flex flex-col justify-center">
-               <div className="w-12 h-12 bg-brand-primary/10 border-2 border-brand-primary/20 flex items-center justify-center mb-6 -skew-x-12">
-                 <Sparkles className="w-5 h-5 text-brand-primary skew-x-12" />
-               </div>
-               <h3 className="text-xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">Multimodal Vision</h3>
-               <p className="text-text-secondary leading-relaxed">
-                 Uses Google Gemini 1.5 Flash to automatically classify blockage severity and identify specific waste types (plastics, silt) directly from photos without human review.
-               </p>
-             </div>
+            <div className="group bg-app-bg border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 p-8 -skew-x-12 relative overflow-hidden h-full">
+              <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
+              <div className="skew-x-12 h-full flex flex-col justify-center">
+                <div className="w-12 h-12 bg-brand-primary/10 border-2 border-brand-primary/20 flex items-center justify-center mb-6">
+                  <Sparkles className="w-5 h-5 text-brand-primary" />
+                </div>
+                <h3 className="text-xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">Multimodal Vision</h3>
+                <p className="text-text-secondary leading-relaxed">
+                  Uses Google Gemini 1.5 Flash to automatically classify blockage severity and identify specific waste types (plastics, silt) directly from photos without human review.
+                </p>
+              </div>
+            </div>
           </motion.div>
 
           <motion.div
@@ -193,18 +194,19 @@ export default function CoreEngineSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="group bg-app-bg border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-300 p-8 -skew-x-12 relative overflow-hidden"
           >
-             <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none skew-x-12 scale-150" />
-             <div className="skew-x-12 h-full flex flex-col justify-center">
-               <div className="w-12 h-12 bg-[#38bdf8]/10 border-2 border-[#38bdf8]/20 flex items-center justify-center mb-6 -skew-x-12">
-                 <CloudRain className="w-5 h-5 text-[#38bdf8] skew-x-12" />
-               </div>
-               <h3 className="text-xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">Weather Synthesis</h3>
-               <p className="text-text-secondary leading-relaxed">
-                 Cross-references Open-Meteo's 48-hour precipitation data. The Synthesis Engine calculates a 60/40 weighted Priority Score combining physical severity and imminent rain risk.
-               </p>
-             </div>
+            <div className="group bg-app-bg border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-300 p-8 -skew-x-12 relative overflow-hidden h-full">
+              <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
+              <div className="skew-x-12 h-full flex flex-col justify-center">
+                <div className="w-12 h-12 bg-[#38bdf8]/10 border-2 border-[#38bdf8]/20 flex items-center justify-center mb-6">
+                  <CloudRain className="w-5 h-5 text-[#38bdf8]" />
+                </div>
+                <h3 className="text-xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">Weather Synthesis</h3>
+                <p className="text-text-secondary leading-relaxed">
+                  Cross-references Open-Meteo's 48-hour precipitation data. The Synthesis Engine calculates a 60/40 weighted Priority Score combining physical severity and imminent rain risk.
+                </p>
+              </div>
+            </div>
           </motion.div>
         </div>
 
