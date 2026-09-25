@@ -97,17 +97,17 @@ export default function FeaturesSection() {
 
           {/* Feature 2: Meteorological (1 col) */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-brand-dark border-2 border-brand-dark hover:border-brand-primary transition-all duration-300 shadow-sm hover:shadow-xl -skew-x-12 p-8 h-full">
+            <div className="group relative bg-surface border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 shadow-sm hover:shadow-xl -skew-x-12 p-8 h-full">
               <div className="skew-x-12 h-full flex flex-col justify-between">
                 <div className="flex flex-col gap-6 items-start mb-8">
-                  <div className="shrink-0 w-14 h-14 bg-white/10 border-2 border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <CloudRain className="w-6 h-6 text-white" />
+                  <div className="shrink-0 w-14 h-14 bg-brand-primary/10 border-2 border-brand-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <CloudRain className="w-6 h-6 text-brand-primary" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-black text-2xl text-white mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
+                    <h3 className="font-heading font-black text-2xl text-text-primary mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                       Meteorological Agent
                     </h3>
-                    <p className="text-base text-text-muted leading-relaxed font-medium">
+                    <p className="text-base text-text-secondary leading-relaxed font-medium">
                       Cross-references 48-hour precipitation data via Open-Meteo. Computes rain probability index to preempt flash floods.
                     </p>
                   </div>
