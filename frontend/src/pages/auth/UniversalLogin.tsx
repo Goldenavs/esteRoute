@@ -18,7 +18,7 @@ const AnimatedLink = ({
   return (
     <button 
       onClick={() => onClick(id)}
-      className="font-heading relative overflow-hidden group cursor-pointer text-[10px] xl:text-xs font-bold uppercase tracking-widest text-text-muted block shrink-0"
+      className="font-heading relative overflow-hidden group cursor-pointer text-xs xl:text-sm font-bold uppercase tracking-widest text-text-muted block shrink-0"
     >
       <span className={`block transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${isActive ? '-translate-y-full text-brand-primary' : 'group-hover:-translate-y-full text-text-primary'}`}>
         {title}
@@ -44,8 +44,8 @@ export default function UniversalLogin() {
 
   useEffect(() => {
     const handleScroll = () => {
-      // Show navbar when scrolled past the hero section
-      setIsScrolled(window.scrollY > window.innerHeight * 0.95);
+      // Show navbar when scrolled past the hero section (accounting for offset)
+      setIsScrolled(window.scrollY > window.innerHeight - 150);
 
       if (isScrollingRef.current) return;
       
@@ -122,7 +122,7 @@ export default function UniversalLogin() {
               </div>
 
               {/* Center: Navigation Links */}
-              <div className="hidden lg:flex flex-1 justify-center items-center gap-8 skew-x-12">
+              <div className="hidden lg:flex flex-1 justify-center items-center gap-12 xl:gap-16 skew-x-12">
                 {links.map((link) => (
                   <AnimatedLink 
                     key={link.id} 
@@ -135,12 +135,12 @@ export default function UniversalLogin() {
               </div>
 
               {/* Right: Actions (Admin, Citizen, Theme) */}
-              <div className="hidden lg:flex flex-1 justify-end items-center gap-4 skew-x-12">
-                <Link to="/admin" className="text-[10px] xl:text-xs font-bold text-text-muted hover:text-brand-primary transition-colors uppercase tracking-widest">
+              <div className="hidden lg:flex flex-1 justify-end items-center gap-6 skew-x-12">
+                <Link to="/admin" className="text-xs xl:text-sm font-bold text-text-muted hover:text-brand-primary transition-colors uppercase tracking-widest">
                   Admin
                 </Link>
                 <div className="w-px h-4 bg-border-strong"></div>
-                <Link to="/citizen" className="text-[10px] xl:text-xs font-bold text-brand-primary hover:text-brand-primary/80 transition-colors uppercase tracking-widest">
+                <Link to="/citizen" className="text-xs xl:text-sm font-bold text-brand-primary hover:text-brand-primary/80 transition-colors uppercase tracking-widest">
                   Citizen
                 </Link>
                 <div className="w-px h-4 bg-border-strong"></div>
@@ -313,7 +313,7 @@ export default function UniversalLogin() {
           </motion.div>
         </motion.div>
         <div 
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce text-text-muted z-40 hidden md:flex cursor-pointer hover:text-brand-primary transition-colors"
+          className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-40 hidden md:flex cursor-pointer transition-colors ${theme === 'dark' ? 'text-brand-primary' : 'text-white'}`}
           onClick={() => scrollTo('features')}
         >
           <span className="text-[10px] font-bold uppercase tracking-widest mb-2 drop-shadow-md">Explore esteRoute</span>
