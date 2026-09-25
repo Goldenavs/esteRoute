@@ -184,65 +184,96 @@ export default function UniversalLogin() {
       {/* ---------------- SECTIONS ---------------- */}
 
       {/* Hero Section */}
-      <section id="hero" className="relative h-screen w-full flex flex-col md:flex-row">
+      <section id="hero" className="relative h-screen w-full overflow-hidden bg-app-bg">
          {/* Left Side: Dispatcher / Admin */}
-         <div 
-          className="relative h-1/2 md:h-full flex flex-col justify-center items-center p-8 transition-all duration-700 ease-in-out border-b md:border-b-0 md:border-r border-border-subtle bg-surface/50 overflow-hidden group"
-          style={{ flex: adminFlex }}
+         <motion.div 
+          className="absolute inset-0 w-full h-full bg-surface group origin-left"
+          style={{ 
+            clipPath: 'polygon(0 0, 55% 0, 45% 100%, 0 100%)' // Exact cut at 55% top, 45% bottom
+          }}
+          initial={{ opacity: 1 }}
+          animate={{
+            scale: hoveredPanel === 'admin' ? 1.05 : hoveredPanel === 'citizen' ? 0.95 : 1,
+            opacity: hoveredPanel === 'citizen' ? 0.4 : 1,
+            filter: hoveredPanel === 'citizen' ? 'blur(8px) brightness(0.7)' : 'blur(0px) brightness(1)',
+            zIndex: hoveredPanel === 'admin' ? 20 : 10,
+          }}
+          transition={{ type: "spring", stiffness: 200, damping: 30 }}
           onMouseEnter={() => setHoveredPanel('admin')}
           onMouseLeave={() => setHoveredPanel(null)}
         >
-          <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-dark via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 opacity-10 group-hover:opacity-30 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-dark via-transparent to-transparent pointer-events-none" />
           
-          <div className="relative z-10 max-w-md w-full flex flex-col items-center md:items-start text-center md:text-left transition-transform duration-700 group-hover:-translate-y-2">
-            <div className="bg-brand-dark/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-dark/30 group-hover:ring-brand-dark transition-all">
+          {/* Inner Content Container - constrained to left half */}
+          <div className="absolute left-0 top-0 w-full md:w-1/2 h-full flex flex-col justify-center items-center md:items-start p-8 lg:p-16 z-10">
+            <div className="bg-brand-dark/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-dark/30 shadow-[0_0_30px_rgba(var(--brand-dark),0.3)]">
               <ShieldAlert className="w-10 h-10 text-brand-dark" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4 tracking-tight">LGU Command</h1>
-            <p className="text-text-secondary text-lg mb-8">Dispatcher portal for real-time estero blockage monitoring, AI-optimized drone routes, and clean-up fleet management.</p>
+            <h1 className="text-4xl md:text-5xl font-heading font-black mb-4 tracking-tighter drop-shadow-lg">LGU Command</h1>
+            <p className="text-text-secondary text-lg mb-8 font-medium">Dispatcher portal for real-time estero blockage monitoring, AI-optimized drone routes, and clean-up fleet management.</p>
             <div className="space-y-4 mb-10 w-full">
               <FeatureItem icon={<Navigation className="w-5 h-5 text-brand-dark" />} text="A* Pathfinding for Cleanup Routes" />
               <FeatureItem icon={<MonitorDot className="w-5 h-5 text-brand-dark" />} text="Live Fleet & Drone Dispatch" />
             </div>
-            <Link to="/admin" className="w-full md:w-auto flex items-center justify-center gap-2 bg-brand-dark text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-brand-dark/20 transition-all hover:-translate-y-1">
+            <Link to="/admin" className="w-full md:w-auto flex items-center justify-center gap-2 bg-brand-dark text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-brand-dark/40 transition-all hover:-translate-y-1">
               Enter Dispatch Portal
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
-        </div>
+        </motion.div>
 
         {/* Right Side: Citizen */}
-        <div 
-          className="relative h-1/2 md:h-full flex flex-col justify-center items-center p-8 transition-all duration-700 ease-in-out bg-surface/20 overflow-hidden group"
-          style={{ flex: citizenFlex }}
+        <motion.div 
+          className="absolute inset-0 w-full h-full bg-brand-primary/10 group origin-right"
+          style={{ 
+            clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 45% 100%)' // Perfectly complements the left panel
+          }}
+          initial={{ opacity: 1 }}
+          animate={{
+            scale: hoveredPanel === 'citizen' ? 1.05 : hoveredPanel === 'admin' ? 0.95 : 1,
+            opacity: hoveredPanel === 'admin' ? 0.4 : 1,
+            filter: hoveredPanel === 'admin' ? 'blur(8px) brightness(0.7)' : 'blur(0px) brightness(1)',
+            zIndex: hoveredPanel === 'citizen' ? 20 : 10,
+          }}
+          transition={{ type: "spring", stiffness: 200, damping: 30 }}
           onMouseEnter={() => setHoveredPanel('citizen')}
           onMouseLeave={() => setHoveredPanel(null)}
         >
-           <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary via-transparent to-transparent pointer-events-none" />
+           <div className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary via-transparent to-transparent pointer-events-none" />
           
-          <div className="relative z-10 max-w-md w-full flex flex-col items-center md:items-start text-center md:text-left transition-transform duration-700 group-hover:-translate-y-2">
-            <div className="bg-brand-primary/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-primary/30 group-hover:ring-brand-primary transition-all">
+           {/* Inner Content Container - constrained to right half */}
+          <div className="absolute right-0 top-0 w-full md:w-1/2 h-full flex flex-col justify-center items-center md:items-start p-8 lg:p-16 z-10 md:pl-12">
+            <div className="bg-brand-primary/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-primary/30 shadow-[0_0_30px_rgba(var(--brand-primary),0.3)]">
               <Sprout className="w-10 h-10 text-brand-primary" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4 tracking-tight">Citizen Portal</h1>
-            <p className="text-text-secondary text-lg mb-8">Community gateway to report floating waste, view public waterway safety maps, and track local clean-up progress.</p>
+            <h1 className="text-4xl md:text-5xl font-heading font-black mb-4 tracking-tighter drop-shadow-lg">Citizen Portal</h1>
+            <p className="text-text-secondary text-lg mb-8 font-medium">Community gateway to report floating waste, view public waterway safety maps, and track local clean-up progress.</p>
             <div className="space-y-4 mb-10 w-full">
               <FeatureItem icon={<Camera className="w-5 h-5 text-brand-primary" />} text="Geo-tagged Blockage Reporting" />
               <FeatureItem icon={<MapPin className="w-5 h-5 text-brand-primary" />} text="Public Estero Status Map" />
             </div>
-            <Link to="/citizen" className="w-full md:w-auto flex items-center justify-center gap-2 bg-brand-primary text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-brand-primary/20 transition-all hover:-translate-y-1">
+            <Link to="/citizen" className="w-full md:w-auto flex items-center justify-center gap-2 bg-brand-primary text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-brand-primary/40 transition-all hover:-translate-y-1">
               Enter Citizen Portal
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
-        </div>
+        </motion.div>
+
+        {/* Separator Lighting Line */}
+        <div 
+          className="absolute top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-brand-primary to-transparent blur-[2px] z-30 pointer-events-none hidden md:block"
+          style={{
+            left: '50%',
+            transform: 'translateX(-50%) skewX(-11.3deg)', // Matches the 55% to 45% diagonal slope
+          }}
+        />
 
         <div 
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce text-text-muted z-20 hidden md:flex cursor-pointer hover:text-brand-primary transition-colors"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce text-text-muted z-40 hidden md:flex cursor-pointer hover:text-brand-primary transition-colors"
           onClick={() => scrollTo('features')}
         >
-          <span className="text-[10px] font-bold uppercase tracking-widest mb-2">Explore esteRoute</span>
-          <ChevronDown className="w-5 h-5" />
+          <span className="text-[10px] font-bold uppercase tracking-widest mb-2 drop-shadow-md">Explore esteRoute</span>
+          <ChevronDown className="w-5 h-5 drop-shadow-md" />
         </div>
       </section>
 
