@@ -34,9 +34,19 @@ const ScrollWriteText = ({ children, className = "" }: { children: React.ReactNo
 };
 
 export default function FeaturesSection() {
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["end end", "end start"]
+  });
+  
+  // Parallax effect: moves down and fades out as it scrolls up
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
+  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0.3]);
+
   return (
-    <section id="features" className="py-24 px-6 lg:px-16 bg-app-bg relative overflow-hidden">
-      <div className="w-full max-w-7xl mx-auto">
+    <section id="features" ref={ref} className="py-24 px-6 lg:px-16 bg-app-bg relative z-10 overflow-hidden">
+      <motion.div style={{ y, opacity }} className="w-full max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -156,7 +166,7 @@ export default function FeaturesSection() {
           </motion.div>
 
         </motion.div>
-      </div>
+      </motion.div>
     </section>
   );
 }
