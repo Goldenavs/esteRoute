@@ -202,11 +202,14 @@ export default function UniversalLogin() {
           onMouseEnter={() => setHoveredPanel('admin')}
           onMouseLeave={() => setHoveredPanel(null)}
         >
-          <div className="absolute inset-0 opacity-10 group-hover:opacity-30 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-dark via-transparent to-transparent pointer-events-none" />
+          {/* Cinematic Background Image with Parallax Hover */}
+          <div className="absolute inset-0 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center opacity-10 group-hover:opacity-30 transition-all duration-1000 group-hover:scale-105 pointer-events-none" />
+          
+          <div className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-dark via-surface/80 to-surface pointer-events-none" />
           
           {/* Inner Content Container - constrained to left half */}
           <div className="absolute left-0 top-0 w-full md:w-1/2 h-full flex flex-col justify-center items-center md:items-start p-8 lg:p-16 z-10">
-            <div className="bg-brand-dark/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-dark/30 shadow-[0_0_30px_rgba(var(--brand-dark),0.3)]">
+            <div className="bg-brand-dark/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-dark/30 shadow-[0_0_30px_rgba(var(--brand-dark),0.3)] backdrop-blur-md">
               <ShieldAlert className="w-10 h-10 text-brand-dark" />
             </div>
             <h1 className="text-4xl md:text-5xl font-heading font-black mb-4 tracking-tighter drop-shadow-lg">LGU Command</h1>
@@ -224,7 +227,7 @@ export default function UniversalLogin() {
 
         {/* Right Side: Citizen */}
         <motion.div 
-          className="absolute inset-0 w-full h-full bg-brand-primary/10 group origin-right"
+          className="absolute inset-0 w-full h-full bg-brand-primary/5 group origin-right"
           style={{ 
             clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 45% 100%)' // Perfectly complements the left panel
           }}
@@ -239,11 +242,14 @@ export default function UniversalLogin() {
           onMouseEnter={() => setHoveredPanel('citizen')}
           onMouseLeave={() => setHoveredPanel(null)}
         >
-           <div className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary via-transparent to-transparent pointer-events-none" />
+           {/* Cinematic Background Image with Parallax Hover */}
+           <div className="absolute inset-0 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center opacity-10 group-hover:opacity-30 transition-all duration-1000 group-hover:scale-105 pointer-events-none" />
+           
+           <div className="absolute inset-0 opacity-30 group-hover:opacity-50 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/40 via-app-bg/90 to-app-bg pointer-events-none" />
           
            {/* Inner Content Container - constrained to right half */}
           <div className="absolute right-0 top-0 w-full md:w-1/2 h-full flex flex-col justify-center items-center md:items-start p-8 lg:p-16 z-10 md:pl-12">
-            <div className="bg-brand-primary/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-primary/30 shadow-[0_0_30px_rgba(var(--brand-primary),0.3)]">
+            <div className="bg-brand-primary/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-primary/30 shadow-[0_0_30px_rgba(var(--brand-primary),0.3)] backdrop-blur-md">
               <Sprout className="w-10 h-10 text-brand-primary" />
             </div>
             <h1 className="text-4xl md:text-5xl font-heading font-black mb-4 tracking-tighter drop-shadow-lg">Citizen Portal</h1>
@@ -258,15 +264,6 @@ export default function UniversalLogin() {
             </Link>
           </div>
         </motion.div>
-
-        {/* Separator Lighting Line */}
-        <div 
-          className="absolute top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-brand-primary to-transparent blur-[2px] z-30 pointer-events-none hidden md:block"
-          style={{
-            left: '50%',
-            transform: 'translateX(-50%) skewX(-11.3deg)', // Matches the 55% to 45% diagonal slope
-          }}
-        />
 
         <div 
           className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce text-text-muted z-40 hidden md:flex cursor-pointer hover:text-brand-primary transition-colors"
