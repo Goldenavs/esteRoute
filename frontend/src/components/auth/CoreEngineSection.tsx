@@ -22,7 +22,7 @@ const ScrollWriteText = ({ children, className = "" }: { children: React.ReactNo
   );
 };
 
-const SharpNode = ({ icon, label, sublabel, borderColor, iconColor, delay }: any) => (
+const SharpNode = ({ icon, label, sublabel, borderColor, iconColor, bgColor = "bg-app-bg", delay }: any) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.8 }}
     whileInView={{ opacity: 1, scale: 1 }}
@@ -30,12 +30,12 @@ const SharpNode = ({ icon, label, sublabel, borderColor, iconColor, delay }: any
     transition={{ delay, type: "spring", stiffness: 200, damping: 20 }}
     className="flex flex-col items-center z-10 relative group"
   >
-    <div className={`w-20 h-20 md:w-28 md:h-28 -skew-x-12 border-2 bg-surface flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-xl ${borderColor}`}>
+    <div className={`w-20 h-20 md:w-28 md:h-28 -skew-x-12 border-2 flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-xl ${bgColor} ${borderColor}`}>
       <div className={`skew-x-12 w-8 h-8 md:w-12 md:h-12 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full transition-transform duration-300 transform group-hover:scale-110 ${iconColor}`}>
         {icon}
       </div>
     </div>
-    <div className={`mt-6 px-4 py-2 border-2 -skew-x-12 bg-surface text-[10px] md:text-xs font-heading font-black tracking-widest uppercase shadow-md transition-colors ${borderColor}`}>
+    <div className={`mt-6 px-4 py-2 border-2 -skew-x-12 text-[10px] md:text-xs font-heading font-black tracking-widest uppercase shadow-md transition-colors ${bgColor} ${borderColor}`}>
       <div className="skew-x-12 flex flex-col items-center text-text-primary">
         <span>{label}</span>
         {sublabel && <span className="text-[9px] text-brand-primary mt-1">{sublabel}</span>}
@@ -91,8 +91,25 @@ export default function CoreEngineSection() {
         </motion.div>
 
         {/* Animated Flowchart */}
-        <div className="w-full relative mt-12 py-12 mb-20 overflow-x-auto overflow-y-visible custom-scrollbar">
-          <div className="min-w-[900px] w-full flex items-center justify-between relative px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.8 }}
+          className="w-full relative mt-12 mb-20"
+        >
+          {/* Outer parallelogram container */}
+          <div className="w-full h-[400px] md:h-[450px] bg-app-bg border-2 border-border-subtle -skew-x-12 relative overflow-hidden shadow-2xl">
+            {/* Subtle grid background inside the parallelogram */}
+            <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none skew-x-12 scale-150" />
+            
+            {/* Glows */}
+            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-brand-primary/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none skew-x-12" />
+            <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-[#10b981]/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none skew-x-12" />
+            
+            {/* Unskewed content wrapper with scrolling */}
+            <div className="skew-x-12 w-full h-full flex items-center overflow-x-auto overflow-y-visible px-12 md:px-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="min-w-[900px] w-full flex items-center justify-between relative py-12">
             
             {/* Animated Dashed Line */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
@@ -115,6 +132,7 @@ export default function CoreEngineSection() {
               sublabel="Geotagged Photo"
               borderColor="border-border-subtle group-hover:border-text-primary"
               iconColor="text-text-primary"
+              bgColor="bg-surface-subtle"
               delay={0.1}
             />
             
@@ -126,6 +144,7 @@ export default function CoreEngineSection() {
                 sublabel="Gemini 1.5 Flash"
                 borderColor="border-brand-primary/40 group-hover:border-brand-primary"
                 iconColor="text-brand-primary"
+                bgColor="bg-brand-primary/10"
                 delay={0.3}
               />
               <SharpNode 
@@ -134,6 +153,7 @@ export default function CoreEngineSection() {
                 sublabel="Open-Meteo API"
                 borderColor="border-[#38bdf8]/40 group-hover:border-[#38bdf8]"
                 iconColor="text-[#38bdf8]"
+                bgColor="bg-[#38bdf8]/10"
                 delay={0.5}
               />
             </div>
@@ -144,6 +164,7 @@ export default function CoreEngineSection() {
               sublabel="Priority Score"
               borderColor="border-[#f59e0b]/40 group-hover:border-[#f59e0b]"
               iconColor="text-[#f59e0b]"
+              bgColor="bg-[#f59e0b]/10"
               delay={0.7}
             />
 
@@ -153,6 +174,7 @@ export default function CoreEngineSection() {
               sublabel="PostgreSQL / RLS"
               borderColor="border-[#10b981]/40 group-hover:border-[#10b981]"
               iconColor="text-[#10b981]"
+              bgColor="bg-[#10b981]/10"
               delay={0.9}
             />
 
@@ -162,11 +184,14 @@ export default function CoreEngineSection() {
               sublabel="Live Map Queue"
               borderColor="border-border-subtle group-hover:border-text-primary"
               iconColor="text-text-primary"
+              bgColor="bg-surface-subtle"
               delay={1.1}
             />
 
+              </div>
+            </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Feature Bento Boxes (Parallelogram) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
