@@ -1,79 +1,209 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldAlert, Navigation, MonitorDot, Camera, MapPin, Sprout, ChevronDown, ArrowRight } from 'lucide-react';
+import { ShieldAlert, Navigation, MonitorDot, Camera, MapPin, Sprout, ChevronDown, ArrowRight, Menu, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const AnimatedLink = ({ 
+  title, 
+  id, 
+  isActive,
+  onClick 
+}: { 
+  title: string; 
+  id: string; 
+  isActive?: boolean;
+  onClick: (id: string) => void; 
+}) => {
+  return (
+    <button 
+      onClick={() => onClick(id)}
+      className="font-heading relative overflow-hidden group cursor-pointer text-[10px] xl:text-xs font-bold uppercase tracking-widest text-text-muted block shrink-0"
+    >
+      <span className={`block transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${isActive ? '-translate-y-full text-brand-primary' : 'group-hover:-translate-y-full text-text-primary'}`}>
+        {title}
+      </span>
+      <span className={`absolute inset-0 block transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] text-brand-primary ${isActive ? 'translate-y-0' : 'translate-y-full group-hover:translate-y-0'}`}>
+        {title}
+      </span>
+    </button>
+  );
+};
 
 export default function UniversalLogin() {
   const [hoveredPanel, setHoveredPanel] = useState<'admin' | 'citizen' | null>(null);
+  
+  // Navbar states
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('hero');
   const [isScrolled, setIsScrolled] = useState(false);
+  const isScrollingRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      // Show navbar when scrolled down slightly (e.g., 20% of viewport)
-      setIsScrolled(window.scrollY > window.innerHeight * 0.2);
+      // Show navbar pill when scrolled past 10vh
+      setIsScrolled(window.scrollY > window.innerHeight * 0.1);
+
+      if (isScrollingRef.current) return;
+      
+      const sections = ['hero', 'features', 'core-engine', 'faqs', 'footer'];
+      for (const id of [...sections].reverse()) {
+        const element = document.getElementById(id);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top < window.innerHeight * 0.4) {
+            setActiveSection(id);
+            break;
+          }
+        }
+      }
     };
-    
-    window.addEventListener('scroll', handleScroll);
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Check immediately on mount
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Smooth flex-grow ratios for desktop hover effect
+  const scrollTo = (id: string) => {
+    setIsMobileMenuOpen(false);
+    setActiveSection(id);
+    isScrollingRef.current = true;
+    
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 100; // Account for the floating navbar
+      const top = element.getBoundingClientRect().top + window.scrollY - offset;
+      
+      window.scrollTo({ top, behavior: 'smooth' });
+      
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 800);
+    } else {
+      isScrollingRef.current = false;
+    }
+  };
+
+  const links = [
+    { name: 'Features', id: 'features' },
+    { name: 'Core Engine', id: 'core-engine' },
+    { name: 'FAQs', id: 'faqs' }
+  ];
+
   const adminFlex = hoveredPanel === 'admin' ? 1.4 : hoveredPanel === 'citizen' ? 0.8 : 1;
   const citizenFlex = hoveredPanel === 'citizen' ? 1.4 : hoveredPanel === 'admin' ? 0.8 : 1;
 
   return (
     <div className="min-h-screen bg-app-bg text-text-primary w-full overflow-x-hidden">
       
-      {/* Sticky Navbar (Appears on Scroll) */}
-      <div 
-        className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ease-in-out ${
-          isScrolled ? 'translate-y-0 opacity-100 bg-surface/80 backdrop-blur-md border-b border-border-subtle shadow-sm' : '-translate-y-full opacity-0 pointer-events-none'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="font-heading font-bold text-xl text-text-primary tracking-tight">
-            esteRoute
-          </div>
-          <div className="flex gap-3">
-            <Link to="/citizen" className="text-sm font-bold bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-primary/90 transition-colors">
-              Citizen
-            </Link>
-            <Link to="/admin" className="text-sm font-bold bg-brand-dark text-white px-4 py-2 rounded-lg hover:bg-brand-dark/90 transition-colors">
-              Dispatcher
-            </Link>
+      {/* Sleek Floating Navbar matching the requested styling */}
+      <div className={`fixed top-0 w-full z-50 pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] ${isScrolled ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className="flex flex-col items-center px-4 md:px-6 py-4 sm:py-6">
+          <div className="w-full max-w-4xl relative pointer-events-none">
+            
+            <div className="w-full flex items-center justify-between lg:justify-evenly pointer-events-auto bg-surface/80 backdrop-blur-2xl border border-border-subtle rounded-full px-6 sm:px-10 py-3 shadow-lg shadow-black/5 transition-all duration-500 hover:border-border-strong hover:shadow-xl">
+              
+              <button 
+                onClick={() => scrollTo('hero')}
+                className="font-heading relative overflow-hidden text-base sm:text-lg font-black tracking-tighter uppercase group grid shrink-0 cursor-pointer"
+              >
+                <span className={`col-start-1 row-start-1 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${activeSection === 'hero' ? '-translate-y-full text-text-primary' : 'group-hover:-translate-y-full text-text-primary'}`}>
+                  este<span className="text-brand-primary">Route</span>
+                </span>
+                <span className={`col-start-1 row-start-1 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] text-brand-primary ${activeSection === 'hero' ? 'translate-y-0' : 'translate-y-full group-hover:translate-y-0'}`}>
+                  Home<span className="text-text-primary">Page</span>
+                </span>
+              </button>
+
+              <div className="hidden lg:flex items-center gap-8">
+                {links.map((link) => (
+                  <AnimatedLink 
+                    key={link.id} 
+                    title={link.name} 
+                    id={link.id} 
+                    isActive={activeSection === link.id}
+                    onClick={scrollTo}
+                  />
+                ))}
+              </div>
+
+              {/* Login Buttons aligned with the sleek style */}
+              <div className="hidden lg:flex items-center gap-4">
+                <Link to="/citizen" className="text-[10px] xl:text-xs font-bold text-brand-primary hover:text-brand-primary/80 transition-colors uppercase tracking-widest">
+                  Citizen
+                </Link>
+                <div className="w-px h-4 bg-border-strong"></div>
+                <Link to="/admin" className="text-[10px] xl:text-xs font-bold text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest">
+                  Admin
+                </Link>
+              </div>
+
+              <div className="flex items-center shrink-0 lg:hidden">
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="flex items-center justify-center p-2 text-text-muted hover:text-brand-primary transition-colors pointer-events-auto shrink-0 bg-surface rounded-full border border-border-subtle cursor-pointer"
+                >
+                  {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile Dropdown */}
+            <AnimatePresence>
+              {isMobileMenuOpen && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                  transition={{ duration: 0.3, ease: [0.76, 0, 0.24, 1] }}
+                  className="absolute top-full mt-4 left-0 w-full pointer-events-auto lg:hidden"
+                >
+                  <div className="bg-surface/95 backdrop-blur-3xl border border-border-subtle rounded-[2rem] p-6 flex flex-col gap-5 shadow-2xl">
+                    {links.map((link) => (
+                      <div key={link.id} className="border-b border-border-subtle/50 pb-4">
+                        <AnimatedLink 
+                          title={link.name} 
+                          id={link.id} 
+                          isActive={activeSection === link.id}
+                          onClick={scrollTo}
+                        />
+                      </div>
+                    ))}
+                    <div className="flex justify-between pt-2">
+                      <Link to="/citizen" className="text-xs font-bold text-brand-primary tracking-widest uppercase">Citizen Login</Link>
+                      <Link to="/admin" className="text-xs font-bold text-text-primary tracking-widest uppercase">Admin Login</Link>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
           </div>
         </div>
       </div>
       
-      {/* Hero Section - 100vh Split Screen */}
-      <section className="relative h-screen w-full flex flex-col md:flex-row">
-        
-        {/* Left Side: Dispatcher / Admin */}
-        <div 
+      {/* ---------------- SECTIONS ---------------- */}
+
+      {/* Hero Section */}
+      <section id="hero" className="relative h-screen w-full flex flex-col md:flex-row">
+         {/* Left Side: Dispatcher / Admin */}
+         <div 
           className="relative h-1/2 md:h-full flex flex-col justify-center items-center p-8 transition-all duration-700 ease-in-out border-b md:border-b-0 md:border-r border-border-subtle bg-surface/50 overflow-hidden group"
           style={{ flex: adminFlex }}
           onMouseEnter={() => setHoveredPanel('admin')}
           onMouseLeave={() => setHoveredPanel(null)}
         >
-          {/* Background pattern */}
           <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-dark via-transparent to-transparent pointer-events-none" />
           
           <div className="relative z-10 max-w-md w-full flex flex-col items-center md:items-start text-center md:text-left transition-transform duration-700 group-hover:-translate-y-2">
             <div className="bg-brand-dark/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-dark/30 group-hover:ring-brand-dark transition-all">
               <ShieldAlert className="w-10 h-10 text-brand-dark" />
             </div>
-            
-            <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4 tracking-tight">
-              LGU Command
-            </h1>
-            <p className="text-text-secondary text-lg mb-8">
-              Dispatcher portal for real-time estero blockage monitoring, AI-optimized drone routes, and clean-up fleet management.
-            </p>
-            
+            <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4 tracking-tight">LGU Command</h1>
+            <p className="text-text-secondary text-lg mb-8">Dispatcher portal for real-time estero blockage monitoring, AI-optimized drone routes, and clean-up fleet management.</p>
             <div className="space-y-4 mb-10 w-full">
               <FeatureItem icon={<Navigation className="w-5 h-5 text-brand-dark" />} text="A* Pathfinding for Cleanup Routes" />
               <FeatureItem icon={<MonitorDot className="w-5 h-5 text-brand-dark" />} text="Live Fleet & Drone Dispatch" />
             </div>
-
             <Link to="/admin" className="w-full md:w-auto flex items-center justify-center gap-2 bg-brand-dark text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-brand-dark/20 transition-all hover:-translate-y-1">
               Enter Dispatch Portal
               <ArrowRight className="w-5 h-5" />
@@ -88,26 +218,18 @@ export default function UniversalLogin() {
           onMouseEnter={() => setHoveredPanel('citizen')}
           onMouseLeave={() => setHoveredPanel(null)}
         >
-           {/* Background pattern */}
            <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary via-transparent to-transparent pointer-events-none" />
           
           <div className="relative z-10 max-w-md w-full flex flex-col items-center md:items-start text-center md:text-left transition-transform duration-700 group-hover:-translate-y-2">
             <div className="bg-brand-primary/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-primary/30 group-hover:ring-brand-primary transition-all">
               <Sprout className="w-10 h-10 text-brand-primary" />
             </div>
-            
-            <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4 tracking-tight">
-              Citizen Portal
-            </h1>
-            <p className="text-text-secondary text-lg mb-8">
-              Community gateway to report floating waste, view public waterway safety maps, and track local clean-up progress.
-            </p>
-            
+            <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4 tracking-tight">Citizen Portal</h1>
+            <p className="text-text-secondary text-lg mb-8">Community gateway to report floating waste, view public waterway safety maps, and track local clean-up progress.</p>
             <div className="space-y-4 mb-10 w-full">
               <FeatureItem icon={<Camera className="w-5 h-5 text-brand-primary" />} text="Geo-tagged Blockage Reporting" />
               <FeatureItem icon={<MapPin className="w-5 h-5 text-brand-primary" />} text="Public Estero Status Map" />
             </div>
-
             <Link to="/citizen" className="w-full md:w-auto flex items-center justify-center gap-2 bg-brand-primary text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-brand-primary/20 transition-all hover:-translate-y-1">
               Enter Citizen Portal
               <ArrowRight className="w-5 h-5" />
@@ -115,37 +237,32 @@ export default function UniversalLogin() {
           </div>
         </div>
 
-        {/* Scroll Down Indicator */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce text-text-muted z-20 hidden md:flex">
-          <span className="text-xs font-bold uppercase tracking-widest mb-2">Explore esteRoute</span>
+        <div 
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce text-text-muted z-20 hidden md:flex cursor-pointer hover:text-brand-primary transition-colors"
+          onClick={() => scrollTo('features')}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-widest mb-2">Explore esteRoute</span>
           <ChevronDown className="w-5 h-5" />
         </div>
-
       </section>
 
-      {/* Feature Showcase (Below the fold) - Just a placeholder for now */}
-      <section className="min-h-screen bg-app-bg py-24 px-8 flex flex-col items-center">
-        <div className="max-w-4xl text-center">
-          <h2 className="text-3xl md:text-5xl font-heading font-bold mb-6">Real-time Estero Optimization</h2>
-          <p className="text-xl text-text-secondary mb-16">
-            Bridging the gap between citizen vigilance and LGU rapid response through smart technology.
-          </p>
-          
-          <div className="grid md:grid-cols-3 gap-8 text-left">
-            <div className="bg-surface border border-border-subtle p-6 rounded-2xl">
-              <h3 className="font-bold text-xl mb-3 text-brand-primary">1. Report</h3>
-              <p className="text-text-secondary">Citizens capture photos of waterway blockages which are instantly geo-tagged and uploaded to the public grid.</p>
-            </div>
-            <div className="bg-surface border border-border-subtle p-6 rounded-2xl">
-              <h3 className="font-bold text-xl mb-3 text-brand-dark">2. Process</h3>
-              <p className="text-text-secondary">LGU admins review submissions and our algorithm calculates the most optimal path for drone inspection and boat cleanups.</p>
-            </div>
-            <div className="bg-surface border border-border-subtle p-6 rounded-2xl">
-              <h3 className="font-bold text-xl mb-3 text-success">3. Resolve</h3>
-              <p className="text-text-secondary">Track the clean-up progress live as response fleets clear the estero and return it to a safe, flowing state.</p>
-            </div>
-          </div>
-        </div>
+      <section id="features" className="min-h-screen bg-app-bg py-24 px-8 flex flex-col items-center justify-center border-t border-border-subtle">
+        <h2 className="text-3xl md:text-5xl font-heading font-bold mb-6 text-text-primary text-center">Features Section</h2>
+        <p className="text-text-secondary">Placeholder for Features (Reporting, Dispatch, etc.)...</p>
+      </section>
+
+      <section id="core-engine" className="min-h-screen bg-surface py-24 px-8 flex flex-col items-center justify-center border-t border-border-subtle">
+        <h2 className="text-3xl md:text-5xl font-heading font-bold mb-6 text-brand-dark text-center">Core Engine Section</h2>
+        <p className="text-text-secondary">Placeholder for Core Engine (A* Algorithm & Dispatch logic)...</p>
+      </section>
+
+      <section id="faqs" className="min-h-[50vh] bg-app-bg py-24 px-8 flex flex-col items-center justify-center border-t border-border-subtle">
+        <h2 className="text-3xl md:text-5xl font-heading font-bold mb-6 text-brand-primary text-center">FAQs Section</h2>
+        <p className="text-text-secondary">Placeholder for Frequently Asked Questions...</p>
+      </section>
+      
+      <section id="footer" className="bg-surface-subtle py-12 px-8 flex flex-col items-center justify-center border-t border-border-subtle">
+        <p className="text-text-muted text-sm tracking-widest uppercase font-bold">&copy; 2026 esteRoute Capstone Project. All rights reserved.</p>
       </section>
 
     </div>
