@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldAlert, Navigation, MonitorDot, Camera, MapPin, Sprout, ChevronDown, ArrowRight } from 'lucide-react';
 
 export default function UniversalLogin() {
   const [hoveredPanel, setHoveredPanel] = useState<'admin' | 'citizen' | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Show navbar when scrolled down slightly (e.g., 20% of viewport)
+      setIsScrolled(window.scrollY > window.innerHeight * 0.2);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Smooth flex-grow ratios for desktop hover effect
   const adminFlex = hoveredPanel === 'admin' ? 1.4 : hoveredPanel === 'citizen' ? 0.8 : 1;
@@ -11,6 +22,27 @@ export default function UniversalLogin() {
 
   return (
     <div className="min-h-screen bg-app-bg text-text-primary w-full overflow-x-hidden">
+      
+      {/* Sticky Navbar (Appears on Scroll) */}
+      <div 
+        className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ease-in-out ${
+          isScrolled ? 'translate-y-0 opacity-100 bg-surface/80 backdrop-blur-md border-b border-border-subtle shadow-sm' : '-translate-y-full opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="font-heading font-bold text-xl text-text-primary tracking-tight">
+            esteRoute
+          </div>
+          <div className="flex gap-3">
+            <Link to="/citizen" className="text-sm font-bold bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-primary/90 transition-colors">
+              Citizen
+            </Link>
+            <Link to="/admin" className="text-sm font-bold bg-brand-dark text-white px-4 py-2 rounded-lg hover:bg-brand-dark/90 transition-colors">
+              Dispatcher
+            </Link>
+          </div>
+        </div>
+      </div>
       
       {/* Hero Section - 100vh Split Screen */}
       <section className="relative h-screen w-full flex flex-col md:flex-row">
