@@ -41,7 +41,7 @@ export default function FeaturesSection() {
     offset: ["start start", "end start"]
   });
   
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const y = useTransform(scrollYProgress, [0, 1], ["0px", "150px"]);
   const opacity = useTransform(scrollYProgress, [0, 1], [1, 0.5]);
 
   return (
@@ -49,7 +49,7 @@ export default function FeaturesSection() {
       ref={ref}
       id="features" 
       style={{ y, opacity }}
-      className="py-24 px-6 lg:px-16 bg-app-bg relative overflow-hidden z-10"
+      className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-app-bg relative overflow-hidden z-10"
     >
       <div className="w-full max-w-7xl mx-auto">
         <motion.div
@@ -84,9 +84,9 @@ export default function FeaturesSection() {
         >
           {/* Feature 1: Citizen (2 cols) */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 shadow-sm hover:shadow-xl -skew-x-12 p-8 h-full">
-              <div className="skew-x-12 h-full flex flex-col justify-between">
-                <div className="flex gap-6 items-start mb-8">
+            <div className="group relative bg-surface border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 shadow-sm hover:shadow-xl md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none">
+              <div className="md:skew-x-12 h-full flex flex-col justify-between">
+                <div className="flex flex-col sm:flex-row gap-6 items-start mb-8">
                   <div className="shrink-0 w-14 h-14 bg-brand-primary/10 border-2 border-brand-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Camera className="w-6 h-6 text-brand-primary" />
                   </div>
@@ -109,8 +109,8 @@ export default function FeaturesSection() {
 
           {/* Feature 2: Meteorological (1 col) */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 shadow-sm hover:shadow-xl -skew-x-12 p-8 h-full">
-              <div className="skew-x-12 h-full flex flex-col justify-between">
+            <div className="group relative bg-surface border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 shadow-sm hover:shadow-xl md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none">
+              <div className="md:skew-x-12 h-full flex flex-col justify-between">
                 <div className="flex flex-col gap-6 items-start mb-8">
                   <div className="shrink-0 w-14 h-14 bg-brand-primary/10 border-2 border-brand-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <CloudRain className="w-6 h-6 text-brand-primary" />
@@ -130,8 +130,8 @@ export default function FeaturesSection() {
 
           {/* Feature 3: Vision AI (1 col) */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 shadow-sm hover:shadow-xl -skew-x-12 p-8 h-full">
-              <div className="skew-x-12 h-full flex flex-col justify-between">
+            <div className="group relative bg-surface border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 shadow-sm hover:shadow-xl md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none">
+              <div className="md:skew-x-12 h-full flex flex-col justify-between">
                 <div className="flex flex-col gap-6 items-start mb-8">
                   <div className="shrink-0 w-14 h-14 bg-brand-primary border-2 border-brand-primary flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Sparkles className="w-6 h-6 text-white" />
@@ -151,9 +151,9 @@ export default function FeaturesSection() {
 
           {/* Feature 4: Dispatch (2 cols) */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 shadow-sm hover:shadow-xl -skew-x-12 p-8 h-full">
-              <div className="skew-x-12 h-full flex flex-col justify-between">
-                <div className="flex gap-6 items-start mb-8">
+            <div className="group relative bg-surface border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 shadow-sm hover:shadow-xl md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none">
+              <div className="md:skew-x-12 h-full flex flex-col justify-between">
+                <div className="flex flex-col sm:flex-row gap-6 items-start mb-8">
                   <div className="shrink-0 w-14 h-14 bg-brand-primary/10 border-2 border-brand-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <MonitorDot className="w-6 h-6 text-brand-primary" />
                   </div>
