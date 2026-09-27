@@ -78,7 +78,7 @@ export default function FaqsSection() {
     offset: ["start start", "end start"]
   });
   
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const y = useTransform(scrollYProgress, [0, 1], ["0px", "150px"]);
   const opacity = useTransform(scrollYProgress, [0, 1], [1, 0.5]);
 
   return (
@@ -86,7 +86,7 @@ export default function FaqsSection() {
       ref={ref}
       style={{ y, opacity }}
       id="faqs" 
-      className="py-24 px-6 lg:px-16 bg-app-bg relative z-10 overflow-hidden"
+      className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-app-bg relative z-10 overflow-hidden"
     >
       <div className="w-full max-w-5xl mx-auto">
         
@@ -119,18 +119,18 @@ export default function FaqsSection() {
                   setActiveCategory(cat);
                   setOpenIndex(0); // auto-open first item on switch
                 }}
-                className={`relative px-8 py-3 -skew-x-12 border-2 transition-all duration-300 cursor-pointer ${
+                className={`relative px-4 md:px-8 py-3 md:-skew-x-12 border-2 rounded-xl md:rounded-none transition-all duration-300 cursor-pointer ${
                   isActive ? 'border-brand-primary text-brand-white' : 'border-border-subtle text-text-secondary hover:text-text-primary hover:border-text-primary bg-surface'
                 }`}
               >
                 {isActive && (
                   <motion.div
                     layoutId="faq-active-tab"
-                    className="absolute inset-0 bg-brand-primary"
+                    className="absolute inset-0 bg-brand-primary rounded-xl md:rounded-none"
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                   />
                 )}
-                <span className="relative z-10 skew-x-12 block font-heading font-black uppercase tracking-widest text-sm">{cat}</span>
+                <span className="relative z-10 md:skew-x-12 block font-heading font-black uppercase tracking-widest text-xs md:text-sm">{cat}</span>
               </button>
             );
           })}
@@ -152,11 +152,11 @@ export default function FaqsSection() {
                 return (
                   <motion.div 
                     key={i}
-                    className={`border-2 transition-colors duration-300 -skew-x-12 ${
+                    className={`border-2 rounded-xl md:rounded-none transition-colors duration-300 md:-skew-x-12 ${
                       isOpen ? 'bg-brand-primary/5 border-brand-primary' : 'bg-surface border-border-subtle hover:border-brand-primary/50'
                     }`}
                   >
-                    <div className="skew-x-12">
+                    <div className="md:skew-x-12">
                       <button
                         onClick={() => setOpenIndex(isOpen ? null : i)}
                         className="w-full px-6 py-5 flex items-center justify-between text-left focus:outline-none cursor-pointer group"
