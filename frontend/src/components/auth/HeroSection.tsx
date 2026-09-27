@@ -20,7 +20,7 @@ export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => vo
   return (
     <section 
       id="hero" 
-      className="relative flex flex-col md:block md:h-screen w-full md:overflow-hidden bg-app-bg"
+      className="relative flex flex-col-reverse md:block md:h-screen w-full md:overflow-hidden bg-app-bg"
     >
        {/* Left Side: Dispatcher / Admin (CURRENT THEME) */}
        <motion.div 
