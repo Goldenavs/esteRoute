@@ -43,25 +43,29 @@ export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => vo
           animate={{ scale: hoveredPanel === 'admin' ? 1.05 : 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 30 }}
         >
-          <div className="bg-brand-dark/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-dark/30 shadow-[0_0_30px_rgba(var(--brand-dark),0.3)] backdrop-blur-md">
-            <ShieldAlert className="w-10 h-10 text-brand-dark" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-heading font-black mb-4 tracking-tighter drop-shadow-lg text-text-primary">LGU Command</h1>
-          <p className="text-text-secondary text-lg mb-8 font-medium">Dispatcher portal for real-time estero blockage monitoring, AI-optimized drone routes, and clean-up fleet management.</p>
-          <div className="space-y-4 mb-10 w-full">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-app-bg/50 border border-border-subtle/50 w-full backdrop-blur-sm">
-              <Navigation className="w-5 h-5 text-brand-dark" />
-              <span className="font-medium text-text-secondary">A* Pathfinding for Cleanup Routes</span>
+          <div className="max-w-md">
+            <div className="bg-brand-dark/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-dark/30 shadow-[0_0_30px_rgba(var(--brand-dark),0.3)] backdrop-blur-md inline-block">
+              <ShieldAlert className="w-10 h-10 text-brand-dark" />
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-app-bg/50 border border-border-subtle/50 w-full backdrop-blur-sm">
-              <MonitorDot className="w-5 h-5 text-brand-dark" />
-              <span className="font-medium text-text-secondary">Live Fleet & Drone Dispatch</span>
+            <h1 className="text-4xl md:text-5xl font-heading font-black mb-4 tracking-tighter drop-shadow-lg text-text-primary">LGU Command</h1>
+            <p className="text-text-secondary text-lg mb-8 font-medium">Dispatcher portal for real-time estero blockage monitoring, AI-optimized drone routes, and clean-up fleet management.</p>
+            <div className="space-y-4 mb-10 w-full">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-app-bg/50 border border-border-subtle/50 w-full backdrop-blur-sm">
+                <Navigation className="w-5 h-5 text-brand-dark" />
+                <span className="font-medium text-text-secondary">A* Pathfinding for Cleanup Routes</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-app-bg/50 border border-border-subtle/50 w-full backdrop-blur-sm">
+                <MonitorDot className="w-5 h-5 text-brand-dark" />
+                <span className="font-medium text-text-secondary">Live Fleet & Drone Dispatch</span>
+              </div>
             </div>
+            <button onClick={() => setActiveModal('admin')} className="w-full md:w-auto flex items-center justify-center bg-text-primary text-app-bg px-8 py-4 font-bold hover:shadow-lg hover:shadow-text-primary/40 transition-all hover:-translate-y-1 cursor-pointer -skew-x-12 border-2 border-text-primary">
+              <div className="skew-x-12 flex items-center gap-2">
+                Enter Dispatch Portal
+                <ArrowRight className="w-5 h-5" />
+              </div>
+            </button>
           </div>
-          <button onClick={() => setActiveModal('admin')} className="w-full md:w-auto flex items-center justify-center gap-2 bg-brand-dark text-text-primary px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-brand-dark/40 transition-all hover:-translate-y-1 cursor-pointer">
-            Enter Dispatch Portal
-            <ArrowRight className="w-5 h-5" />
-          </button>
         </motion.div>
       </motion.div>
 
@@ -94,25 +98,29 @@ export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => vo
           animate={{ scale: hoveredPanel === 'citizen' ? 1.05 : 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 30 }}
         >
-          <div className="bg-brand-primary/10 p-4 rounded-2xl mb-6 ring-1 ring-brand-primary/20 shadow-[0_0_30px_rgba(var(--brand-primary),0.2)] backdrop-blur-md">
-            <Sprout className="w-10 h-10 text-brand-primary" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-heading font-black mb-4 tracking-tighter drop-shadow-sm text-app-bg">Citizen Portal</h1>
-          <p className="text-surface text-lg mb-8 font-medium">Community gateway to report floating waste, view public waterway safety maps, and track local clean-up progress.</p>
-          <div className="space-y-4 mb-10 w-full">
-            <div className="flex items-center justify-center md:justify-end gap-3 p-3 rounded-xl bg-text-primary/60 border border-border-subtle w-full backdrop-blur-md shadow-sm">
-              <Camera className="w-5 h-5 text-brand-primary" />
-              <span className="font-bold text-app-bg">Geo-tagged Blockage Reporting</span>
+          <div className="max-w-md flex flex-col items-center md:items-end">
+            <div className="bg-brand-primary/10 p-4 rounded-2xl mb-6 ring-1 ring-brand-primary/20 shadow-[0_0_30px_rgba(var(--brand-primary),0.2)] backdrop-blur-md inline-block">
+              <Sprout className="w-10 h-10 text-brand-primary" />
             </div>
-            <div className="flex items-center justify-center md:justify-end gap-3 p-3 rounded-xl bg-text-primary/60 border border-border-subtle w-full backdrop-blur-md shadow-sm">
-              <MapPin className="w-5 h-5 text-brand-primary" />
-              <span className="font-bold text-app-bg">Public Estero Status Map</span>
+            <h1 className="text-4xl md:text-5xl font-heading font-black mb-4 tracking-tighter drop-shadow-sm text-app-bg">Citizen Portal</h1>
+            <p className="text-surface text-lg mb-8 font-medium">Community gateway to report floating waste, view public waterway safety maps, and track local clean-up progress.</p>
+            <div className="space-y-4 mb-10 w-full">
+              <div className="flex items-center justify-center md:justify-end gap-3 p-3 rounded-xl bg-text-primary/60 border border-border-subtle w-full backdrop-blur-md shadow-sm">
+                <Camera className="w-5 h-5 text-brand-primary" />
+                <span className="font-bold text-app-bg">Geo-tagged Blockage Reporting</span>
+              </div>
+              <div className="flex items-center justify-center md:justify-end gap-3 p-3 rounded-xl bg-text-primary/60 border border-border-subtle w-full backdrop-blur-md shadow-sm">
+                <MapPin className="w-5 h-5 text-brand-primary" />
+                <span className="font-bold text-app-bg">Public Estero Status Map</span>
+              </div>
             </div>
+            <button onClick={() => setActiveModal('citizen')} className="w-full md:w-auto flex items-center justify-center bg-app-bg text-text-primary px-8 py-4 font-bold hover:shadow-lg hover:shadow-app-bg/40 transition-all hover:-translate-y-1 cursor-pointer -skew-x-12 border-2 border-app-bg">
+              <div className="skew-x-12 flex items-center gap-2">
+                Enter Citizen Portal
+                <ArrowRight className="w-5 h-5" />
+              </div>
+            </button>
           </div>
-          <button onClick={() => setActiveModal('citizen')} className="w-full md:w-auto flex items-center justify-center gap-2 bg-brand-primary text-text-primary px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-brand-primary/40 transition-all hover:-translate-y-1 cursor-pointer">
-            Enter Citizen Portal
-            <ArrowRight className="w-5 h-5" />
-          </button>
         </motion.div>
       </motion.div>
       <div 

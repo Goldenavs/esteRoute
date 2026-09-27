@@ -111,10 +111,12 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                   </div>
                   <button
                     type="submit"
-                    className="w-full flex items-center justify-center gap-2 bg-brand-dark text-text-primary px-8 py-4 font-bold hover:shadow-lg hover:shadow-brand-dark/40 transition-all hover:-translate-y-1"
+                    className="w-full flex items-center justify-center bg-text-primary text-app-bg px-8 py-4 font-bold hover:shadow-lg hover:shadow-text-primary/40 transition-all hover:-translate-y-1 -skew-x-12 border-2 border-text-primary"
                   >
-                    Authenticate
-                    <ArrowRight className="w-5 h-5" />
+                    <div className="skew-x-12 flex items-center gap-2">
+                      Login
+                      <ArrowRight className="w-5 h-5" />
+                    </div>
                   </button>
                 </form>
               )}
@@ -154,10 +156,12 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                     </div>
                     <button
                       type="submit"
-                      className="w-full flex items-center justify-center gap-2 bg-brand-primary text-text-primary px-8 py-4 font-bold hover:shadow-lg hover:shadow-brand-primary/40 transition-all hover:-translate-y-1"
+                      className="w-full flex items-center justify-center bg-text-primary text-app-bg px-8 py-4 font-bold hover:shadow-lg hover:shadow-text-primary/40 transition-all hover:-translate-y-1 -skew-x-12 border-2 border-text-primary"
                     >
-                      {citizenMode === 'login' ? 'Login' : 'Sign Up'}
-                      <ArrowRight className="w-5 h-5" />
+                      <div className="skew-x-12 flex items-center gap-2">
+                        {citizenMode === 'login' ? 'Login' : 'Sign Up'}
+                        <ArrowRight className="w-5 h-5" />
+                      </div>
                     </button>
                   </form>
 
@@ -169,9 +173,11 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
 
                   <button
                     onClick={handleGuestLogin}
-                    className="w-full flex items-center justify-center bg-surface-subtle border-2 border-border-subtle text-text-secondary px-8 py-4 font-bold hover:border-text-primary hover:text-text-primary transition-colors"
+                    className="w-full flex items-center justify-center bg-surface-subtle border-2 border-border-subtle text-text-secondary px-8 py-4 font-bold hover:border-text-primary hover:text-text-primary transition-colors -skew-x-12"
                   >
-                    Continue as Guest
+                    <div className="skew-x-12 flex items-center gap-2">
+                      Continue as Guest
+                    </div>
                   </button>
 
                   <div className="text-center mt-6">
