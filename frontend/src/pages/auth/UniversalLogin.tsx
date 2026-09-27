@@ -5,9 +5,11 @@ import FeaturesSection from '../../components/auth/FeaturesSection';
 import CoreEngineSection from '../../components/auth/CoreEngineSection';
 import FaqsSection from '../../components/auth/FaqsSection';
 import FooterSection from '../../components/auth/FooterSection';
+import AuthModals from '../../components/auth/AuthModals';
 
 export default function UniversalLogin() {
   const [activeSection, setActiveSection] = useState('hero');
+  const [activeModal, setActiveModal] = useState<'admin' | 'citizen' | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const isScrollingRef = useRef(false);
 
@@ -57,12 +59,14 @@ export default function UniversalLogin() {
 
   return (
     <div className="min-h-screen bg-app-bg text-text-primary w-full overflow-x-hidden">
-      <AuthNavbar activeSection={activeSection} isScrolled={isScrolled} scrollTo={scrollTo} />
-      <HeroSection scrollTo={scrollTo} />
+      <AuthNavbar activeSection={activeSection} isScrolled={isScrolled} scrollTo={scrollTo} onOpenModal={setActiveModal} />
+      <HeroSection scrollTo={scrollTo} onOpenModal={setActiveModal} />
       <FeaturesSection />
       <CoreEngineSection />
       <FaqsSection />
       <FooterSection />
+      
+      <AuthModals activeModal={activeModal} onClose={() => setActiveModal(null)} />
     </div>
   );
 }
