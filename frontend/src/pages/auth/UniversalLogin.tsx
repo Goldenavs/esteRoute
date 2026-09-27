@@ -1,33 +1,68 @@
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react';
+import AuthNavbar from '../../components/auth/AuthNavbar';
+import HeroSection from '../../components/auth/HeroSection';
+import FeaturesSection from '../../components/auth/FeaturesSection';
+import CoreEngineSection from '../../components/auth/CoreEngineSection';
+import FaqsSection from '../../components/auth/FaqsSection';
+import FooterSection from '../../components/auth/FooterSection';
 
-export default function UniversalLogin() { 
+export default function UniversalLogin() {
+  const [activeSection, setActiveSection] = useState('hero');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const isScrollingRef = useRef(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Show navbar when scrolled past the hero section (accounting for offset)
+      setIsScrolled(window.scrollY > window.innerHeight - 150);
+
+      if (isScrollingRef.current) return;
+      
+      const sections = ['hero', 'features', 'core-engine', 'faqs', 'footer'];
+      for (const id of [...sections].reverse()) {
+        const element = document.getElementById(id);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top < window.innerHeight * 0.4) {
+            setActiveSection(id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Check immediately on mount
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollTo = (id: string) => {
+    setActiveSection(id);
+    isScrollingRef.current = true;
+    
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 100; // Account for the floating navbar
+      const top = element.getBoundingClientRect().top + window.scrollY - offset;
+      
+      window.scrollTo({ top, behavior: 'smooth' });
+      
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 800);
+    } else {
+      isScrollingRef.current = false;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md relative">
-        <Link to="/" className="absolute top-4 left-4 text-sm text-blue-600 hover:underline">
-          &larr; Back to Public Form
-        </Link>
-        <div className="mt-8 text-center">
-          <h2 className="text-2xl font-bold mb-6">Sign In</h2>
-          <div className="space-y-4">
-            <input type="email" placeholder="Email" className="w-full p-3 border border-gray-300 rounded" />
-            <input type="password" placeholder="Password" className="w-full p-3 border border-gray-300 rounded" />
-            
-            <div className="flex gap-2">
-              <Link to="/citizen-dashboard" className="flex-1 bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700 transition-colors text-center">
-                Login as Citizen
-              </Link>
-              <Link to="/admin-dashboard" className="flex-1 bg-indigo-600 text-white p-3 rounded font-bold hover:bg-indigo-700 transition-colors text-center">
-                Login as Admin
-              </Link>
-            </div>
-          </div>
-          <div className="mt-6 text-sm text-gray-500 flex justify-between">
-            <Link to="/recovery" className="hover:underline">Forgot password?</Link>
-            <Link to="/register" className="hover:underline text-blue-600">Register as Citizen</Link>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-app-bg text-text-primary w-full overflow-x-hidden">
+      <AuthNavbar activeSection={activeSection} isScrolled={isScrolled} scrollTo={scrollTo} />
+      <HeroSection scrollTo={scrollTo} />
+      <FeaturesSection />
+      <CoreEngineSection />
+      <FaqsSection />
+      <FooterSection />
     </div>
-  )
+  );
 }
