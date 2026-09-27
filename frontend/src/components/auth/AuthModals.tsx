@@ -55,9 +55,9 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md bg-surface border-2 border-border-subtle shadow-2xl overflow-hidden -skew-x-3 z-10"
+          className="relative w-full max-w-md bg-surface border-2 border-border-subtle shadow-2xl overflow-hidden z-10"
         >
-          <div className="skew-x-3 h-full flex flex-col">
+          <div className="h-full flex flex-col">
             
             {/* Header */}
             <div className="p-6 border-b-2 border-border-subtle flex items-center justify-between bg-surface-subtle">
@@ -66,9 +66,9 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
               </h3>
               <button
                 onClick={onClose}
-                className="p-2 text-text-secondary hover:text-brand-primary transition-colors bg-surface border-2 border-border-subtle hover:border-brand-primary cursor-pointer -skew-x-12"
+                className="p-2 text-text-secondary hover:text-brand-primary transition-colors bg-surface border-2 border-border-subtle hover:border-brand-primary cursor-pointer"
               >
-                <div className="skew-x-12">
+                <div>
                   <X className="w-5 h-5" />
                 </div>
               </button>
