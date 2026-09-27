@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShieldAlert, Navigation, MonitorDot, Camera, MapPin, Sprout, ChevronDown, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -8,17 +8,25 @@ export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => vo
   const [hoveredPanel, setHoveredPanel] = useState<'admin' | 'citizen' | null>(null);
   const [activeModal, setActiveModal] = useState<'admin' | 'citizen' | null>(null);
   const { theme } = useTheme();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <section 
       id="hero" 
-      className="relative h-screen w-full overflow-hidden bg-app-bg"
+      className="relative flex flex-col md:block md:h-screen w-full md:overflow-hidden bg-app-bg"
     >
        {/* Left Side: Dispatcher / Admin (CURRENT THEME) */}
        <motion.div 
-        className="absolute inset-0 w-full h-full bg-surface group origin-left overflow-hidden"
+        className="relative md:absolute md:inset-0 w-full min-h-screen md:min-h-0 md:h-full bg-surface group md:origin-left overflow-hidden flex items-center"
         initial={false}
-        animate={{
+        animate={isMobile ? { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', opacity: 1, filter: 'none', zIndex: 1 } : {
           clipPath: hoveredPanel === 'admin' 
             ? 'polygon(0% 0%, 65% 0%, 55% 100%, 0% 100%)' 
             : hoveredPanel === 'citizen' 
@@ -39,8 +47,8 @@ export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => vo
         
         {/* Inner Content Container - constrained to left half */}
         <motion.div 
-          className="absolute left-0 top-0 w-full md:w-[55%] h-full flex flex-col justify-center items-center md:items-start p-8 lg:p-16 z-10"
-          animate={{ scale: hoveredPanel === 'admin' ? 1.05 : 1 }}
+          className="relative md:absolute md:left-0 md:top-0 w-full md:w-[55%] h-full flex flex-col justify-center items-center md:items-start p-8 lg:p-16 z-10 py-24 md:py-8"
+          animate={isMobile ? { scale: 1 } : { scale: hoveredPanel === 'admin' ? 1.05 : 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 30 }}
         >
           <div className="max-w-md">
@@ -71,9 +79,9 @@ export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => vo
 
       {/* Right Side: Citizen (OPPOSITE THEME) */}
       <motion.div 
-        className="absolute inset-0 w-full h-full bg-text-primary group origin-right overflow-hidden"
+        className="relative md:absolute md:inset-0 w-full min-h-screen md:min-h-0 md:h-full bg-text-primary group md:origin-right overflow-hidden flex items-center"
         initial={false}
-        animate={{
+        animate={isMobile ? { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', opacity: 1, filter: 'none', zIndex: 1 } : {
           clipPath: hoveredPanel === 'citizen'
             ? 'polygon(45% 0%, 100% 0%, 100% 100%, 35% 100%)'
             : hoveredPanel === 'admin'
@@ -94,8 +102,8 @@ export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => vo
         
          {/* Inner Content Container - aligned to right half */}
         <motion.div 
-          className="absolute right-0 top-0 w-full md:w-[55%] h-full flex flex-col justify-center items-center md:items-end p-8 lg:p-16 z-10 md:pr-20 md:text-right"
-          animate={{ scale: hoveredPanel === 'citizen' ? 1.05 : 1 }}
+          className="relative md:absolute md:right-0 md:top-0 w-full md:w-[55%] h-full flex flex-col justify-center items-center md:items-end p-8 lg:p-16 z-10 md:pr-20 md:text-right py-24 md:py-8"
+          animate={isMobile ? { scale: 1 } : { scale: hoveredPanel === 'citizen' ? 1.05 : 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 30 }}
         >
           <div className="max-w-md flex flex-col items-center md:items-end">

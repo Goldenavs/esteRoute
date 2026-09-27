@@ -128,7 +128,8 @@ export default function CoreEngineSection() {
               {[0, 1.5, 3].map((delay, i) => (
                 <motion.circle
                   key={`particle-${i}`}
-                  cx="0" cy="35%" r="4" fill="var(--color-brand-primary)"
+                  cy="35%" r="4" fill="var(--color-brand-primary)"
+                  initial={{ cx: "10%", opacity: 0 }}
                   animate={{ cx: ["10%", "90%"], opacity: [0, 1, 1, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "linear", delay }}
                 />
