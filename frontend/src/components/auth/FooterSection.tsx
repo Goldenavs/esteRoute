@@ -47,7 +47,7 @@ export default function FooterSection() {
   }, [activeDoc]);
 
   return (
-    <footer id="footer" className="bg-surface-subtle py-8 border-t-2 border-border-subtle overflow-hidden">
+    <footer id="footer" className="relative z-20 bg-surface-subtle py-8 border-t-2 border-border-subtle overflow-hidden">
       <div className="w-full max-w-7xl mx-auto px-6 lg:px-16 flex flex-col md:flex-row items-center justify-between gap-8">
 
         {/* Brand & Text (Left) */}

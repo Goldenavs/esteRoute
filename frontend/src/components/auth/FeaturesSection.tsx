@@ -34,10 +34,22 @@ const ScrollWriteText = ({ children, className = "" }: { children: React.ReactNo
 };
 
 export default function FeaturesSection() {
+  const ref = useRef<HTMLElement>(null);
+  
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"]
+  });
+  
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0.5]);
+
   return (
-    <section 
+    <motion.section 
+      ref={ref}
       id="features" 
-      className="py-24 px-6 lg:px-16 bg-app-bg relative overflow-hidden"
+      style={{ y, opacity }}
+      className="py-24 px-6 lg:px-16 bg-app-bg relative overflow-hidden z-10"
     >
       <div className="w-full max-w-7xl mx-auto">
         <motion.div
@@ -164,6 +176,6 @@ export default function FeaturesSection() {
 
         </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 }

@@ -71,8 +71,23 @@ export default function FaqsSection() {
 
   const activeFaqs = faqCategories[activeCategory];
 
+  const ref = React.useRef<HTMLElement>(null);
+  
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"]
+  });
+  
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0.5]);
+
   return (
-    <section id="faqs" className="py-24 px-6 lg:px-16 bg-app-bg relative z-10 overflow-hidden">
+    <motion.section 
+      ref={ref}
+      style={{ y, opacity }}
+      id="faqs" 
+      className="py-24 px-6 lg:px-16 bg-app-bg relative z-10 overflow-hidden"
+    >
       <div className="w-full max-w-5xl mx-auto">
         
         {/* Header */}
@@ -177,6 +192,6 @@ export default function FaqsSection() {
 
 
       </div>
-    </section>
+    </motion.section>
   );
 }
