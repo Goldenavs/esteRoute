@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 import { ShieldAlert, Navigation, MonitorDot, Camera, MapPin, Sprout, ChevronDown, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
-import AuthModals from './AuthModals';
 
-export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => void }) {
+
+export default function HeroSection({ scrollTo, onOpenModal }: { scrollTo: (id: string) => void; onOpenModal: (type: 'admin' | 'citizen') => void }) {
   const [hoveredPanel, setHoveredPanel] = useState<'admin' | 'citizen' | null>(null);
-  const [activeModal, setActiveModal] = useState<'admin' | 'citizen' | null>(null);
   const { theme } = useTheme();
   const [isMobile, setIsMobile] = useState(false);
 
@@ -67,7 +66,7 @@ export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => vo
                 <span className="font-medium text-text-secondary">Live Fleet & Drone Dispatch</span>
               </div>
             </div>
-            <button onClick={() => setActiveModal('admin')} className="w-full md:w-auto flex items-center justify-center bg-text-primary text-app-bg px-8 py-4 font-bold hover:shadow-lg hover:shadow-text-primary/40 transition-all hover:-translate-y-1 cursor-pointer -skew-x-12 border-2 border-text-primary">
+            <button onClick={() => onOpenModal('admin')} className="w-full md:w-auto flex items-center justify-center bg-brand-primary text-white px-8 py-4 font-bold hover:shadow-lg hover:shadow-brand-primary/40 transition-all hover:-translate-y-1 cursor-pointer -skew-x-12 border-2 border-brand-primary">
               <div className="skew-x-12 flex items-center gap-2">
                 Enter Dispatch Portal
                 <ArrowRight className="w-5 h-5" />
@@ -122,7 +121,7 @@ export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => vo
                 <span className="font-bold text-app-bg">Public Estero Status Map</span>
               </div>
             </div>
-            <button onClick={() => setActiveModal('citizen')} className="w-full md:w-auto flex items-center justify-center bg-app-bg text-text-primary px-8 py-4 font-bold hover:shadow-lg hover:shadow-app-bg/40 transition-all hover:-translate-y-1 cursor-pointer -skew-x-12 border-2 border-app-bg">
+            <button onClick={() => onOpenModal('citizen')} className="w-full md:w-auto flex items-center justify-center bg-brand-primary text-white px-8 py-4 font-bold hover:shadow-lg hover:shadow-brand-primary/40 transition-all hover:-translate-y-1 cursor-pointer -skew-x-12 border-2 border-brand-primary">
               <div className="skew-x-12 flex items-center gap-2">
                 Enter Citizen Portal
                 <ArrowRight className="w-5 h-5" />
@@ -138,7 +137,6 @@ export default function HeroSection({ scrollTo }: { scrollTo: (id: string) => vo
         <span className="text-[10px] font-bold uppercase tracking-widest mb-2 drop-shadow-md">Explore esteRoute</span>
         <ChevronDown className="w-5 h-5 drop-shadow-md" />
       </div>
-      <AuthModals activeModal={activeModal} onClose={() => setActiveModal(null)} />
     </section>
   );
 }

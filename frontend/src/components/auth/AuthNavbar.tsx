@@ -31,13 +31,15 @@ const AnimatedLink = ({
 };
 
 export default function AuthNavbar({ 
-  activeSection, 
-  isScrolled, 
-  scrollTo 
+  activeSection,
+  isScrolled,
+  scrollTo,
+  onOpenModal
 }: { 
   activeSection: string; 
   isScrolled: boolean; 
-  scrollTo: (id: string) => void; 
+  scrollTo: (id: string) => void;
+  onOpenModal: (type: 'admin' | 'citizen') => void;
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -88,15 +90,14 @@ export default function AuthNavbar({
               ))}
             </div>
 
-            {/* Right: Actions (Admin, Citizen, Theme) */}
             <div className="hidden lg:flex flex-1 justify-end items-center gap-6 skew-x-12">
-              <Link to="/admin" className="text-xs xl:text-sm font-bold text-text-muted hover:text-brand-primary transition-colors uppercase tracking-widest">
+              <button type="button" onClick={() => onOpenModal('admin')} className="text-xs xl:text-sm font-bold text-text-primary hover:text-brand-primary transition-colors uppercase tracking-widest cursor-pointer pointer-events-auto relative z-50">
                 Admin
-              </Link>
+              </button>
               <div className="w-px h-4 bg-border-strong"></div>
-              <Link to="/citizen" className="text-xs xl:text-sm font-bold text-brand-primary hover:text-brand-primary/80 transition-colors uppercase tracking-widest">
+              <button type="button" onClick={() => onOpenModal('citizen')} className="text-xs xl:text-sm font-bold text-text-primary hover:text-brand-primary transition-colors uppercase tracking-widest cursor-pointer pointer-events-auto relative z-50">
                 Citizen
-              </Link>
+              </button>
               <div className="w-px h-4 bg-border-strong"></div>
               <button 
                 onClick={toggleTheme} 
@@ -145,9 +146,19 @@ export default function AuthNavbar({
                       />
                     </div>
                   ))}
-                  <div className="flex justify-between pt-2">
-                    <Link to="/citizen" className="text-xs font-bold text-brand-primary tracking-widest uppercase">Citizen Login</Link>
-                    <Link to="/admin" className="text-xs font-bold text-text-primary tracking-widest uppercase">Admin Login</Link>
+                  <div className="flex flex-col gap-3 pt-2">
+                    <button 
+                      onClick={() => { setIsMobileMenuOpen(false); onOpenModal('citizen'); }} 
+                      className="w-full py-3 bg-brand-primary text-app-bg text-sm font-bold uppercase tracking-widest text-center rounded-sm border border-brand-primary cursor-pointer hover:bg-brand-primary/90 transition-colors"
+                    >
+                      Citizen Login
+                    </button>
+                    <button 
+                      onClick={() => { setIsMobileMenuOpen(false); onOpenModal('admin'); }} 
+                      className="w-full py-3 bg-surface border border-border-strong text-text-primary text-sm font-bold uppercase tracking-widest text-center rounded-sm cursor-pointer hover:border-brand-primary transition-colors"
+                    >
+                      Admin Login
+                    </button>
                   </div>
                 </div>
               </motion.div>
