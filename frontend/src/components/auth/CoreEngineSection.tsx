@@ -109,16 +109,16 @@ export default function CoreEngineSection() {
           className="w-full relative mt-12 mb-20"
         >
           {/* Outer parallelogram container */}
-          <div className="w-full h-[400px] md:h-[450px] bg-app-bg border-2 border-border-subtle -skew-x-12 relative overflow-hidden shadow-2xl">
+          <div className="w-full h-[400px] md:h-[450px] bg-app-bg border-2 border-border-subtle md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-2xl md:rounded-none">
             {/* Subtle grid background inside the parallelogram */}
-            <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none skew-x-12 scale-150" />
+            <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none md:skew-x-12 scale-150" />
             
             {/* Glows */}
-            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-brand-primary/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none skew-x-12" />
-            <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-[#10b981]/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none skew-x-12" />
+            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-brand-primary/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none md:skew-x-12" />
+            <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-[#10b981]/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none md:skew-x-12" />
             
             {/* Unskewed content wrapper with scrolling */}
-            <div className="skew-x-12 w-full h-full flex items-center overflow-x-auto overflow-y-visible px-12 md:px-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="md:skew-x-12 w-full h-full flex items-center overflow-x-auto overflow-y-visible px-4 md:px-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <div className="min-w-[900px] w-full flex items-center justify-between relative py-12">
             
             {/* Animated Dashed Line */}
@@ -211,9 +211,9 @@ export default function CoreEngineSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <div className="group bg-app-bg border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 p-8 -skew-x-12 relative overflow-hidden h-full">
+            <div className="group bg-app-bg border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none">
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
-              <div className="skew-x-12 h-full flex flex-col justify-center">
+              <div className="md:skew-x-12 h-full flex flex-col justify-center">
                 <div className="w-12 h-12 bg-brand-primary/10 border-2 border-brand-primary/20 flex items-center justify-center mb-6">
                   <Sparkles className="w-5 h-5 text-brand-primary" />
                 </div>
@@ -231,9 +231,9 @@ export default function CoreEngineSection() {
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
           >
-            <div className="group bg-app-bg border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-300 p-8 -skew-x-12 relative overflow-hidden h-full">
+            <div className="group bg-app-bg border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-300 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none">
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
-              <div className="skew-x-12 h-full flex flex-col justify-center">
+              <div className="md:skew-x-12 h-full flex flex-col justify-center">
                 <div className="w-12 h-12 bg-[#38bdf8]/10 border-2 border-[#38bdf8]/20 flex items-center justify-center mb-6">
                   <CloudRain className="w-5 h-5 text-[#38bdf8]" />
                 </div>
