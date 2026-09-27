@@ -120,16 +120,9 @@ export default function FaqsSection() {
                   setOpenIndex(0); // auto-open first item on switch
                 }}
                 className={`relative px-4 md:px-8 py-3 md:-skew-x-12 border-2 rounded-xl md:rounded-none transition-all duration-300 cursor-pointer ${
-                  isActive ? 'border-brand-primary text-brand-white' : 'border-border-subtle text-text-secondary hover:text-text-primary hover:border-text-primary bg-surface'
+                  isActive ? 'border-brand-primary bg-brand-primary text-app-bg' : 'border-border-subtle text-text-secondary hover:text-text-primary hover:border-text-primary bg-surface'
                 }`}
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="faq-active-tab"
-                    className="absolute inset-0 bg-brand-primary rounded-xl md:rounded-none"
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  />
-                )}
                 <span className="relative z-10 md:skew-x-12 block font-heading font-black uppercase tracking-widest text-xs md:text-sm">{cat}</span>
               </button>
             );
