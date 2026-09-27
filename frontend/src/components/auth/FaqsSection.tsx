@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { ChevronDown, Mail, MessageCircleQuestion } from 'lucide-react';
+import { ChevronDown, MessageCircleQuestion } from 'lucide-react';
 
 const faqCategories: Record<string, {q: string, a: string}[]> = {
   "General": [

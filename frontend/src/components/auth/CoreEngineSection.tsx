@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Camera, Sparkles, CloudRain, BrainCircuit, Database, MonitorDot, ArrowRight } from 'lucide-react';
+import { Camera, Sparkles, CloudRain, BrainCircuit, Database, MonitorDot } from 'lucide-react';
 
 const ScrollWriteText = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -22,7 +22,17 @@ const ScrollWriteText = ({ children, className = "" }: { children: React.ReactNo
   );
 };
 
-const SharpNode = ({ icon, label, sublabel, borderColor, iconColor, bgColor = "bg-app-bg", delay }: any) => (
+interface SharpNodeProps {
+  icon: React.ReactNode;
+  label: string;
+  sublabel?: string;
+  borderColor: string;
+  iconColor: string;
+  bgColor?: string;
+  delay: number;
+}
+
+const SharpNode = ({ icon, label, sublabel, borderColor, iconColor, bgColor = "bg-app-bg", delay }: SharpNodeProps) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.8 }}
     whileInView={{ opacity: 1, scale: 1 }}
