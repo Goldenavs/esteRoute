@@ -3,10 +3,39 @@ import { Droplets, MapPin, Map, Activity, User, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useState, useEffect } from 'react';
 
 export default function CitizenLayout() {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const [isNavVisible, setIsNavVisible] = useState(true);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    
+    const handleActivity = () => {
+      setIsNavVisible(true);
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        setIsNavVisible(false);
+      }, 3000); // Auto-hide after 3 seconds of inactivity
+    };
+
+    // Listen for mouse movements or clicks
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('mousedown', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+
+    // Initial timer
+    timeout = setTimeout(() => setIsNavVisible(false), 3000);
+
+    return () => {
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('mousedown', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      clearTimeout(timeout);
+    };
+  }, []);
 
   const navItems = [
     { name: 'Report', path: '/citizen', icon: MapPin },
@@ -16,60 +45,76 @@ export default function CitizenLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300">
+    <div className="min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300 relative">
       
-      {/* Top Navbar (Desktop & Mobile Header) */}
-      <header className="sticky top-0 z-50 w-full bg-surface/90 backdrop-blur-md border-b border-border-subtle px-4 py-3 flex justify-between items-center shadow-sm">
-        
-        {/* Logo */}
-        <Link to="/citizen" className="flex items-center gap-2 text-brand-primary font-heading font-black tracking-tighter text-2xl uppercase skew-x-12 cursor-pointer transition-transform hover:scale-105">
-          <Droplets className="w-8 h-8 -skew-x-12" />
-          <span className="hidden sm:inline">este<span className="text-text-primary">Route</span></span>
-        </Link>
-        
-        {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-8">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
-            return (
-              <Link 
-                key={item.path} 
-                to={item.path}
-                className={twMerge(
-                  clsx(
-                    "flex items-center gap-2 text-sm font-bold uppercase tracking-widest transition-all",
-                    isActive 
-                      ? "text-brand-primary border-b-2 border-brand-primary pb-1" 
-                      : "text-text-muted hover:text-text-primary pb-1"
-                  )
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        
-        {/* Actions */}
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={toggleTheme} 
-            className="p-2 rounded-full hover:bg-surface-subtle transition-colors text-text-muted hover:text-text-primary"
-            aria-label="Toggle Theme"
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
-          
-          <Link to="/" className="hidden md:flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors">
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
-          </Link>
+      {/* Top Navbar (Desktop Only) - Follows AuthNavbar Style */}
+      <div 
+        className={twMerge(
+          clsx(
+            "fixed top-4 w-full z-50 pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
+            isNavVisible ? "translate-y-0" : "-translate-y-[150%]"
+          )
+        )}
+      >
+        <div className="flex flex-col items-center px-4 md:px-6">
+          <div className="w-full max-w-[95%] xl:max-w-7xl relative pointer-events-none">
+            <div className="w-full flex items-center justify-between pointer-events-auto bg-surface/80 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-lg shadow-black/5 transition-all duration-500 hover:border-border-strong hover:shadow-xl -skew-x-12">
+              
+              {/* Left: Logo */}
+              <div className="flex-1 flex justify-start skew-x-12">
+                <Link to="/citizen" className="flex items-center gap-2 text-brand-primary font-heading font-black tracking-tighter text-lg uppercase cursor-pointer transition-transform hover:scale-105">
+                  <Droplets className="w-6 h-6" />
+                  <span>este<span className="text-text-primary">Route</span></span>
+                </Link>
+              </div>
+              
+              {/* Center: Navigation Links */}
+              <nav className="flex-1 flex justify-center items-center gap-8 skew-x-12">
+                {navItems.map((item) => {
+                  const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
+                  return (
+                    <Link 
+                      key={item.path} 
+                      to={item.path}
+                      className={twMerge(
+                        clsx(
+                          "relative overflow-hidden group cursor-pointer text-xs xl:text-sm font-bold uppercase tracking-widest block shrink-0",
+                          isActive ? "text-brand-primary" : "text-text-muted hover:text-text-primary"
+                        )
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.name}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </nav>
+              
+              {/* Right: Actions */}
+              <div className="flex-1 flex justify-end items-center gap-4 skew-x-12">
+                <button 
+                  onClick={toggleTheme} 
+                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-muted hover:text-text-primary pointer-events-auto"
+                  aria-label="Toggle Theme"
+                >
+                  {theme === 'light' ? '🌙' : '☀️'}
+                </button>
+                <div className="w-px h-4 bg-border-strong"></div>
+                <Link to="/" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto">
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </Link>
+              </div>
+
+            </div>
+          </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content Area */}
-      {/* padding-bottom (pb-24) ensures content isn't hidden behind the mobile bottom tab bar */}
+      {/* pb-24 ensures content isn't hidden behind the mobile bottom tab bar */}
       <main className="flex-1 bg-app-bg overflow-x-hidden relative flex flex-col pb-24 md:pb-0">
         <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in">
           <Outlet />
