@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ShieldAlert, Navigation, MonitorDot, Camera, MapPin, Sprout, ChevronDown, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../../context/ThemeContext';
 
 
 export default function HeroSection({ scrollTo, onOpenModal }: { scrollTo: (id: string) => void; onOpenModal: (type: 'admin' | 'citizen') => void }) {
