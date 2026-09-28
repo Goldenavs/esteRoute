@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import AuthNavbar from '../../components/auth/AuthNavbar';
-import HeroSection from '../../components/auth/HeroSection';
-import FeaturesSection from '../../components/auth/FeaturesSection';
-import CoreEngineSection from '../../components/auth/CoreEngineSection';
-import FaqsSection from '../../components/auth/FaqsSection';
-import FooterSection from '../../components/auth/FooterSection';
-import AuthModals from '../../components/auth/AuthModals';
+import AuthNavbar from '../../components/auth/navigation/AuthNavbar';
+import HeroSection from '../../components/auth/sections/HeroSection';
+import FeaturesSection from '../../components/auth/sections/FeaturesSection';
+import CoreEngineSection from '../../components/auth/sections/CoreEngineSection';
+import FaqsSection from '../../components/auth/sections/FaqsSection';
+import FooterSection from '../../components/auth/sections/FooterSection';
+import AuthModals from '../../components/auth/modals/AuthModals';
 
 export default function UniversalLogin() {
   const [activeSection, setActiveSection] = useState('hero');
