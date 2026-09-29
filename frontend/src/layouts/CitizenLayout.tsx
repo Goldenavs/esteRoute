@@ -11,7 +11,7 @@ export default function CitizenLayout() {
   const [isNavVisible, setIsNavVisible] = useState(true);
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
     
     const handleActivity = () => {
       setIsNavVisible(true);
