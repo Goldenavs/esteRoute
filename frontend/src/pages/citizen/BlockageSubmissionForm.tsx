@@ -8,15 +8,68 @@ export default function BlockageSubmissionForm() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
+  const [isCameraActive, setIsCameraActive] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  // Cleanup object URL on unmount to prevent memory leaks
+  // Cleanup object URL and camera stream on unmount
   useEffect(() => {
     return () => {
       if (photoPreview) URL.revokeObjectURL(photoPreview);
+      stopCamera();
     };
   }, [photoPreview]);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      streamRef.current = stream;
+      setIsCameraActive(true);
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      alert("Could not access camera. Please check your browser permissions.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      // Set canvas dimensions to match the video feed
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+            setPhotoFile(file);
+            setPhotoPreview(URL.createObjectURL(file));
+            stopCamera();
+          }
+        }, 'image/jpeg', 0.9);
+      }
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,7 +93,6 @@ export default function BlockageSubmissionForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here we would typically FormData and post to the backend
     console.log("Submitting:", { photoFile, notes });
     setIsSubmitted(true);
   };
@@ -109,29 +161,71 @@ export default function BlockageSubmissionForm() {
               </span>
             </div>
             
-            {/* Hidden File Input */}
+            {/* Hidden Inputs */}
             <input 
               type="file" 
               accept="image/jpeg, image/png, image/webp" 
-              capture="environment"
               ref={fileInputRef}
               onChange={handleFileChange}
               className="hidden"
             />
+            <canvas ref={canvasRef} className="hidden" />
 
             {!photoPreview ? (
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-56 md:h-72 border-2 border-dashed border-border-strong rounded-sm flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-brand-primary hover:bg-brand-primary/5 transition-all duration-300 group bg-app-bg/50"
-              >
-                <div className="w-16 h-16 bg-surface rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300 border border-border-subtle">
-                  <UploadCloud className="w-7 h-7 text-brand-primary" />
+              isCameraActive ? (
+                <div className="relative w-full h-64 md:h-80 bg-black rounded-sm overflow-hidden flex flex-col group border border-border-subtle shadow-inner">
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    className="w-full h-full object-cover scale-x-[-1]" 
+                  />
+                  
+                  <button 
+                    type="button" 
+                    onClick={stopCamera}
+                    className="absolute top-4 right-4 p-2.5 bg-black/60 hover:bg-semantic-urgent backdrop-blur-md rounded-full text-white transition-colors duration-300 z-10"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10">
+                    <button
+                      type="button"
+                      onClick={capturePhoto}
+                      className="w-16 h-16 bg-white/30 backdrop-blur-sm border-4 border-white rounded-full hover:bg-white/60 hover:scale-105 transition-all duration-300 shadow-lg"
+                      aria-label="Take Photo"
+                    />
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p className="font-bold text-text-primary text-lg">Tap to open camera</p>
-                  <p className="text-sm text-text-muted mt-1">or select from gallery (Max 8MB)</p>
+              ) : (
+                <div className="w-full h-56 md:h-72 border-2 border-dashed border-border-strong rounded-sm flex flex-col items-center justify-center gap-6 bg-app-bg/50">
+                  <div className="text-center px-4">
+                    <p className="font-bold text-text-primary text-xl">Add Photo Evidence</p>
+                    <p className="text-sm text-text-muted mt-2">Take a live photo or upload from your device (Max 8MB)</p>
+                  </div>
+
+                  <div className="flex gap-4 w-full px-8 max-w-sm">
+                    <button 
+                      type="button"
+                      onClick={startCamera}
+                      className="flex-1 flex flex-col items-center justify-center gap-2 py-4 bg-brand-primary/10 border border-brand-primary/30 rounded-sm hover:bg-brand-primary hover:text-white transition-all group -skew-x-6 text-brand-primary shadow-sm"
+                    >
+                      <Camera className="w-7 h-7 skew-x-6 group-hover:scale-110 transition-transform" />
+                      <span className="text-sm font-bold skew-x-6 uppercase tracking-wider">Camera</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 flex flex-col items-center justify-center gap-2 py-4 bg-surface border border-border-strong rounded-sm hover:border-brand-primary hover:bg-brand-primary/5 transition-all group -skew-x-6 text-text-primary shadow-sm"
+                    >
+                      <UploadCloud className="w-7 h-7 skew-x-6 text-text-secondary group-hover:text-brand-primary group-hover:scale-110 transition-transform" />
+                      <span className="text-sm font-bold skew-x-6 uppercase tracking-wider">Upload</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )
             ) : (
               <div className="relative w-full h-56 md:h-72 rounded-sm overflow-hidden group border border-border-subtle shadow-inner">
                 <div 
