@@ -23,16 +23,21 @@ export default function BlockageSubmissionForm() {
     };
   }, [photoPreview]);
 
+  // Attach the stream to the video element once it mounts in the DOM
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isCameraActive]);
+
   const startCamera = async () => {
     try {
+      // Use 'ideal' so it gracefully falls back to the front-facing laptop camera if a rear camera doesn't exist.
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+        video: { facingMode: { ideal: 'environment' } } 
       });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
       streamRef.current = stream;
-      setIsCameraActive(true);
+      setIsCameraActive(true); // Triggers re-render, mounting the video tag
     } catch (err) {
       console.error("Error accessing camera:", err);
       alert("Could not access camera. Please check your browser permissions.");
