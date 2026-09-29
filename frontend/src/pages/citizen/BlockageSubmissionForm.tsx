@@ -1,16 +1,54 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Camera, MapPin, Map as MapIcon, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export default function BlockageSubmissionForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [hasPhoto, setHasPhoto] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Cleanup object URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoPreview]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) {
+        alert("File size exceeds 8MB limit. Please choose a smaller photo.");
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removePhoto = () => {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Here we would typically FormData and post to the backend
+    console.log("Submitting:", { photoFile, notes });
     setIsSubmitted(true);
+  };
+
+  const resetForm = () => {
+    setIsSubmitted(false);
+    removePhoto();
+    setNotes('');
   };
 
   if (isSubmitted) {
@@ -33,7 +71,7 @@ export default function BlockageSubmissionForm() {
             </div>
 
             <button 
-              onClick={() => { setIsSubmitted(false); setHasPhoto(false); setNotes(''); }}
+              onClick={resetForm}
               className="w-full bg-surface border-2 border-border-strong hover:border-brand-primary text-text-primary font-bold py-4 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 group -skew-x-12"
             >
               <span className="skew-x-12 uppercase tracking-widest">Submit Another Report</span>
@@ -58,7 +96,7 @@ export default function BlockageSubmissionForm() {
         <div className="lg:col-span-7 flex flex-col gap-6 lg:gap-8">
           
           {/* Photo Upload Section */}
-          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex flex-col">
+          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex flex-col relative">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6">
@@ -71,33 +109,46 @@ export default function BlockageSubmissionForm() {
               </span>
             </div>
             
-            {!hasPhoto ? (
+            {/* Hidden File Input */}
+            <input 
+              type="file" 
+              accept="image/jpeg, image/png, image/webp" 
+              capture="environment"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {!photoPreview ? (
               <div 
-                onClick={() => setHasPhoto(true)}
+                onClick={() => fileInputRef.current?.click()}
                 className="w-full h-56 md:h-72 border-2 border-dashed border-border-strong rounded-sm flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-brand-primary hover:bg-brand-primary/5 transition-all duration-300 group bg-app-bg/50"
               >
                 <div className="w-16 h-16 bg-surface rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300 border border-border-subtle">
                   <UploadCloud className="w-7 h-7 text-brand-primary" />
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-text-primary text-lg">Tap to take a photo</p>
-                  <p className="text-sm text-text-muted mt-1">or browse gallery (Max 8MB)</p>
+                  <p className="font-bold text-text-primary text-lg">Tap to open camera</p>
+                  <p className="text-sm text-text-muted mt-1">or select from gallery (Max 8MB)</p>
                 </div>
               </div>
             ) : (
               <div className="relative w-full h-56 md:h-72 rounded-sm overflow-hidden group border border-border-subtle shadow-inner">
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1596767746408-db2891d4e0e2?q=80&w=1000')] bg-cover bg-center"></div>
+                <div 
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                  style={{ backgroundImage: `url(${photoPreview})` }}
+                ></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/40 opacity-80 group-hover:opacity-100 transition-opacity"></div>
                 
                 <button 
                   type="button"
-                  onClick={() => setHasPhoto(false)}
-                  className="absolute top-4 right-4 p-2.5 bg-black/50 hover:bg-semantic-urgent backdrop-blur-md rounded-full text-white transition-all duration-300 hover:scale-110 hover:shadow-lg"
+                  onClick={removePhoto}
+                  className="absolute top-4 right-4 p-2.5 bg-black/50 hover:bg-semantic-urgent backdrop-blur-md rounded-full text-white transition-all duration-300 hover:scale-110 hover:shadow-lg z-10"
                 >
                   <X className="w-5 h-5" />
                 </button>
                 
-                <div className="absolute bottom-4 left-4 flex items-center gap-2 text-white text-sm font-bold bg-green-500/90 backdrop-blur-md px-4 py-2 rounded-sm -skew-x-12 shadow-lg">
+                <div className="absolute bottom-4 left-4 flex items-center gap-2 text-white text-sm font-bold bg-green-500/90 backdrop-blur-md px-4 py-2 rounded-sm -skew-x-12 shadow-lg z-10">
                   <span className="skew-x-12 flex items-center gap-2 tracking-wide uppercase">
                     <CheckCircle2 className="w-5 h-5" />
                     Image Attached
@@ -176,16 +227,16 @@ export default function BlockageSubmissionForm() {
             className={twMerge(
               clsx(
                 "w-full py-6 px-6 rounded-sm font-black text-xl tracking-widest uppercase flex items-center justify-center gap-3 transition-all duration-300 -skew-x-12 group shadow-[0px_4px_15px_rgba(0,0,0,0.1)]",
-                hasPhoto 
+                photoPreview 
                   ? "bg-brand-primary hover:bg-brand-secondary text-white hover:translate-x-1 hover:-translate-y-1 hover:shadow-[12px_12px_0px_rgba(0,0,0,0.2)]" 
                   : "bg-surface border-2 border-border-strong text-text-muted cursor-not-allowed opacity-80"
               )
             )}
-            disabled={!hasPhoto}
+            disabled={!photoPreview}
           >
             <div className="skew-x-12 flex items-center gap-2">
               <span>Submit Report</span>
-              <ChevronRight className={twMerge(clsx("w-6 h-6 transition-transform", hasPhoto && "group-hover:translate-x-2"))} />
+              <ChevronRight className={twMerge(clsx("w-6 h-6 transition-transform", photoPreview && "group-hover:translate-x-2"))} />
             </div>
           </button>
 
