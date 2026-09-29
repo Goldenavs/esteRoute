@@ -2,6 +2,17 @@ import { useState, useRef, useEffect } from 'react';
 import { Camera, MapPin, Map as MapIcon, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+const customMarkerIcon = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
 
 export default function BlockageSubmissionForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -271,19 +282,28 @@ export default function BlockageSubmissionForm() {
               </span>
             </div>
 
-            <div className="w-full h-[240px] bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative flex items-center justify-center shadow-inner group">
-              {/* Map Placeholder */}
-              <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-blue-500/10"></div>
-              <MapIcon className="w-16 h-16 text-border-strong absolute group-hover:scale-110 transition-transform duration-700" />
+            <div className="w-full h-[240px] bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0">
+              <MapContainer 
+                center={[10.3157, 123.8854]} 
+                zoom={15} 
+                scrollWheelZoom={false}
+                className="w-full h-full z-0"
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker position={[10.3157, 123.8854]} icon={customMarkerIcon} />
+              </MapContainer>
               
-              <div className="z-10 bg-surface border border-border-subtle px-6 py-3 rounded-sm shadow-xl flex items-center gap-3 transform translate-y-6 -skew-x-12 relative overflow-hidden">
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[400] bg-surface border border-border-subtle px-5 py-2 rounded-sm shadow-xl flex items-center gap-3 -skew-x-12 overflow-hidden pointer-events-none">
                 <div className="absolute top-0 left-0 w-1 h-full bg-brand-primary"></div>
                 <div className="skew-x-12 flex items-center gap-3">
-                  <span className="relative flex h-3 w-3">
+                  <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-brand-primary"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-primary"></span>
                   </span>
-                  <span className="text-sm font-bold text-text-primary uppercase tracking-widest">Acquiring GPS</span>
+                  <span className="text-xs font-bold text-text-primary uppercase tracking-widest">Live Location</span>
                 </div>
               </div>
             </div>
