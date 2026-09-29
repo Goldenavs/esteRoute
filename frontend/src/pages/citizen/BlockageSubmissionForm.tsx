@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, MapPin, Map as MapIcon, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle } from 'lucide-react';
+import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
@@ -25,6 +25,14 @@ export default function BlockageSubmissionForm() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
 
   // Cleanup object URL and camera stream on unmount
   useEffect(() => {
@@ -53,14 +61,6 @@ export default function BlockageSubmissionForm() {
       console.error("Error accessing camera:", err);
       alert("Could not access camera. Please check your browser permissions.");
     }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setIsCameraActive(false);
   };
 
   const capturePhoto = () => {
