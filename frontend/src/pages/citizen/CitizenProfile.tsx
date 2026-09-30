@@ -1,6 +1,4 @@
-import { Shield, Award, Settings, Trash2, User, Camera, CheckCircle2, Bell, LogOut, Lock, ChevronRight, Activity } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { Shield, Award, User, Camera, CheckCircle2, Bell, LogOut, Lock, ChevronRight } from 'lucide-react';
 
 export default function CitizenProfile() {
   return (
