@@ -1,7 +1,10 @@
+import { useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { AlertTriangle, Info, Map as MapIcon, Layers } from 'lucide-react';
+import { AlertTriangle, Map as MapIcon, Maximize, Minimize, Crosshair } from 'lucide-react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 // Fix for Vite static asset pathing
 const customMarkerIcon = new L.Icon({
@@ -14,28 +17,75 @@ const customMarkerIcon = new L.Icon({
 });
 
 export default function PublicEsteroStatusMap() { 
-  return (
-    <div className="w-full h-full flex flex-col pb-10">
-      
-      <div className="mb-6 md:mb-8 max-w-3xl">
-        <h1 className="text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary mb-3 border-l-4 border-brand-primary pl-4">Public Basin Map</h1>
-        <p className="text-text-muted text-sm md:text-lg pl-5">View active reports, drainage status, and real-time civic infrastructure alerts across the city.</p>
-      </div>
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const mapRef = useRef<L.Map>(null);
 
-      {/* Map Container Wrapper - Skewed for aesthetic but scales map to hide corners */}
-      <div className="flex-1 w-full min-h-[65vh] bg-surface border border-border-subtle rounded-sm shadow-2xl relative overflow-hidden -skew-x-[2deg] lg:-skew-x-[6deg] group">
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+    // After toggling layout, map might need a resize event to render tiles correctly
+    setTimeout(() => {
+      mapRef.current?.invalidateSize();
+    }, 300);
+  };
+
+  const goToCurrentLocation = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          mapRef.current?.flyTo([latitude, longitude], 16, { duration: 1.5 });
+        },
+        (error) => {
+          alert('Unable to retrieve your location. Please check your browser permissions.');
+          console.error("GPS Error:", error);
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      alert('Geolocation is not supported by your browser.');
+    }
+  };
+
+  return (
+    <div className={twMerge(
+      clsx(
+        "w-full flex flex-col",
+        isFullscreen ? "fixed inset-0 z-[999] bg-app-bg pb-0 h-screen" : "h-full pb-10"
+      )
+    )}>
+      
+      {!isFullscreen && (
+        <div className="mb-6 md:mb-8 max-w-3xl">
+          <h1 className="text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary mb-3 border-l-4 border-brand-primary pl-4">Public Basin Map</h1>
+          <p className="text-text-muted text-sm md:text-lg pl-5">View active reports, drainage status, and real-time civic infrastructure alerts across the city.</p>
+        </div>
+      )}
+
+      {/* Map Container Wrapper - Conditionally skewed */}
+      <div className={twMerge(
+        clsx(
+          "flex-1 w-full bg-surface border border-border-subtle shadow-2xl relative overflow-hidden group",
+          isFullscreen ? "rounded-none" : "min-h-[65vh] rounded-sm -skew-x-[2deg] lg:-skew-x-[6deg]"
+        )
+      )}>
         
         {/* Un-skewed Map Layer */}
-        <div className="skew-x-[2deg] lg:skew-x-[6deg] w-full h-full absolute inset-0 scale-[1.15]">
+        <div className={twMerge(
+          clsx(
+            "w-full h-full absolute inset-0 transition-transform duration-300",
+            isFullscreen ? "scale-100" : "skew-x-[2deg] lg:skew-x-[6deg] scale-[1.15]"
+          )
+        )}>
           <MapContainer 
             center={[10.3157, 123.8854]} 
             zoom={14} 
             scrollWheelZoom={true}
             className="w-full h-full z-0"
+            ref={mapRef}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             
             {/* Dummy Markers for UI Presentation */}
@@ -62,10 +112,20 @@ export default function PublicEsteroStatusMap() {
           </MapContainer>
         </div>
 
-        {/* Floating UI Overlays */}
-        <div className="absolute top-6 left-8 z-[400] skew-x-[2deg] lg:skew-x-[6deg] pointer-events-none">
-           <div className="bg-surface/95 backdrop-blur-md border border-border-subtle p-3 lg:p-4 rounded-sm shadow-xl flex flex-col gap-2 -skew-x-[6deg] pointer-events-auto">
-             <div className="skew-x-[6deg] flex flex-col gap-1">
+        {/* Floating Status Overlay */}
+        <div className={twMerge(
+          clsx(
+            "absolute top-6 left-6 md:left-8 z-[400] pointer-events-none transition-transform duration-300",
+            !isFullscreen && "skew-x-[2deg] lg:skew-x-[6deg]"
+          )
+        )}>
+           <div className={twMerge(
+             clsx(
+               "bg-surface/95 backdrop-blur-md border border-border-subtle p-3 lg:p-4 rounded-sm shadow-xl flex flex-col gap-2 pointer-events-auto",
+               !isFullscreen && "-skew-x-[6deg]"
+             )
+           )}>
+             <div className={twMerge(clsx("flex flex-col gap-1", !isFullscreen && "skew-x-[6deg]"))}>
                <div className="flex items-center gap-2 mb-1">
                  <MapIcon className="w-5 h-5 text-brand-primary" />
                  <span className="font-black text-sm uppercase tracking-widest text-text-primary">Zone: Central Cebu</span>
@@ -78,10 +138,44 @@ export default function PublicEsteroStatusMap() {
            </div>
         </div>
 
-        <div className="absolute bottom-6 right-8 z-[400] skew-x-[2deg] lg:skew-x-[6deg] pointer-events-none">
-           <button className="bg-brand-primary hover:bg-brand-secondary text-white p-3 rounded-sm shadow-xl -skew-x-[6deg] transition-all hover:scale-105 pointer-events-auto flex items-center justify-center group/btn">
-             <Layers className="w-6 h-6 skew-x-[6deg] group-hover/btn:rotate-12 transition-transform" />
+        {/* Floating Action Controls */}
+        <div className={twMerge(
+          clsx(
+            "absolute bottom-6 right-6 md:right-8 z-[400] pointer-events-none flex flex-col gap-3 transition-transform duration-300",
+            !isFullscreen && "skew-x-[2deg] lg:skew-x-[6deg]"
+          )
+        )}>
+           
+           <button 
+             onClick={goToCurrentLocation}
+             className={twMerge(
+               clsx(
+                 "bg-surface hover:bg-brand-primary/10 text-text-primary p-3 rounded-sm shadow-xl transition-all hover:scale-105 pointer-events-auto flex items-center justify-center border border-border-subtle group",
+                 !isFullscreen && "-skew-x-[6deg]"
+               )
+             )}
+             title="Find My Location"
+           >
+             <Crosshair className={twMerge(clsx("w-6 h-6 text-brand-secondary group-hover:text-brand-primary", !isFullscreen && "skew-x-[6deg]"))} />
            </button>
+
+           <button 
+             onClick={toggleFullscreen}
+             className={twMerge(
+               clsx(
+                 "bg-brand-primary hover:bg-brand-secondary text-white p-3 rounded-sm shadow-xl transition-all hover:scale-105 pointer-events-auto flex items-center justify-center group/btn",
+                 !isFullscreen && "-skew-x-[6deg]"
+               )
+             )}
+             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+           >
+             {isFullscreen ? (
+               <Minimize className={twMerge(clsx("w-6 h-6 transition-transform group-hover/btn:scale-90", !isFullscreen && "skew-x-[6deg]"))} />
+             ) : (
+               <Maximize className={twMerge(clsx("w-6 h-6 transition-transform group-hover/btn:scale-110", !isFullscreen && "skew-x-[6deg]"))} />
+             )}
+           </button>
+
         </div>
 
       </div>
