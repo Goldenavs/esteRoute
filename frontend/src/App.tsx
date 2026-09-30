@@ -13,6 +13,7 @@ import BlockageSubmissionForm from './pages/citizen/BlockageSubmissionForm'
 import SubmissionConfirmation from './pages/citizen/SubmissionConfirmation'
 import PublicEsteroStatusMap from './pages/citizen/PublicEsteroStatusMap'
 import CitizenDashboard from './pages/citizen/CitizenDashboard'
+import CitizenProfile from './pages/citizen/CitizenProfile'
 
 // Admin Pages
 import MainCommandDashboard from './pages/admin/MainCommandDashboard'
@@ -38,6 +39,7 @@ function App() {
           <Route path="confirmation" element={<SubmissionConfirmation />} />
           <Route path="public-map" element={<PublicEsteroStatusMap />} />
           <Route path="dashboard" element={<CitizenDashboard />} />
+          <Route path="profile" element={<CitizenProfile />} />
         </Route>
 
         {/* Admin Routing Group */}
