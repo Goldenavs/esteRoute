@@ -11,29 +11,37 @@ export default function CitizenLayout() {
   const [isNavVisible, setIsNavVisible] = useState(true);
 
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
     
-    const handleActivity = () => {
-      setIsNavVisible(true);
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        setIsNavVisible(false);
-      }, 3000); // Auto-hide after 3 seconds of inactivity
+    const handleMouseMove = (e: MouseEvent) => {
+      if (e.clientY <= 120) {
+        setIsNavVisible(true);
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = null;
+        }
+      } else {
+        // If we move away from the top, only start the hide countdown if one isn't already running
+        if (!timeout) {
+          timeout = setTimeout(() => {
+            setIsNavVisible(false);
+            timeout = null;
+          }, 1000); // Hide 1 second after leaving the top zone
+        }
+      }
     };
 
-    // Listen for mouse movements or clicks
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('mousedown', handleActivity);
-    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('mousemove', handleMouseMove);
 
-    // Initial timer
-    timeout = setTimeout(() => setIsNavVisible(false), 3000);
+    // Initial timer to hide the nav after page load
+    timeout = setTimeout(() => {
+      setIsNavVisible(false);
+      timeout = null;
+    }, 2500);
 
     return () => {
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('mousedown', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      clearTimeout(timeout);
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (timeout) clearTimeout(timeout);
     };
   }, []);
 
@@ -47,18 +55,21 @@ export default function CitizenLayout() {
   return (
     <div className="min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300 relative">
       
+      {/* Invisible Hover Zone (Top of Screen) to catch rapid mouse movements if needed */}
+      <div className="fixed top-0 left-0 w-full h-12 z-[999] md:block hidden pointer-events-none" />
+
       {/* Top Navbar (Desktop Only) - Follows AuthNavbar Style */}
       <div 
         className={twMerge(
           clsx(
-            "fixed top-4 w-full z-50 pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
+            "fixed top-4 w-full z-[1000] pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
             isNavVisible ? "translate-y-0" : "-translate-y-[150%]"
           )
         )}
       >
         <div className="flex flex-col items-center px-4 md:px-6">
           <div className="w-full max-w-[95%] xl:max-w-7xl relative pointer-events-none">
-            <div className="w-full flex items-center justify-between pointer-events-auto bg-surface/80 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-lg shadow-black/5 transition-all duration-500 hover:border-border-strong hover:shadow-xl -skew-x-12">
+            <div className="w-full flex items-center justify-between pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12">
               
               {/* Left: Logo */}
               <div className="flex-1 flex justify-start skew-x-12">
@@ -116,7 +127,12 @@ export default function CitizenLayout() {
       {/* Main Content Area */}
       {/* pb-24 ensures content isn't hidden behind the mobile bottom tab bar */}
       <main className="flex-1 bg-app-bg overflow-x-hidden relative flex flex-col pb-24 md:pb-0">
-        <div className="flex-1 p-4 md:p-6 md:pt-28 lg:p-8 lg:pt-32 max-w-7xl mx-auto w-full animate-fade-in">
+        <div className={twMerge(
+          clsx(
+            "flex-1 flex flex-col p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in transition-all duration-700 ease-[cubic-bezier(0.76,0,0.24,1)]",
+            isNavVisible ? "md:pt-28 lg:pt-32" : "md:pt-6 lg:pt-8"
+          )
+        )}>
           <Outlet />
         </div>
       </main>
