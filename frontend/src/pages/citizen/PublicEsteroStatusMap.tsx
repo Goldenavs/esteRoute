@@ -50,22 +50,22 @@ export default function PublicEsteroStatusMap() {
     <div className={twMerge(
       clsx(
         "w-full flex flex-col",
-        isFullscreen ? "fixed inset-0 z-[999] bg-app-bg pb-0 h-screen" : "h-full pb-10"
+        isFullscreen ? "fixed inset-0 z-[999] bg-app-bg pb-0 h-screen" : "h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] lg:h-[calc(100vh-200px)]"
       )
     )}>
       
       {!isFullscreen && (
-        <div className="mb-6 md:mb-8 max-w-3xl">
-          <h1 className="text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary mb-3 border-l-4 border-brand-primary pl-4">Public Basin Map</h1>
-          <p className="text-text-muted text-sm md:text-lg pl-5">View active reports, drainage status, and real-time civic infrastructure alerts across the city.</p>
+        <div className="mb-3 md:mb-6 max-w-3xl shrink-0 px-1">
+          <h1 className="text-2xl md:text-4xl lg:text-5xl font-heading font-black tracking-tight text-text-primary mb-2 border-l-4 border-brand-primary pl-3 md:pl-4">Public Basin Map</h1>
+          <p className="text-text-muted text-[11px] md:text-sm pl-4 md:pl-5 line-clamp-2">View active reports, drainage status, and real-time civic infrastructure alerts across the city.</p>
         </div>
       )}
 
       {/* Map Container Wrapper - Conditionally skewed */}
       <div className={twMerge(
         clsx(
-          "flex-1 w-full bg-surface border border-border-subtle shadow-2xl relative overflow-hidden group",
-          isFullscreen ? "rounded-none" : "min-h-[65vh] rounded-sm -skew-x-[2deg] lg:-skew-x-[6deg]"
+          "flex-1 min-h-0 w-full bg-surface border border-border-subtle shadow-2xl relative overflow-hidden group",
+          isFullscreen ? "rounded-none" : "rounded-sm -skew-x-[2deg] lg:-skew-x-[6deg]"
         )
       )}>
         
