@@ -49,8 +49,8 @@ export default function PublicEsteroStatusMap() {
   return (
     <div className={twMerge(
       clsx(
-        "w-full flex flex-col",
-        isFullscreen ? "fixed inset-0 z-[999] bg-app-bg pb-0 h-screen" : "h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] lg:h-[calc(100vh-200px)]"
+        "w-full flex-1 flex flex-col min-h-0",
+        isFullscreen && "fixed inset-0 z-[999] bg-app-bg pb-0 h-screen"
       )
     )}>
       
