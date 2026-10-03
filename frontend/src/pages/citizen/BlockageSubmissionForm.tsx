@@ -24,6 +24,8 @@ export default function BlockageSubmissionForm() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [isTorchOn, setIsTorchOn] = useState(false);
+  const [cameraCount, setCameraCount] = useState(0);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   
   // Geolocation State (Defaults to Cebu City Center)
   const defaultPosition = useMemo(() => new L.LatLng(10.3157, 123.8854), []);
@@ -34,6 +36,21 @@ export default function BlockageSubmissionForm() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Detect camera count on mount
+  useEffect(() => {
+    navigator.mediaDevices.enumerateDevices()
+      .then(devices => {
+        const cameras = devices.filter(device => device.kind === 'videoinput');
+        setCameraCount(cameras.length);
+      })
+      .catch(err => console.error("Could not enumerate devices", err));
+  }, []);
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -145,7 +162,7 @@ export default function BlockageSubmissionForm() {
         setIsCameraActive(true);
       } catch (fallbackErr) {
         console.error("Error accessing camera:", fallbackErr);
-        alert("Could not access camera. Please check your browser permissions.");
+        showToast("Could not access camera. Please check permissions.");
       }
     }
   };
@@ -169,9 +186,10 @@ export default function BlockageSubmissionForm() {
         setIsTorchOn(!isTorchOn);
       } catch (err) {
         console.error("Error toggling torch:", err);
+        showToast("Failed to toggle flashlight.");
       }
     } else {
-      alert("Flashlight is not supported on this specific camera/device.");
+      showToast("Flashlight is not supported on this device.");
     }
   };
 
@@ -292,7 +310,16 @@ export default function BlockageSubmissionForm() {
   }
 
   return (
-    <div className="w-full pb-10">
+    <div className="w-full relative pb-10 min-h-[calc(100vh-6rem)]">
+      {/* Custom Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] bg-semantic-urgent/90 backdrop-blur-md text-white px-6 py-3 rounded-sm shadow-2xl border-b-4 border-red-950 -skew-x-6 animate-in fade-in slide-in-from-top-10 duration-300 pointer-events-none">
+          <div className="skew-x-6 flex items-center gap-3 font-bold tracking-wider">
+            <AlertCircle className="w-5 h-5" />
+            <span>{toastMessage}</span>
+          </div>
+        </div>
+      )}
       
       <div className="mb-8 md:mb-12 max-w-3xl">
         <h1 className="text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary mb-4 border-l-4 border-brand-primary pl-4">Report a Blockage</h1>
@@ -349,14 +376,16 @@ export default function BlockageSubmissionForm() {
                       <X className="w-5 h-5" />
                     </button>
                     
-                    <button 
-                      type="button" 
-                      onClick={toggleCamera}
-                      className="p-2.5 bg-black/60 hover:bg-brand-primary backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
-                      title="Flip Camera"
-                    >
-                      <RefreshCw className="w-5 h-5" />
-                    </button>
+                    {cameraCount > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={toggleCamera}
+                        className="p-2.5 bg-black/60 hover:bg-brand-primary backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
+                        title="Flip Camera"
+                      >
+                        <RefreshCw className="w-5 h-5" />
+                      </button>
+                    )}
 
                     <button 
                       type="button" 
