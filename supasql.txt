@@ -88,3 +88,24 @@ CREATE POLICY "Public Access to canal-photos" ON storage.objects FOR SELECT TO p
 -- Avatars Bucket (Public Read, Backend/User Write)
 INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true);
 CREATE POLICY "Public Access to avatars" ON storage.objects FOR SELECT TO public USING (bucket_id = 'avatars');
+
+-- ==========================================
+-- 7. Auth Trigger to Sync Profiles
+-- ==========================================
+-- Automatically create a profile when a new user signs up via Supabase Auth
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, role)
+  VALUES (
+    new.id,
+    new.raw_user_meta_data->>'full_name', -- Extracts full_name from signup options
+    'citizen' -- Default role
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();

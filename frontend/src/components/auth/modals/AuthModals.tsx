@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { X, Lock, Mail, User, ArrowRight, Loader2 } from 'lucide-react';
+import { X, Lock, Mail, User, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 
 interface AuthModalsProps {
@@ -41,6 +41,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
   const [citizenEmail, setCitizenEmail] = useState('');
   const [citizenPassword, setCitizenPassword] = useState('');
   const [citizenError, setCitizenError] = useState('');
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
 
   const handleCitizenAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,15 +49,21 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
     setCitizenError('');
 
     if (citizenMode === 'signup') {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: citizenEmail,
         password: citizenPassword,
         options: {
-          data: { full_name: citizenName }
+          data: { full_name: citizenName },
+          emailRedirectTo: `${window.location.origin}/citizen`
         }
       });
-      if (error) setCitizenError(error.message);
-      else navigate('/citizen');
+      if (error) {
+        setCitizenError(error.message);
+      } else if (data.user && !data.session) {
+        setShowEmailConfirmation(true);
+      } else {
+        navigate('/citizen');
+      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({
         email: citizenEmail,
@@ -161,11 +168,32 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
               {/* CITIZEN AUTH */}
               {activeModal === 'citizen' && (
                 <div className="space-y-6">
-                  {citizenError && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/50 text-red-500 text-sm font-medium">
-                      {citizenError}
+                  {showEmailConfirmation ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
+                      <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mb-2">
+                        <CheckCircle2 className="w-8 h-8 text-brand-primary" />
+                      </div>
+                      <h4 className="text-xl font-heading font-bold text-text-primary">Check Your Email</h4>
+                      <p className="text-text-secondary">
+                        We sent a confirmation link to <span className="font-bold text-text-primary">{citizenEmail}</span>.
+                      </p>
+                      <p className="text-sm text-text-muted mt-2">
+                        Please click the link to confirm your account. You will be automatically signed in!
+                      </p>
+                      <button
+                        onClick={onClose}
+                        className="mt-6 w-full flex items-center justify-center bg-surface-subtle border-2 border-border-subtle text-text-primary px-8 py-4 font-bold hover:border-brand-primary transition-colors -skew-x-12"
+                      >
+                        <div className="skew-x-12">Close</div>
+                      </button>
                     </div>
-                  )}
+                  ) : (
+                    <>
+                      {citizenError && (
+                        <div className="p-3 bg-red-500/10 border border-red-500/50 text-red-500 text-sm font-medium">
+                          {citizenError}
+                        </div>
+                      )}
                   <form onSubmit={handleCitizenAuth} className="space-y-4">
                     {citizenMode === 'signup' && (
                       <div className="relative">
@@ -240,6 +268,8 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                       </button>
                     </p>
                   </div>
+                  </>
+                  )}
                 </div>
               )}
 
