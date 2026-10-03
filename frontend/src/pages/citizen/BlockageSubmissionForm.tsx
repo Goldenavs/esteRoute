@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle, RefreshCw, Zap, ZapOff, Maximize2, Minimize2 } from 'lucide-react';
+import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle, RefreshCw, Zap, ZapOff, Maximize2, Minimize2, Layers, Plus, Minus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
@@ -28,6 +28,7 @@ export default function BlockageSubmissionForm() {
   const [cameraCount, setCameraCount] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isCameraExpanded, setIsCameraExpanded] = useState(false);
+  const [mapStyle, setMapStyle] = useState<'light' | 'dark'>('dark');
   
   // Geolocation State (Defaults to Cebu City Center)
   const defaultPosition = useMemo(() => new L.LatLng(10.3157, 123.8854), []);
@@ -118,6 +119,43 @@ export default function BlockageSubmissionForm() {
       }
     }, [map, position, defaultPosition]);
     return null;
+  }
+
+  // Component to render custom stylized controls inside the map
+  function CustomMapControls() {
+    const map = useMap();
+    
+    return (
+      <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
+        <button 
+          type="button" 
+          onClick={() => map.zoomIn()}
+          className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-colors shadow-lg -skew-x-6"
+          title="Zoom In"
+        >
+          <Plus className="w-4 h-4 skew-x-6" />
+        </button>
+        <button 
+          type="button" 
+          onClick={() => map.zoomOut()}
+          className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-colors shadow-lg -skew-x-6"
+          title="Zoom Out"
+        >
+          <Minus className="w-4 h-4 skew-x-6" />
+        </button>
+        
+        <div className="w-full h-px bg-border-strong my-1"></div>
+
+        <button 
+          type="button" 
+          onClick={() => setMapStyle(prev => prev === 'light' ? 'dark' : 'light')}
+          className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-secondary hover:text-black transition-colors shadow-lg -skew-x-6"
+          title="Toggle Map Style"
+        >
+          <Layers className="w-4 h-4 skew-x-6" />
+        </button>
+      </div>
+    );
   }
 
   const handleLocateMe = () => {
@@ -581,11 +619,18 @@ export default function BlockageSubmissionForm() {
               </div>
             </div>
 
-            <div ref={mapContainerRef} className="w-full flex-1 bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0 min-h-[300px]">
+            <div 
+              ref={mapContainerRef} 
+              className={twMerge(
+                "w-full flex-1 bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0 min-h-[300px]",
+                mapStyle === 'dark' && "dark-map"
+              )}
+            >
               <MapContainer 
                 center={position} 
                 zoom={15} 
-                scrollWheelZoom={false}
+                scrollWheelZoom={true}
+                zoomControl={false}
                 className="w-full h-full z-0"
               >
                 <TileLayer
@@ -600,6 +645,7 @@ export default function BlockageSubmissionForm() {
                   ref={markerRef}
                 />
                 <MapFlyTo />
+                <CustomMapControls />
               </MapContainer>
               
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[400] bg-surface border border-border-subtle px-5 py-2 rounded-sm shadow-xl flex items-center gap-3 -skew-x-12 overflow-hidden pointer-events-none">
