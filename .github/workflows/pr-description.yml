@@ -24,3 +24,4 @@ jobs:
           github_action_config.auto_review: "false"
           config.model: "gemini/gemini-1.5-pro"
           config.fallback_models: "gemini/gemini-1.5-flash"
+          config.custom_model_max_tokens: "32000"
