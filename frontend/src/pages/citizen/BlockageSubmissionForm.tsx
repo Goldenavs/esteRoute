@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -20,6 +20,11 @@ export default function BlockageSubmissionForm() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
   const [isCameraActive, setIsCameraActive] = useState(false);
+  
+  // Geolocation State (Defaults to Cebu City Center)
+  const defaultPosition = useMemo(() => new L.LatLng(10.3157, 123.8854), []);
+  const [position, setPosition] = useState<L.LatLng>(defaultPosition);
+  const markerRef = useRef<L.Marker>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -48,6 +53,46 @@ export default function BlockageSubmissionForm() {
       videoRef.current.srcObject = streamRef.current;
     }
   }, [isCameraActive]);
+
+  // Task 3.2: Auto-capture Geolocation on mount
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setPosition(new L.LatLng(pos.coords.latitude, pos.coords.longitude));
+        },
+        (err) => {
+          console.warn("Geolocation access denied or failed. Defaulting to center.", err);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
+  }, []);
+
+  // Draggable marker event handler
+  const eventHandlers = useMemo(
+    () => ({
+      dragend() {
+        const marker = markerRef.current;
+        if (marker != null) {
+          setPosition(marker.getLatLng());
+        }
+      },
+    }),
+    []
+  );
+
+  // Component to dynamically re-center map if geolocation successfully fetches
+  function MapFlyTo() {
+    const map = useMap();
+    useEffect(() => {
+      // Only fly if position changed significantly from default
+      if (position.lat !== defaultPosition.lat || position.lng !== defaultPosition.lng) {
+        map.flyTo(position, 17, { animate: true, duration: 1.5 });
+      }
+    }, [map]);
+    return null;
+  }
 
   const startCamera = async () => {
     try {
@@ -109,7 +154,12 @@ export default function BlockageSubmissionForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitting:", { photoFile, notes });
+    console.log("Submitting Payload:", { 
+      photoFile, 
+      notes,
+      latitude: position.lat,
+      longitude: position.lng
+    });
     setIsSubmitted(true);
   };
 
@@ -284,7 +334,7 @@ export default function BlockageSubmissionForm() {
 
             <div className="w-full h-[240px] bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0">
               <MapContainer 
-                center={[10.3157, 123.8854]} 
+                center={position} 
                 zoom={15} 
                 scrollWheelZoom={false}
                 className="w-full h-full z-0"
@@ -293,7 +343,14 @@ export default function BlockageSubmissionForm() {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <Marker position={[10.3157, 123.8854]} icon={customMarkerIcon} />
+                <Marker 
+                  position={position} 
+                  icon={customMarkerIcon} 
+                  draggable={true}
+                  eventHandlers={eventHandlers}
+                  ref={markerRef}
+                />
+                <MapFlyTo />
               </MapContainer>
               
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[400] bg-surface border border-border-subtle px-5 py-2 rounded-sm shadow-xl flex items-center gap-3 -skew-x-12 overflow-hidden pointer-events-none">
@@ -334,7 +391,8 @@ export default function BlockageSubmissionForm() {
 
             <textarea 
               value={notes}
-              onChange={(e) => setNotes(e.target.value.slice(0, 280))}
+              maxLength={280}
+              onChange={(e) => setNotes(e.target.value)}
               placeholder="Provide any additional details about the blockage (e.g. 'Water is almost overflowing onto the street')..."
               className="w-full flex-1 bg-app-bg/80 border border-border-subtle rounded-sm p-5 text-base text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all resize-none min-h-[200px] lg:min-h-0 shadow-inner"
             />
