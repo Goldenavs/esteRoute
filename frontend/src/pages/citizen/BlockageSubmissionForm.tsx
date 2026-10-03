@@ -16,6 +16,8 @@ const customMarkerIcon = new L.Icon({
 
 export default function BlockageSubmissionForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [trackingRef, setTrackingRef] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
@@ -177,15 +179,39 @@ export default function BlockageSubmissionForm() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitting Payload:", { 
-      photoFile, 
-      notes,
-      latitude: position.lat,
-      longitude: position.lng
-    });
-    setIsSubmitted(true);
+    if (!photoFile) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("photo", photoFile);
+      formData.append("latitude", position.lat.toString());
+      formData.append("longitude", position.lng.toString());
+      if (notes.trim()) {
+        formData.append("notes", notes.trim());
+      }
+
+      const response = await fetch("http://localhost:8000/api/reports/", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit report.");
+      }
+
+      const data = await response.json();
+      setTrackingRef(data.tracking_reference);
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("There was an error submitting your report. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -210,7 +236,7 @@ export default function BlockageSubmissionForm() {
             
             <div className="bg-app-bg w-full p-5 rounded-sm border border-border-subtle mb-8 flex flex-col gap-1 -skew-x-6 relative">
               <span className="skew-x-6 text-xs font-bold uppercase tracking-widest text-text-muted">Tracking Reference</span>
-              <span className="skew-x-6 text-2xl font-mono font-black text-brand-primary">ER-2026-000481</span>
+              <span className="skew-x-6 text-2xl font-mono font-black text-brand-primary">{trackingRef || "ER-2026-000000"}</span>
             </div>
 
             <button 
@@ -441,16 +467,16 @@ export default function BlockageSubmissionForm() {
             className={twMerge(
               clsx(
                 "w-full py-6 px-6 rounded-sm font-black text-xl tracking-widest uppercase flex items-center justify-center gap-3 transition-all duration-300 -skew-x-12 group shadow-[0px_4px_15px_rgba(0,0,0,0.1)]",
-                photoPreview 
+                photoPreview && !isSubmitting
                   ? "bg-brand-primary hover:bg-brand-secondary text-white hover:translate-x-1 hover:-translate-y-1 hover:shadow-[12px_12px_0px_rgba(0,0,0,0.2)]" 
                   : "bg-surface border-2 border-border-strong text-text-muted cursor-not-allowed opacity-80"
               )
             )}
-            disabled={!photoPreview}
+            disabled={!photoPreview || isSubmitting}
           >
             <div className="skew-x-12 flex items-center gap-2">
-              <span>Submit Report</span>
-              <ChevronRight className={twMerge(clsx("w-6 h-6 transition-transform", photoPreview && "group-hover:translate-x-2"))} />
+              <span>{isSubmitting ? "Uploading..." : "Submit Report"}</span>
+              {!isSubmitting && <ChevronRight className={twMerge(clsx("w-6 h-6 transition-transform", photoPreview && "group-hover:translate-x-2"))} />}
             </div>
           </button>
 
