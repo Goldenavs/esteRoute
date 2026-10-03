@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { AlertCircle, Clock, CheckCircle2, Navigation, ArrowRight, Filter, ShieldAlert, Truck, Info, MapPin } from 'lucide-react';
+import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin } from 'lucide-react';
 
 // Custom Map Marker Icon
 const criticalIcon = new L.Icon({
