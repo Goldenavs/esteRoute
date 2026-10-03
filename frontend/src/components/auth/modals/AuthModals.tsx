@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { X, Lock, Mail, User, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, Lock, Mail, User, ArrowRight, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 
 interface AuthModalsProps {
@@ -17,6 +17,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,13 +144,20 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
                       <input
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         required
                         placeholder="Password"
                         value={adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
-                        className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-3 text-text-primary focus:outline-none focus:border-brand-dark transition-colors"
+                        className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-12 py-3 text-text-primary focus:outline-none focus:border-brand-dark transition-colors"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
                     </div>
                   </div>
                   <button
@@ -222,13 +230,20 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
                       <input
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         required
                         placeholder="Password"
                         value={citizenPassword}
                         onChange={(e) => setCitizenPassword(e.target.value)}
-                        className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-3 text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                        className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-12 py-3 text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
                     </div>
                     <button
                       type="submit"
