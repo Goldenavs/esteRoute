@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle, RefreshCw, Zap, ZapOff, Maximize2, Minimize2, Layers, Plus, Minus } from 'lucide-react';
+import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle, RefreshCw, Zap, ZapOff, Maximize2, Minimize2, Layers, Plus, Minus, Copy, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
@@ -29,6 +29,7 @@ export default function BlockageSubmissionForm() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isCameraExpanded, setIsCameraExpanded] = useState(false);
   const [mapStyle, setMapStyle] = useState<'light' | 'dark'>('dark');
+  const [hasCopied, setHasCopied] = useState(false);
   
   // Geolocation State (Defaults to Cebu City Center)
   const defaultPosition = useMemo(() => new L.LatLng(10.3157, 123.8854), []);
@@ -316,8 +317,17 @@ export default function BlockageSubmissionForm() {
 
   const resetForm = () => {
     setIsSubmitted(false);
+    setHasCopied(false);
     removePhoto();
     setNotes('');
+  };
+
+  const handleCopy = () => {
+    if (trackingRef) {
+      navigator.clipboard.writeText(trackingRef);
+      setHasCopied(true);
+      showToast("Tracking number copied to clipboard!");
+    }
   };
 
   const renderCameraControls = () => (
@@ -391,39 +401,73 @@ export default function BlockageSubmissionForm() {
     </>
   );
 
-  if (isSubmitted) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in zoom-in duration-500">
-        <div className="w-full max-w-lg bg-surface/90 backdrop-blur-xl border border-border-subtle rounded-sm shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary"></div>
-          
-          <div className="p-10 flex flex-col items-center text-center">
-            <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center mb-6 shadow-inner">
-              <CheckCircle2 className="w-12 h-12 text-green-500" />
-            </div>
-            
-            <h2 className="text-3xl font-heading font-black tracking-tight text-text-primary mb-2">Report Submitted</h2>
-            <p className="text-text-muted mb-8">Thank you for keeping our community safe. Your report is being processed.</p>
-            
-            <div className="bg-app-bg w-full p-5 rounded-sm border border-border-subtle mb-8 flex flex-col gap-1 -skew-x-6 relative">
-              <span className="skew-x-6 text-xs font-bold uppercase tracking-widest text-text-muted">Tracking Reference</span>
-              <span className="skew-x-6 text-2xl font-mono font-black text-brand-primary">{trackingRef || "ER-2026-000000"}</span>
-            </div>
-
-            <button 
-              onClick={resetForm}
-              className="w-full bg-surface border-2 border-border-strong hover:border-brand-primary text-text-primary font-bold py-4 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 group -skew-x-12"
-            >
-              <span className="skew-x-12 uppercase tracking-widest">Submit Another Report</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full relative pb-10 min-h-[calc(100vh-6rem)]">
+      
+      {/* Submission Success Modal */}
+      {isSubmitted && createPortal(
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-app-bg/80 backdrop-blur-md animate-in fade-in duration-500" />
+          
+          <div className="relative w-full max-w-lg bg-surface/90 backdrop-blur-2xl border border-brand-primary/30 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.3)] overflow-hidden -skew-x-2 animate-in zoom-in-95 duration-500">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary"></div>
+            
+            <div className="skew-x-2 p-8 md:p-10 flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <CheckCircle2 className="w-10 h-10 text-green-500" />
+              </div>
+              
+              <h2 className="text-2xl md:text-3xl font-heading font-black tracking-tight text-text-primary mb-2">Report Submitted</h2>
+              <p className="text-text-muted mb-8 text-sm md:text-base">Thank you for keeping our community safe. Guest submissions cannot be tracked later unless you save this reference number.</p>
+              
+              <div className="w-full mb-8 flex flex-col gap-3">
+                <div className="bg-app-bg w-full p-4 rounded-sm border border-border-subtle flex items-center justify-between gap-4 -skew-x-6 relative shadow-inner">
+                  <div className="skew-x-6 flex flex-col items-start gap-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Tracking Reference</span>
+                    <span className="text-xl md:text-2xl font-mono font-black text-brand-primary">{trackingRef || "ER-2026-000000"}</span>
+                  </div>
+                  <button
+                    onClick={handleCopy}
+                    className={twMerge(
+                      "skew-x-6 p-3 rounded-sm transition-all duration-300 flex-shrink-0 border",
+                      hasCopied 
+                        ? "bg-green-500/20 text-green-500 border-green-500/30" 
+                        : "bg-surface text-text-primary hover:bg-brand-primary hover:text-white border-border-subtle"
+                    )}
+                    title="Copy Tracking Number"
+                  >
+                    {hasCopied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                  </button>
+                </div>
+                
+                {!hasCopied && (
+                  <div className="flex items-center justify-center gap-2 text-semantic-warning text-xs font-bold uppercase tracking-widest animate-pulse">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>Please copy your reference number</span>
+                  </div>
+                )}
+              </div>
+
+              <button 
+                onClick={resetForm}
+                disabled={!hasCopied}
+                className={twMerge(
+                  "w-full font-bold py-4 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 group -skew-x-12 border-2",
+                  hasCopied
+                    ? "bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary"
+                    : "bg-surface border-border-strong text-text-muted cursor-not-allowed opacity-50"
+                )}
+              >
+                <span className="skew-x-12 uppercase tracking-widest">
+                  {hasCopied ? "Close & Submit Another" : "Acknowledge & Close"}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Custom Toast Notification */}
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[300] bg-semantic-urgent/90 backdrop-blur-md text-white px-6 py-3 rounded-sm shadow-2xl border-b-4 border-red-950 -skew-x-6 animate-in fade-in slide-in-from-top-10 duration-300 pointer-events-none">
