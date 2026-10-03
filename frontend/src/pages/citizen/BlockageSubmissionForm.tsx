@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle, RefreshCw, Zap, ZapOff } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
@@ -22,6 +22,8 @@ export default function BlockageSubmissionForm() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [isTorchOn, setIsTorchOn] = useState(false);
   
   // Geolocation State (Defaults to Cebu City Center)
   const defaultPosition = useMemo(() => new L.LatLng(10.3157, 123.8854), []);
@@ -39,6 +41,7 @@ export default function BlockageSubmissionForm() {
       streamRef.current = null;
     }
     setIsCameraActive(false);
+    setIsTorchOn(false);
   };
 
   // Cleanup object URL and camera stream on unmount
@@ -121,17 +124,54 @@ export default function BlockageSubmissionForm() {
     }
   };
 
-  const startCamera = async () => {
+  const startCamera = async (mode: 'environment' | 'user' = facingMode) => {
+    stopCamera();
     try {
-      // Use 'ideal' so it gracefully falls back to the front-facing laptop camera if a rear camera doesn't exist.
+      // First try to get the exact camera (front or back)
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: { ideal: 'environment' } } 
+        video: { facingMode: { exact: mode } } 
       });
       streamRef.current = stream;
-      setIsCameraActive(true); // Triggers re-render, mounting the video tag
+      setFacingMode(mode);
+      setIsCameraActive(true);
     } catch (err) {
-      console.error("Error accessing camera:", err);
-      alert("Could not access camera. Please check your browser permissions.");
+      // If exact fails (e.g. laptop webcam has no 'environment'), fallback to ideal
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: { ideal: mode } } 
+        });
+        streamRef.current = stream;
+        setFacingMode(mode);
+        setIsCameraActive(true);
+      } catch (fallbackErr) {
+        console.error("Error accessing camera:", fallbackErr);
+        alert("Could not access camera. Please check your browser permissions.");
+      }
+    }
+  };
+
+  const toggleCamera = () => {
+    startCamera(facingMode === 'environment' ? 'user' : 'environment');
+  };
+
+  const toggleTorch = async () => {
+    if (!streamRef.current) return;
+    const track = streamRef.current.getVideoTracks()[0];
+    
+    // Cast capabilities to any to access the torch property, as it's not strictly typed in standard DOM libs
+    const capabilities = track.getCapabilities() as any;
+    
+    if (capabilities.torch) {
+      try {
+        await track.applyConstraints({
+          advanced: [{ torch: !isTorchOn }]
+        } as any);
+        setIsTorchOn(!isTorchOn);
+      } catch (err) {
+        console.error("Error toggling torch:", err);
+      }
+    } else {
+      alert("Flashlight is not supported on this specific camera/device.");
     }
   };
 
@@ -295,16 +335,41 @@ export default function BlockageSubmissionForm() {
                     ref={videoRef} 
                     autoPlay 
                     playsInline 
-                    className="w-full h-full object-cover scale-x-[-1]" 
+                    className={twMerge("w-full h-full object-cover", facingMode === 'user' && "scale-x-[-1]")} 
                   />
                   
-                  <button 
-                    type="button" 
-                    onClick={stopCamera}
-                    className="absolute top-4 right-4 p-2.5 bg-black/60 hover:bg-semantic-urgent backdrop-blur-md rounded-full text-white transition-colors duration-300 z-10"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  {/* Camera Controls Overlay */}
+                  <div className="absolute top-4 right-4 flex flex-col gap-3 z-10">
+                    <button 
+                      type="button" 
+                      onClick={stopCamera}
+                      className="p-2.5 bg-black/60 hover:bg-semantic-urgent backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
+                      title="Close Camera"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                    
+                    <button 
+                      type="button" 
+                      onClick={toggleCamera}
+                      className="p-2.5 bg-black/60 hover:bg-brand-primary backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
+                      title="Flip Camera"
+                    >
+                      <RefreshCw className="w-5 h-5" />
+                    </button>
+
+                    <button 
+                      type="button" 
+                      onClick={toggleTorch}
+                      className={twMerge(
+                        "p-2.5 backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg",
+                        isTorchOn ? "bg-brand-secondary text-black" : "bg-black/60 hover:bg-brand-secondary/50"
+                      )}
+                      title="Toggle Flashlight"
+                    >
+                      {isTorchOn ? <Zap className="w-5 h-5" /> : <ZapOff className="w-5 h-5" />}
+                    </button>
+                  </div>
 
                   <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10">
                     <button
@@ -325,7 +390,7 @@ export default function BlockageSubmissionForm() {
                   <div className="flex gap-4 w-full px-8 max-w-sm">
                     <button 
                       type="button"
-                      onClick={startCamera}
+                      onClick={() => startCamera('environment')}
                       className="flex-1 flex flex-col items-center justify-center gap-2 py-4 bg-brand-primary/10 border border-brand-primary/30 rounded-sm hover:bg-brand-primary hover:text-white transition-all group -skew-x-6 text-brand-primary shadow-sm"
                     >
                       <Camera className="w-7 h-7 skew-x-6 group-hover:scale-110 transition-transform" />
