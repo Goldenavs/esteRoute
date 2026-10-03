@@ -58,3 +58,8 @@
     font-family: var(--font-heading);
   }
 }
+
+/* Invert map tiles when dark mode is active on MapContainer */
+.dark-map .leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
