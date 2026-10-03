@@ -19,22 +19,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Clear state when modal closes
-  useEffect(() => {
-    if (!activeModal) {
-      setCitizenMode('login');
-      setAdminEmail('');
-      setAdminPassword('');
-      setAdminError('');
-      setCitizenName('');
-      setCitizenEmail('');
-      setCitizenPassword('');
-      setCitizenError('');
-      setShowEmailConfirmation(false);
-      setShowPassword(false);
-      setIsLoading(false);
-    }
-  }, [activeModal]);
+
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +49,25 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
   const [citizenPassword, setCitizenPassword] = useState('');
   const [citizenError, setCitizenError] = useState('');
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+
+  // Clear state when modal closes
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!activeModal) {
+      setCitizenMode('login');
+      setAdminEmail('');
+      setAdminPassword('');
+      setAdminError('');
+      setCitizenName('');
+      setCitizenEmail('');
+      setCitizenPassword('');
+      setCitizenError('');
+      setShowEmailConfirmation(false);
+      setShowPassword(false);
+      setIsLoading(false);
+    }
+  }, [activeModal]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleCitizenAuth = async (e: React.FormEvent) => {
     e.preventDefault();
