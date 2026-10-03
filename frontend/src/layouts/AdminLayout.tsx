@@ -72,7 +72,7 @@ export default function AdminLayout() {
               <div className="flex-1 flex justify-start skew-x-12">
                 <Link to="/admin" className="flex items-center gap-2 text-brand-primary font-heading font-black tracking-tighter text-lg uppercase cursor-pointer transition-transform hover:scale-105">
                   <Droplets className="w-6 h-6" />
-                  <span>este<span className="text-semantic-urgent">Admin</span></span>
+                  <span>este<span className="text-text-primary">Route</span></span>
                 </Link>
               </div>
               
@@ -123,7 +123,12 @@ export default function AdminLayout() {
 
       {/* Main Content Area */}
       <main className="flex-1 bg-app-bg overflow-x-hidden relative flex flex-col pb-24 md:pb-0">
-        <div className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in md:pt-10 lg:pt-12">
+        <div className={twMerge(
+          clsx(
+            "flex-1 flex flex-col p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in transition-all duration-700 ease-[cubic-bezier(0.76,0,0.24,1)]",
+            isNavVisible ? "md:pt-28 lg:pt-32" : "md:pt-6 lg:pt-8"
+          )
+        )}>
           <Outlet />
         </div>
       </main>
