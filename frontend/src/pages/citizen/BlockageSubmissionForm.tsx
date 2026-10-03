@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle, RefreshCw, Zap, ZapOff, Maximize2, Minimize2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -75,8 +76,9 @@ export default function BlockageSubmissionForm() {
   useEffect(() => {
     if (isCameraActive && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(err => console.error("Error playing video:", err));
     }
-  }, [isCameraActive]);
+  }, [isCameraActive, isCameraExpanded]);
 
   // Task 3.2: Auto-capture Geolocation on mount
   useEffect(() => {
@@ -280,6 +282,77 @@ export default function BlockageSubmissionForm() {
     setNotes('');
   };
 
+  const renderCameraControls = () => (
+    <>
+      <video 
+        ref={videoRef} 
+        autoPlay 
+        playsInline 
+        className={twMerge("w-full h-full object-cover", facingMode === 'user' && "scale-x-[-1]")} 
+      />
+      
+      <div className="absolute top-4 left-4 z-10">
+        <button 
+          type="button" 
+          onClick={() => setIsCameraExpanded(!isCameraExpanded)}
+          className="p-2.5 bg-black/60 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
+          title={isCameraExpanded ? "Minimize" : "Maximize"}
+        >
+          {isCameraExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Camera Controls Overlay */}
+      <div className="absolute top-4 right-4 flex flex-col gap-3 z-10">
+        <button 
+          type="button" 
+          onClick={stopCamera}
+          className="p-2.5 bg-black/60 hover:bg-semantic-urgent backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
+          title="Close Camera"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        
+        {cameraCount > 1 && (
+          <button 
+            type="button" 
+            onClick={toggleCamera}
+            className="p-2.5 bg-black/60 hover:bg-brand-primary backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
+            title="Flip Camera"
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+        )}
+
+        <button 
+          type="button" 
+          onClick={toggleTorch}
+          className={twMerge(
+            "p-2.5 backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg",
+            isTorchOn ? "bg-brand-secondary text-black" : "bg-black/60 hover:bg-brand-secondary/50"
+          )}
+          title="Toggle Flashlight"
+        >
+          {isTorchOn ? <Zap className="w-5 h-5" /> : <ZapOff className="w-5 h-5" />}
+        </button>
+      </div>
+
+      <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10">
+        <div className="p-1.5 border-4 border-white/50 rounded-full">
+          <button
+            type="button"
+            onClick={capturePhoto}
+            className={twMerge(
+              "bg-white rounded-full hover:bg-gray-300 active:scale-95 transition-all duration-300 shadow-2xl",
+              isCameraExpanded ? "w-20 h-20" : "w-16 h-16"
+            )}
+            aria-label="Take Photo"
+          />
+        </div>
+      </div>
+    </>
+  );
+
   if (isSubmitted) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in zoom-in duration-500">
@@ -360,84 +433,45 @@ export default function BlockageSubmissionForm() {
             {!photoPreview ? (
               isCameraActive ? (
                 <>
-                  {/* Backdrop for Expanded Camera */}
-                  {isCameraExpanded && (
-                    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] animate-in fade-in duration-300" onClick={() => setIsCameraExpanded(false)} />
+                  {isCameraExpanded ? createPortal(
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-8 lg:p-12">
+                      <div className="absolute inset-0 bg-black/70 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setIsCameraExpanded(false)} />
+                      
+                      {/* Stylized Container Wrapper */}
+                      <div className="relative w-full h-full max-w-6xl bg-surface/90 backdrop-blur-2xl border border-brand-primary/30 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.3)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 p-3 md:p-6 gap-4">
+                        
+                        {/* Header Bar */}
+                        <div className="flex items-center justify-between px-2 shrink-0">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-brand-primary/20 rounded-sm text-brand-primary -skew-x-6">
+                              <Camera className="w-5 h-5 skew-x-6" />
+                            </div>
+                            <h2 className="text-xl font-bold text-text-primary uppercase tracking-wider">Photo Capture</h2>
+                          </div>
+                        </div>
+
+                        {/* Video Container */}
+                        <div className="relative w-full flex-1 bg-black rounded-sm overflow-hidden border border-border-subtle shadow-inner flex flex-col group">
+                          {renderCameraControls()}
+                        </div>
+                      </div>
+                    </div>,
+                    document.body
+                  ) : (
+                    <div className="relative w-full h-64 md:h-80 border border-border-subtle rounded-sm bg-black overflow-hidden flex flex-col group">
+                      {renderCameraControls()}
+                    </div>
                   )}
                   
-                  <div className={twMerge(
-                    "bg-black overflow-hidden flex flex-col group shadow-inner transition-all duration-500",
-                    isCameraExpanded 
-                      ? "fixed inset-4 md:inset-12 z-[200] rounded-xl shadow-2xl" 
-                      : "relative w-full h-64 md:h-80 border border-border-subtle rounded-sm"
-                  )}>
-                    <video 
-                      ref={videoRef} 
-                      autoPlay 
-                      playsInline 
-                      className={twMerge("w-full h-full object-cover", facingMode === 'user' && "scale-x-[-1]")} 
-                    />
-                    
-                    <div className="absolute top-4 left-4 z-10">
-                      <button 
-                        type="button" 
-                        onClick={() => setIsCameraExpanded(!isCameraExpanded)}
-                        className="p-2.5 bg-black/60 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
-                        title={isCameraExpanded ? "Minimize" : "Maximize"}
-                      >
-                        {isCameraExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-                      </button>
+                  {/* Placeholder block to prevent layout collapse when portal is active */}
+                  {isCameraExpanded && (
+                    <div className="relative w-full h-64 md:h-80 border-2 border-dashed border-border-subtle rounded-sm flex items-center justify-center bg-black/5">
+                      <span className="text-text-muted font-bold flex items-center gap-2 animate-pulse">
+                        <Camera className="w-5 h-5" />
+                        Camera Expanded
+                      </span>
                     </div>
-
-                    {/* Camera Controls Overlay */}
-                    <div className="absolute top-4 right-4 flex flex-col gap-3 z-10">
-                      <button 
-                        type="button" 
-                        onClick={stopCamera}
-                        className="p-2.5 bg-black/60 hover:bg-semantic-urgent backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
-                        title="Close Camera"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                      
-                      {cameraCount > 1 && (
-                        <button 
-                          type="button" 
-                          onClick={toggleCamera}
-                          className="p-2.5 bg-black/60 hover:bg-brand-primary backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
-                          title="Flip Camera"
-                        >
-                          <RefreshCw className="w-5 h-5" />
-                        </button>
-                      )}
-
-                      <button 
-                        type="button" 
-                        onClick={toggleTorch}
-                        className={twMerge(
-                          "p-2.5 backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg",
-                          isTorchOn ? "bg-brand-secondary text-black" : "bg-black/60 hover:bg-brand-secondary/50"
-                        )}
-                        title="Toggle Flashlight"
-                      >
-                        {isTorchOn ? <Zap className="w-5 h-5" /> : <ZapOff className="w-5 h-5" />}
-                      </button>
-                    </div>
-
-                    <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10">
-                      <div className="p-1.5 border-4 border-white/50 rounded-full">
-                        <button
-                          type="button"
-                          onClick={capturePhoto}
-                          className={twMerge(
-                            "bg-white rounded-full hover:bg-gray-300 active:scale-95 transition-all duration-300 shadow-2xl",
-                            isCameraExpanded ? "w-20 h-20" : "w-16 h-16"
-                          )}
-                          aria-label="Take Photo"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </>
               ) : (
                 <div className="w-full h-56 md:h-72 border-2 border-dashed border-border-strong rounded-sm flex flex-col items-center justify-center gap-6 bg-app-bg/50">
