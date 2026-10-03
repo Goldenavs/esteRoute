@@ -156,7 +156,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
                       >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
@@ -242,9 +242,60 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
                       >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                       </button>
                     </div>
+
+                    {/* Password Strength Meter */}
+                    <AnimatePresence>
+                      {citizenMode === 'signup' && citizenPassword.length > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }} 
+                          animate={{ opacity: 1, height: 'auto' }} 
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-1.5 overflow-hidden"
+                        >
+                          <div className="flex gap-1 h-1.5 w-full">
+                            {[1, 2, 3, 4].map((level) => {
+                              let score = 0;
+                              if (citizenPassword.length > 5) score += 1;
+                              if (citizenPassword.length > 7) score += 1;
+                              if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
+                              if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
+                              const strength = Math.min(score, 4);
+                              
+                              let bgClass = "bg-border-subtle";
+                              if (strength >= level) {
+                                if (strength <= 1) bgClass = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]";
+                                else if (strength === 2) bgClass = "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.4)]";
+                                else if (strength === 3) bgClass = "bg-brand-primary shadow-[0_0_8px_rgba(59,130,246,0.4)]";
+                                else bgClass = "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]";
+                              }
+                              return (
+                                <div key={level} className={`flex-1 rounded-sm transition-all duration-300 ${bgClass}`} />
+                              )
+                            })}
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-text-muted">Min 6 chars</span>
+                            <span className="font-heading font-bold uppercase tracking-wider">
+                              {(() => {
+                                let score = 0;
+                                if (citizenPassword.length > 5) score += 1;
+                                if (citizenPassword.length > 7) score += 1;
+                                if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
+                                if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
+                                const strength = Math.min(score, 4);
+                                if (strength <= 1) return <span className="text-red-500">Weak</span>;
+                                if (strength === 2) return <span className="text-yellow-500">Fair</span>;
+                                if (strength === 3) return <span className="text-brand-primary">Good</span>;
+                                return <span className="text-green-500">Strong</span>;
+                              })()}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     <button
                       type="submit"
                       disabled={isLoading}
