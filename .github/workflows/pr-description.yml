@@ -3,6 +3,8 @@ name: "Automated PR Description"
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created, edited]
 
 jobs:
   pr_agent_job:
