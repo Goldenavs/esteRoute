@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { X, Lock, Mail, User, ArrowRight } from 'lucide-react';
+import { X, Lock, Mail, User, ArrowRight, Loader2 } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
 
 interface AuthModalsProps {
   activeModal: 'admin' | 'citizen' | null;
@@ -12,24 +13,59 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
   const navigate = useNavigate();
   const [citizenMode, setCitizenMode] = useState<'login' | 'signup'>('login');
 
-  // Hardcoded Admin Auth
-  const [adminUsername, setAdminUsername] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminUsername === 'admin' && adminPassword === 'password123') {
-      navigate('/admin');
+    setIsLoading(true);
+    setAdminError('');
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: adminEmail,
+      password: adminPassword,
+    });
+
+    setIsLoading(false);
+    if (error) {
+      setAdminError(error.message);
     } else {
-      setAdminError('Invalid credentials. Hint: admin / password123');
+      navigate('/admin');
     }
   };
 
-  // Mock Citizen Auth
-  const handleCitizenAuth = (e: React.FormEvent) => {
+  // Citizen Auth
+  const [citizenName, setCitizenName] = useState('');
+  const [citizenEmail, setCitizenEmail] = useState('');
+  const [citizenPassword, setCitizenPassword] = useState('');
+  const [citizenError, setCitizenError] = useState('');
+
+  const handleCitizenAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/citizen');
+    setIsLoading(true);
+    setCitizenError('');
+
+    if (citizenMode === 'signup') {
+      const { error } = await supabase.auth.signUp({
+        email: citizenEmail,
+        password: citizenPassword,
+        options: {
+          data: { full_name: citizenName }
+        }
+      });
+      if (error) setCitizenError(error.message);
+      else navigate('/citizen');
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: citizenEmail,
+        password: citizenPassword,
+      });
+      if (error) setCitizenError(error.message);
+      else navigate('/citizen');
+    }
+    setIsLoading(false);
   };
 
   const handleGuestLogin = () => {
@@ -89,11 +125,11 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
                       <input
-                        type="text"
+                        type="email"
                         required
-                        placeholder="Username"
-                        value={adminUsername}
-                        onChange={(e) => setAdminUsername(e.target.value)}
+                        placeholder="Admin Email"
+                        value={adminEmail}
+                        onChange={(e) => setAdminEmail(e.target.value)}
                         className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-3 text-text-primary focus:outline-none focus:border-brand-dark transition-colors"
                       />
                     </div>
@@ -111,11 +147,12 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                   </div>
                   <button
                     type="submit"
-                    className="w-full flex items-center justify-center bg-text-primary text-app-bg px-8 py-4 font-bold hover:shadow-lg hover:shadow-text-primary/40 transition-all hover:-translate-y-1 -skew-x-12 border-2 border-text-primary"
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center bg-text-primary text-app-bg px-8 py-4 font-bold hover:shadow-lg hover:shadow-text-primary/40 transition-all hover:-translate-y-1 -skew-x-12 border-2 border-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="skew-x-12 flex items-center gap-2">
-                      Login
-                      <ArrowRight className="w-5 h-5" />
+                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Login'}
+                      {!isLoading && <ArrowRight className="w-5 h-5" />}
                     </div>
                   </button>
                 </form>
@@ -124,6 +161,11 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
               {/* CITIZEN AUTH */}
               {activeModal === 'citizen' && (
                 <div className="space-y-6">
+                  {citizenError && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/50 text-red-500 text-sm font-medium">
+                      {citizenError}
+                    </div>
+                  )}
                   <form onSubmit={handleCitizenAuth} className="space-y-4">
                     {citizenMode === 'signup' && (
                       <div className="relative">
@@ -132,6 +174,8 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                           type="text"
                           required
                           placeholder="Full Name"
+                          value={citizenName}
+                          onChange={(e) => setCitizenName(e.target.value)}
                           className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-3 text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                         />
                       </div>
@@ -142,6 +186,8 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                         type="email"
                         required
                         placeholder="Email Address"
+                        value={citizenEmail}
+                        onChange={(e) => setCitizenEmail(e.target.value)}
                         className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-3 text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                       />
                     </div>
@@ -151,16 +197,19 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                         type="password"
                         required
                         placeholder="Password"
+                        value={citizenPassword}
+                        onChange={(e) => setCitizenPassword(e.target.value)}
                         className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-3 text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                       />
                     </div>
                     <button
                       type="submit"
-                      className="w-full flex items-center justify-center bg-text-primary text-app-bg px-8 py-4 font-bold hover:shadow-lg hover:shadow-text-primary/40 transition-all hover:-translate-y-1 -skew-x-12 border-2 border-text-primary"
+                      disabled={isLoading}
+                      className="w-full flex items-center justify-center bg-text-primary text-app-bg px-8 py-4 font-bold hover:shadow-lg hover:shadow-text-primary/40 transition-all hover:-translate-y-1 -skew-x-12 border-2 border-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="skew-x-12 flex items-center gap-2">
-                        {citizenMode === 'login' ? 'Login' : 'Sign Up'}
-                        <ArrowRight className="w-5 h-5" />
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (citizenMode === 'login' ? 'Login' : 'Sign Up')}
+                        {!isLoading && <ArrowRight className="w-5 h-5" />}
                       </div>
                     </button>
                   </form>

@@ -1,0 +1,90 @@
+-- ==========================================
+-- 1. Create the 'profiles' table
+-- ==========================================
+CREATE TABLE profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name TEXT,
+    avatar_url TEXT,
+    stewardship_score INTEGER DEFAULT 0,
+    role TEXT DEFAULT 'citizen' CHECK (role IN ('citizen', 'dispatcher', 'admin')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ==========================================
+-- 2. Create the 'reports' table 
+-- ==========================================
+CREATE TABLE reports (
+    report_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tracking_reference TEXT UNIQUE NOT NULL,
+    reporter_id UUID REFERENCES profiles(id) ON DELETE SET NULL, -- Nullable for guests
+    image_url TEXT NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL,
+    longitude DOUBLE PRECISION NOT NULL,
+    citizen_notes VARCHAR(280),
+    status TEXT NOT NULL CHECK (
+        status IN (
+            'pending_analysis', 
+            'triaged', 
+            'acknowledged', 
+            'in_progress', 
+            'resolved', 
+            'failed_analysis'
+        )
+    ) DEFAULT 'pending_analysis',
+    priority_score NUMERIC(5,2),
+    needs_human_review BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ==========================================
+-- 3. Create 'agent_results' table
+-- ==========================================
+CREATE TABLE agent_results (
+    result_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    report_id UUID NOT NULL REFERENCES reports(report_id) ON DELETE CASCADE,
+    agent_type TEXT NOT NULL CHECK (agent_type IN ('vision_triage', 'meteorological')),
+    result_json JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(report_id, agent_type)
+);
+
+-- ==========================================
+-- 4. Create 'dispatch_status_log' table
+-- ==========================================
+CREATE TABLE dispatch_status_log (
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    report_id UUID NOT NULL REFERENCES reports(report_id) ON DELETE CASCADE,
+    to_status TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ==========================================
+-- 5. Enable Row-Level Security (RLS)
+-- ==========================================
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dispatch_status_log ENABLE ROW LEVEL SECURITY;
+
+-- Profiles: Users can update their own, public can see basic info
+CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT TO public USING (true);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
+
+-- Reports: Public can see triaged reports (for the map). Write access is backend-only via service key.
+CREATE POLICY "Allow public read of triaged reports" 
+ON reports FOR SELECT TO public USING (status != 'pending_analysis');
+
+-- Agent Results & Logs: Viewable by everyone (for UI transparency)
+CREATE POLICY "Allow public read of agent results" ON agent_results FOR SELECT TO public USING (true);
+CREATE POLICY "Allow public read of status logs" ON dispatch_status_log FOR SELECT TO public USING (true);
+
+-- ==========================================
+-- 6. Create Storage Buckets
+-- ==========================================
+-- Canal Photos Bucket (Public Read, Backend Write)
+INSERT INTO storage.buckets (id, name, public) VALUES ('canal-photos', 'canal-photos', true);
+CREATE POLICY "Public Access to canal-photos" ON storage.objects FOR SELECT TO public USING (bucket_id = 'canal-photos');
+
+-- Avatars Bucket (Public Read, Backend/User Write)
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true);
+CREATE POLICY "Public Access to avatars" ON storage.objects FOR SELECT TO public USING (bucket_id = 'avatars');
