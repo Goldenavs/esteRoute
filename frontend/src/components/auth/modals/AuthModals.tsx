@@ -21,6 +21,10 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!adminEmail || !adminPassword) {
+      setAdminError('Please fill in all required fields.');
+      return;
+    }
     setIsLoading(true);
     setAdminError('');
 
@@ -46,6 +50,10 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
 
   const handleCitizenAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!citizenEmail || !citizenPassword || (citizenMode === 'signup' && !citizenName)) {
+      setCitizenError('Please fill in all required fields.');
+      return;
+    }
     setIsLoading(true);
     setCitizenError('');
 
@@ -123,7 +131,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
               
               {/* ADMIN LOGIN */}
               {activeModal === 'admin' && (
-                <form onSubmit={handleAdminLogin} className="space-y-6">
+                <form onSubmit={handleAdminLogin} className="space-y-6" noValidate>
                   {adminError && (
                     <div className="p-3 bg-red-500/10 border border-red-500/50 text-red-500 text-sm font-medium">
                       {adminError}
@@ -132,6 +140,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                   <div className="space-y-4">
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                      <span className="absolute left-8 top-2 text-red-500 font-bold">*</span>
                       <input
                         type="email"
                         required
@@ -143,6 +152,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                      <span className="absolute left-8 top-2 text-red-500 font-bold">*</span>
                       <input
                         type={showPassword ? 'text' : 'password'}
                         required
@@ -202,10 +212,11 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                           {citizenError}
                         </div>
                       )}
-                  <form onSubmit={handleCitizenAuth} className="space-y-4">
+                  <form onSubmit={handleCitizenAuth} className="space-y-4" noValidate>
                     {citizenMode === 'signup' && (
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                        <span className="absolute left-8 top-2 text-red-500 font-bold">*</span>
                         <input
                           type="text"
                           required
@@ -218,6 +229,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                     )}
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                      <span className="absolute left-8 top-2 text-red-500 font-bold">*</span>
                       <input
                         type="email"
                         required
@@ -229,6 +241,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                      <span className="absolute left-8 top-2 text-red-500 font-bold">*</span>
                       <input
                         type={showPassword ? 'text' : 'password'}
                         required
