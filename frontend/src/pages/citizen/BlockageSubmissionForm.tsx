@@ -15,6 +15,54 @@ const customMarkerIcon = new L.Icon({
   iconAnchor: [12, 41],
 });
 
+// Component to dynamically re-center map if geolocation successfully fetches
+function MapFlyTo({ position, defaultPosition }: { position: L.LatLng; defaultPosition: L.LatLng }) {
+  const map = useMap();
+  useEffect(() => {
+    if (position.lat !== defaultPosition.lat || position.lng !== defaultPosition.lng) {
+      map.flyTo(position, 17, { animate: true, duration: 1.5 });
+    }
+  }, [map, position, defaultPosition]);
+  return null;
+}
+
+// Component to render custom stylized controls inside the map
+function CustomMapControls({ setMapStyle }: { setMapStyle: React.Dispatch<React.SetStateAction<'light' | 'dark'>> }) {
+  const map = useMap();
+  
+  return (
+    <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
+      <button 
+        type="button" 
+        onClick={() => map.zoomIn()}
+        className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-colors shadow-lg -skew-x-6"
+        title="Zoom In"
+      >
+        <Plus className="w-4 h-4 skew-x-6" />
+      </button>
+      <button 
+        type="button" 
+        onClick={() => map.zoomOut()}
+        className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-colors shadow-lg -skew-x-6"
+        title="Zoom Out"
+      >
+        <Minus className="w-4 h-4 skew-x-6" />
+      </button>
+      
+      <div className="w-full h-px bg-border-strong my-1"></div>
+
+      <button 
+        type="button" 
+        onClick={() => setMapStyle(prev => prev === 'light' ? 'dark' : 'light')}
+        className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-secondary hover:text-black transition-colors shadow-lg -skew-x-6"
+        title="Toggle Map Style"
+      >
+        <Layers className="w-4 h-4 skew-x-6" />
+      </button>
+    </div>
+  );
+}
+
 export default function BlockageSubmissionForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,54 +158,7 @@ export default function BlockageSubmissionForm() {
     []
   );
 
-  // Component to dynamically re-center map if geolocation successfully fetches
-  function MapFlyTo() {
-    const map = useMap();
-    useEffect(() => {
-      // Only fly if position changed significantly from default
-      if (position.lat !== defaultPosition.lat || position.lng !== defaultPosition.lng) {
-        map.flyTo(position, 17, { animate: true, duration: 1.5 });
-      }
-    }, [map, position, defaultPosition]);
-    return null;
-  }
 
-  // Component to render custom stylized controls inside the map
-  function CustomMapControls() {
-    const map = useMap();
-    
-    return (
-      <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
-        <button 
-          type="button" 
-          onClick={() => map.zoomIn()}
-          className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-colors shadow-lg -skew-x-6"
-          title="Zoom In"
-        >
-          <Plus className="w-4 h-4 skew-x-6" />
-        </button>
-        <button 
-          type="button" 
-          onClick={() => map.zoomOut()}
-          className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-colors shadow-lg -skew-x-6"
-          title="Zoom Out"
-        >
-          <Minus className="w-4 h-4 skew-x-6" />
-        </button>
-        
-        <div className="w-full h-px bg-border-strong my-1"></div>
-
-        <button 
-          type="button" 
-          onClick={() => setMapStyle(prev => prev === 'light' ? 'dark' : 'light')}
-          className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-secondary hover:text-black transition-colors shadow-lg -skew-x-6"
-          title="Toggle Map Style"
-        >
-          <Layers className="w-4 h-4 skew-x-6" />
-        </button>
-      </div>
-    );
-  }
 
   const handleLocateMe = () => {
     if ("geolocation" in navigator) {
@@ -165,7 +166,7 @@ export default function BlockageSubmissionForm() {
         (pos) => {
           setPosition(new L.LatLng(pos.coords.latitude, pos.coords.longitude));
         },
-        (err) => {
+        () => {
           alert("Could not access your location. Please check your browser permissions.");
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
@@ -194,7 +195,7 @@ export default function BlockageSubmissionForm() {
       streamRef.current = stream;
       setFacingMode(mode);
       setIsCameraActive(true);
-    } catch (err) {
+    } catch {
       // If exact fails (e.g. laptop webcam has no 'environment'), fallback to ideal
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -218,14 +219,14 @@ export default function BlockageSubmissionForm() {
     if (!streamRef.current) return;
     const track = streamRef.current.getVideoTracks()[0];
     
-    // Cast capabilities to any to access the torch property, as it's not strictly typed in standard DOM libs
-    const capabilities = track.getCapabilities() as any;
+    // Check if device supports torch
+    const capabilities = track.getCapabilities() as unknown as { torch?: boolean };
     
     if (capabilities.torch) {
       try {
         await track.applyConstraints({
           advanced: [{ torch: !isTorchOn }]
-        } as any);
+        } as unknown as MediaTrackConstraints);
         setIsTorchOn(!isTorchOn);
       } catch (err) {
         console.error("Error toggling torch:", err);
@@ -688,8 +689,8 @@ export default function BlockageSubmissionForm() {
                   eventHandlers={eventHandlers}
                   ref={markerRef}
                 />
-                <MapFlyTo />
-                <CustomMapControls />
+                <MapFlyTo position={position} defaultPosition={defaultPosition} />
+                <CustomMapControls setMapStyle={setMapStyle} />
               </MapContainer>
               
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[400] bg-surface border border-border-subtle px-5 py-2 rounded-sm shadow-xl flex items-center gap-3 -skew-x-12 overflow-hidden pointer-events-none">
