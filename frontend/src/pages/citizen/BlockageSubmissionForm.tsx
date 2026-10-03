@@ -90,9 +90,34 @@ export default function BlockageSubmissionForm() {
       if (position.lat !== defaultPosition.lat || position.lng !== defaultPosition.lng) {
         map.flyTo(position, 17, { animate: true, duration: 1.5 });
       }
-    }, [map]);
+    }, [map, position, defaultPosition]);
     return null;
   }
+
+  const handleLocateMe = () => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setPosition(new L.LatLng(pos.coords.latitude, pos.coords.longitude));
+        },
+        (err) => {
+          alert("Could not access your location. Please check your browser permissions.");
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
+  };
+
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      mapContainerRef.current?.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   const startCamera = async () => {
     try {
@@ -208,10 +233,10 @@ export default function BlockageSubmissionForm() {
         <p className="text-text-muted text-sm md:text-lg pl-5">Help prevent flooding by reporting clogged esteros and canals in your area. Our AI will automatically assess the severity and notify the local government.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+      <form onSubmit={handleSubmit} className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
         
-        {/* Left Column (Photo & Map) */}
-        <div className="lg:col-span-7 flex flex-col gap-6 lg:gap-8">
+        {/* Left Column (Photo & Notes) */}
+        <div className="lg:col-span-5 flex flex-col gap-6 lg:gap-8">
           
           {/* Photo Upload Section */}
           <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex flex-col relative">
@@ -318,8 +343,34 @@ export default function BlockageSubmissionForm() {
             )}
           </section>
 
-          {/* Location Section */}
-          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex flex-col">
+          {/* Notes Section */}
+          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex flex-col flex-1">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gray-500/10 rounded-sm text-text-secondary -skew-x-6">
+                  <AlertCircle className="w-5 h-5 skew-x-6" />
+                </div>
+                <h2 className="text-lg font-bold text-text-primary uppercase tracking-wider">Notes</h2>
+              </div>
+              <span className="text-xs text-text-muted font-mono bg-app-bg px-2.5 py-1 rounded-sm border border-border-subtle shadow-sm -skew-x-6">
+                <span className="skew-x-6 block">{notes.length}/280</span>
+              </span>
+            </div>
+
+            <textarea 
+              value={notes}
+              maxLength={280}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Provide details about the blockage..."
+              className="w-full flex-1 bg-app-bg/80 border border-border-subtle rounded-sm p-4 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all resize-none min-h-[140px] shadow-inner"
+            />
+          </section>
+
+        </div>
+
+        {/* Right Column (Map & Submit) */}
+        <div className="lg:col-span-7 flex flex-col gap-6 lg:gap-8 h-full">
+          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex-1 flex flex-col min-h-[400px]">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-6">
@@ -327,12 +378,26 @@ export default function BlockageSubmissionForm() {
                 </div>
                 <h2 className="text-lg font-bold text-text-primary uppercase tracking-wider">Location</h2>
               </div>
-              <span className="text-xs font-bold uppercase tracking-widest bg-semantic-urgent text-white px-2 py-1 rounded-sm -skew-x-12 shadow-sm">
-                <span className="skew-x-12 block">Required</span>
-              </span>
+              
+              <div className="flex gap-2">
+                <button 
+                  type="button" 
+                  onClick={handleLocateMe}
+                  className="text-xs font-bold uppercase tracking-widest bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-3 py-1.5 rounded-sm -skew-x-12 transition-colors border border-brand-primary/30"
+                >
+                  <span className="skew-x-12 block">Locate Me</span>
+                </button>
+                <button 
+                  type="button" 
+                  onClick={toggleFullScreen}
+                  className="text-xs font-bold uppercase tracking-widest bg-surface-subtle text-text-secondary hover:text-text-primary px-3 py-1.5 rounded-sm -skew-x-12 transition-colors border border-border-subtle"
+                >
+                  <span className="skew-x-12 block">Full Screen</span>
+                </button>
+              </div>
             </div>
 
-            <div className="w-full h-[240px] bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0">
+            <div ref={mapContainerRef} className="w-full flex-1 bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0 min-h-[300px]">
               <MapContainer 
                 center={position} 
                 zoom={15} 
@@ -368,34 +433,6 @@ export default function BlockageSubmissionForm() {
               <AlertCircle className="w-5 h-5 shrink-0 text-brand-secondary" />
               <span>Drag the pin to adjust the exact location if the GPS is inaccurate.</span>
             </p>
-          </section>
-
-        </div>
-
-        {/* Right Column (Notes & Submit) */}
-        <div className="lg:col-span-5 flex flex-col gap-6 lg:gap-8 h-full">
-          
-          {/* Notes Section */}
-          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex-1 flex flex-col">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-gray-500/10 rounded-sm text-text-secondary -skew-x-6">
-                  <AlertCircle className="w-5 h-5 skew-x-6" />
-                </div>
-                <h2 className="text-lg font-bold text-text-primary uppercase tracking-wider">Notes</h2>
-              </div>
-              <span className="text-xs text-text-muted font-mono bg-app-bg px-2.5 py-1 rounded-sm border border-border-subtle shadow-sm -skew-x-6">
-                <span className="skew-x-6 block">{notes.length}/280</span>
-              </span>
-            </div>
-
-            <textarea 
-              value={notes}
-              maxLength={280}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Provide any additional details about the blockage (e.g. 'Water is almost overflowing onto the street')..."
-              className="w-full flex-1 bg-app-bg/80 border border-border-subtle rounded-sm p-5 text-base text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all resize-none min-h-[200px] lg:min-h-0 shadow-inner"
-            />
           </section>
 
           {/* Submit Button */}
