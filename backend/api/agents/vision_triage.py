@@ -6,6 +6,8 @@ from google import genai
 from google.genai import types
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
+from io import BytesIO
+from PIL import Image
 
 load_dotenv()
 
@@ -47,6 +49,20 @@ async def run_vision_triage(report_id: str, image_url: str, citizen_notes: Optio
             image_bytes = resp.content
             mime_type = resp.headers.get("Content-Type", "image/jpeg")
 
+        # 1.5 Resize image to max 800x800 to prevent massive upload bottleneck (reduces 8MB to ~100KB)
+        try:
+            img = Image.open(BytesIO(image_bytes))
+            # Convert to RGB in case it's PNG with transparency
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            img.thumbnail((800, 800))
+            output = BytesIO()
+            img.save(output, format="JPEG", quality=85)
+            image_bytes = output.getvalue()
+            mime_type = "image/jpeg"
+        except Exception as e:
+            print(f"Image resize failed, proceeding with original: {e}")
+
         # 2. Formulate Prompt and Data
         user_prompt = "Analyze this canal photo."
         if citizen_notes:
@@ -58,15 +74,22 @@ async def run_vision_triage(report_id: str, image_url: str, citizen_notes: Optio
         max_retries = 2
         for attempt in range(max_retries):
             try:
-                # Use native async client to prevent thread blocking/hanging
-                response = await client.aio.models.generate_content(
-                    model='gemini-3.8-flash',
-                    contents=[user_prompt, part],
-                    config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_PROMPT,
-                        response_mime_type="application/json"
+                # We remove GenerateContentConfig because it triggers an unstable Automatic Function Calling (AFC) mode in the SDK
+                # Wrap in asyncio.wait_for to guarantee it never hangs for more than 15 seconds if Google's servers go down
+                try:
+                    response = await asyncio.wait_for(
+                        client.aio.models.generate_content(
+                            model='gemini-3.8-flash',
+                            contents=[SYSTEM_PROMPT, user_prompt, part]
+                        ),
+                        timeout=15.0
                     )
-                )
+                except asyncio.TimeoutError:
+                    print(f"Attempt {attempt + 1}: Gemini API timed out after 15 seconds.")
+                    if attempt == max_retries - 1:
+                        return None
+                    await asyncio.sleep(3)
+                    continue
                 
                 result = json.loads(response.text)
                 
