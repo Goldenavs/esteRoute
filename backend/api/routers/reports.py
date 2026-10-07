@@ -1,9 +1,12 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
 from typing import Optional
 import uuid
 import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
+
+from dotenv import load_dotenv
+from api.orchestrator import triage_report_pipeline
 
 load_dotenv()
 
@@ -21,6 +24,7 @@ else:
 
 @router.post("/")
 async def create_report(
+    background_tasks: BackgroundTasks,
     photo: UploadFile = File(...),
     latitude: float = Form(...),
     longitude: float = Form(...),
@@ -63,6 +67,17 @@ async def create_report(
         }
         
         db_res = supabase.table("reports").insert(data).execute()
+        report_id = db_res.data[0]["report_id"]
+
+        # Trigger Phase 4 Multi-Agent Triage Pipeline in the background!
+        background_tasks.add_task(
+            triage_report_pipeline,
+            report_id=report_id,
+            image_url=image_url,
+            latitude=latitude,
+            longitude=longitude,
+            citizen_notes=notes
+        )
         
         # Return success with the tracking reference for the frontend confirmation screen
         return {
