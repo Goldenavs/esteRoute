@@ -2,18 +2,18 @@ import os
 import json
 import asyncio
 import httpx
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configure Gemini
+# Configure Gemini Client
 api_key = os.environ.get("GEMINI_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
-else:
+if not api_key:
     print("WARNING: GEMINI_API_KEY not found in backend .env")
+client = genai.Client(api_key=api_key) if api_key else None
 
 # Strict Prompt to guarantee JSON output
 SYSTEM_PROMPT = """
@@ -37,32 +37,36 @@ async def run_vision_triage(report_id: str, image_url: str, citizen_notes: Optio
     """
     try:
         # 1. Download image bytes asynchronously
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(image_url)
+        async with httpx.AsyncClient() as http_client:
+            resp = await http_client.get(image_url)
             resp.raise_for_status()
             image_bytes = resp.content
             mime_type = resp.headers.get("Content-Type", "image/jpeg")
 
-        # 2. Setup Gemini Model
-        model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
-            system_instruction=SYSTEM_PROMPT,
-            generation_config={"response_mime_type": "application/json"}
-        )
-        
-        # 3. Formulate Prompt
+        if not client:
+            print("Vision Agent aborted: No API Key.")
+            return None
+
+        # 2. Formulate Prompt and Data
         user_prompt = "Analyze this canal photo."
         if citizen_notes:
             user_prompt += f" The citizen who reported this added the following note: '{citizen_notes}'"
+            
+        part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
 
-        # 4. Call Gemini with retry logic (3s backoff)
+        # 3. Call Gemini with retry logic (3s backoff)
         max_retries = 2
         for attempt in range(max_retries):
             try:
-                # Use to_thread since the generativeai SDK can be blocking
+                # Use to_thread since the synchronous genai SDK can be blocking
                 response = await asyncio.to_thread(
-                    model.generate_content,
-                    [user_prompt, {"mime_type": mime_type, "data": image_bytes}]
+                    client.models.generate_content,
+                    model='gemini-2.0-flash',
+                    contents=[user_prompt, part],
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_PROMPT,
+                        response_mime_type="application/json"
+                    )
                 )
                 
                 result = json.loads(response.text)
