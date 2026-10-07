@@ -32,20 +32,20 @@ Do not include markdown blocks or any other text outside the JSON.
 
 async def run_vision_triage(report_id: str, image_url: str, citizen_notes: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
-    Downloads the reported image, sends it to Gemini 1.5 Flash, 
+    Downloads the reported image, sends it to Gemini 3.8 Flash,
     and returns the clamped blockage severity and categories.
     """
+    if not client:
+        print("Vision Agent aborted: No API Key.")
+        return None
+
     try:
         # 1. Download image bytes asynchronously
         async with httpx.AsyncClient() as http_client:
-            resp = await http_client.get(image_url)
+            resp = await http_client.get(image_url, timeout=10.0)
             resp.raise_for_status()
             image_bytes = resp.content
             mime_type = resp.headers.get("Content-Type", "image/jpeg")
-
-        if not client:
-            print("Vision Agent aborted: No API Key.")
-            return None
 
         # 2. Formulate Prompt and Data
         user_prompt = "Analyze this canal photo."
@@ -58,9 +58,8 @@ async def run_vision_triage(report_id: str, image_url: str, citizen_notes: Optio
         max_retries = 2
         for attempt in range(max_retries):
             try:
-                # Use to_thread since the synchronous genai SDK can be blocking
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
+                # Use native async client to prevent thread blocking/hanging
+                response = await client.aio.models.generate_content(
                     model='gemini-3.8-flash',
                     contents=[user_prompt, part],
                     config=types.GenerateContentConfig(
