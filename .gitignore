@@ -11,7 +11,9 @@ ehthumbs.db
 Thumbs.db
 
 # Backend
-backend/venv/
-backend/__pycache__/
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
 .env
 backend/.env
