@@ -83,7 +83,27 @@ async def create_report(
         return {
             "message": "Report submitted successfully",
             "tracking_reference": tracking_reference,
-            "report_id": db_res.data[0]["report_id"]
+            "report_id": report_id
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save report to database: {str(e)}")
+
+@router.get("/{report_id}/agent-log")
+async def get_agent_log(report_id: str):
+    """
+    4.5 Agent Execution Logging & Transparency Endpoint
+    Returns the raw agent outputs for a given report to expose the AI's reasoning.
+    """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase is not configured in backend .env")
+        
+    try:
+        # Fetch all agent results associated with this report
+        res = supabase.table("agent_results").select("*").eq("report_id", report_id).execute()
+        
+        return {
+            "report_id": report_id,
+            "agent_logs": res.data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch agent logs: {str(e)}")
