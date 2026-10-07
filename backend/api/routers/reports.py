@@ -1,9 +1,12 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
 from typing import Optional
 import uuid
 import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
+
+from dotenv import load_dotenv
+from api.orchestrator import triage_report_pipeline
 
 load_dotenv()
 
@@ -21,6 +24,7 @@ else:
 
 @router.post("/")
 async def create_report(
+    background_tasks: BackgroundTasks,
     photo: UploadFile = File(...),
     latitude: float = Form(...),
     longitude: float = Form(...),
@@ -63,12 +67,43 @@ async def create_report(
         }
         
         db_res = supabase.table("reports").insert(data).execute()
+        report_id = db_res.data[0]["report_id"]
+
+        # Trigger Phase 4 Multi-Agent Triage Pipeline in the background!
+        background_tasks.add_task(
+            triage_report_pipeline,
+            report_id=report_id,
+            image_url=image_url,
+            latitude=latitude,
+            longitude=longitude,
+            citizen_notes=notes
+        )
         
         # Return success with the tracking reference for the frontend confirmation screen
         return {
             "message": "Report submitted successfully",
             "tracking_reference": tracking_reference,
-            "report_id": db_res.data[0]["report_id"]
+            "report_id": report_id
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save report to database: {str(e)}")
+
+@router.get("/{report_id}/agent-log")
+async def get_agent_log(report_id: str):
+    """
+    4.5 Agent Execution Logging & Transparency Endpoint
+    Returns the raw agent outputs for a given report to expose the AI's reasoning.
+    """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase is not configured in backend .env")
+        
+    try:
+        # Fetch all agent results associated with this report
+        res = supabase.table("agent_results").select("*").eq("report_id", report_id).execute()
+        
+        return {
+            "report_id": report_id,
+            "agent_logs": res.data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch agent logs: {str(e)}")
