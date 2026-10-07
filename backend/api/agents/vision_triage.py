@@ -61,7 +61,7 @@ async def run_vision_triage(report_id: str, image_url: str, citizen_notes: Optio
                 # Use to_thread since the synchronous genai SDK can be blocking
                 response = await asyncio.to_thread(
                     client.models.generate_content,
-                    model='gemini-2.0-flash',
+                    model='gemini-3.8-flash',
                     contents=[user_prompt, part],
                     config=types.GenerateContentConfig(
                         system_instruction=SYSTEM_PROMPT,
