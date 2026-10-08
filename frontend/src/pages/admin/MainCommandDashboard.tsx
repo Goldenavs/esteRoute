@@ -210,22 +210,25 @@ export default function MainCommandDashboard() {
         .custom-popup .leaflet-popup-tip-container {
           display: none;
         }
+
+        /* Custom Scrollbar for side panels */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(234, 88, 12, 0.4);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(234, 88, 12, 0.8);
+        }
       `}</style>
       
       {/* 2. Floating Overlays (Z-50) */}
       <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
-        
-        {/* Locate Device Button - Top Right (Safe from panels) */}
-        <div className="pointer-events-auto absolute top-4 right-4 z-40 transition-all duration-500">
-          <button 
-            onClick={goToCurrentLocation}
-            className="bg-surface/90 hover:bg-brand-primary/10 text-text-primary h-[38px] px-4 flex items-center justify-center gap-2 rounded-sm shadow-xl transition-all border border-border-strong group transform -skew-x-[6deg]"
-            title="Find My Location"
-          >
-            <Navigation className="w-4 h-4 text-brand-secondary group-hover:text-brand-primary transform skew-x-[6deg]" />
-            <span className="text-[10px] font-bold tracking-widest uppercase transform skew-x-[6deg]">Locate Me</span>
-          </button>
-        </div>
         
         {/* Bottom Left KPI & Legend Panel */}
         <div className={`pointer-events-auto absolute bottom-4 left-4 z-40 transition-transform duration-500 ease-out ${(isKpiOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'}`}>
@@ -281,15 +284,25 @@ export default function MainCommandDashboard() {
           </button>
         )}
 
-        {/* Focus Mode Toggle - Bottom Center */}
-        <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2">
+        {/* Map Controls - Bottom Center */}
+        <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-4">
+            <button 
+              onClick={goToCurrentLocation}
+              className="flex h-[38px] items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-5 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer"
+              title="Find My Location"
+            >
+              <span className="inline-flex transform skew-x-[12deg] items-center gap-2">
+                  <Navigation className="w-3.5 h-3.5 group-hover:text-brand-primary" />
+                  <span className="hidden sm:inline">LOCATE</span>
+              </span>
+            </button>
             <button
                 type="button"
                 onClick={() => setIsFocusMode((v) => !v)}
                 aria-label="Toggle Focus Mode"
-                className="flex h-[38px] items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-6 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group"
+                className="flex h-[38px] items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-6 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer"
             >
-                <span className="inline-block transform skew-x-[12deg] flex items-center gap-2">
+                <span className="inline-flex transform skew-x-[12deg] items-center gap-2">
                     {isFocusMode ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />}
                     <span className="hidden sm:inline">FOCUS</span>
                 </span>
@@ -388,7 +401,7 @@ export default function MainCommandDashboard() {
                       {selectedReport.status !== 'in_progress' && selectedReport.status !== 'resolved' && (
                         <button 
                           onClick={() => updateStatus(selectedReport.report_id, 'in_progress')}
-                          className="flex-1 bg-brand-primary text-white text-[10px] font-black py-2.5 rounded-sm hover:bg-brand-secondary transition-colors uppercase tracking-widest transform -skew-x-[6deg] shadow-lg"
+                          className="flex-1 bg-brand-primary text-white text-[10px] font-black py-2.5 rounded-sm hover:bg-brand-secondary transition-colors uppercase tracking-widest transform -skew-x-[6deg] shadow-lg cursor-pointer hover:-translate-y-0.5"
                         >
                           <span className="transform skew-x-[6deg] flex items-center justify-center gap-2">
                             <Truck className="w-3.5 h-3.5" /> Dispatch Crew
@@ -398,7 +411,7 @@ export default function MainCommandDashboard() {
                       {selectedReport.status === 'in_progress' && (
                         <button 
                           onClick={() => updateStatus(selectedReport.report_id, 'resolved')}
-                          className="flex-1 bg-emerald-600 text-white text-[10px] font-black py-2.5 rounded-sm hover:bg-emerald-500 transition-colors uppercase tracking-widest transform -skew-x-[6deg] shadow-lg"
+                          className="flex-1 bg-emerald-600 text-white text-[10px] font-black py-2.5 rounded-sm hover:bg-emerald-500 transition-colors uppercase tracking-widest transform -skew-x-[6deg] shadow-lg cursor-pointer hover:-translate-y-0.5"
                         >
                           <span className="transform skew-x-[6deg] flex items-center justify-center gap-2">
                             <CheckCircle className="w-3.5 h-3.5" /> Mark Resolved
