@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, Crosshair } from 'lucide-react';
+import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, Crosshair, CheckCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
@@ -107,6 +107,21 @@ export default function MainCommandDashboard() {
     fetchVisionResult();
     setIsAnalysisOpen(true);
   }, [selectedReportId]);
+
+  const updateStatus = async (reportId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/reports/${reportId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setReports(prev => prev.map(r => r.report_id === reportId ? { ...r, status: newStatus } : r));
+      }
+    } catch (error) {
+      console.error("Failed to update status", error);
+    }
+  };
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -365,6 +380,33 @@ export default function MainCommandDashboard() {
                       </p>
                     </div>
                   )}
+
+                  {/* Dispatcher Actions */}
+                  <div className="pt-3 border-t border-border-subtle mt-auto">
+                    <div className="text-[9px] uppercase font-bold text-text-muted mb-2 tracking-widest">Command Controls</div>
+                    <div className="flex gap-2">
+                      {selectedReport.status !== 'in_progress' && selectedReport.status !== 'resolved' && (
+                        <button 
+                          onClick={() => updateStatus(selectedReport.report_id, 'in_progress')}
+                          className="flex-1 bg-brand-primary text-white text-[10px] font-black py-2.5 rounded-sm hover:bg-brand-secondary transition-colors uppercase tracking-widest transform -skew-x-[6deg] shadow-lg"
+                        >
+                          <span className="transform skew-x-[6deg] flex items-center justify-center gap-2">
+                            <Truck className="w-3.5 h-3.5" /> Dispatch Crew
+                          </span>
+                        </button>
+                      )}
+                      {selectedReport.status === 'in_progress' && (
+                        <button 
+                          onClick={() => updateStatus(selectedReport.report_id, 'resolved')}
+                          className="flex-1 bg-emerald-600 text-white text-[10px] font-black py-2.5 rounded-sm hover:bg-emerald-500 transition-colors uppercase tracking-widest transform -skew-x-[6deg] shadow-lg"
+                        >
+                          <span className="transform skew-x-[6deg] flex items-center justify-center gap-2">
+                            <CheckCircle className="w-3.5 h-3.5" /> Mark Resolved
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   
                 </div>
               </div>
