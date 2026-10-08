@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
 
 // Custom Map Marker Icon
 const criticalIcon = new L.Icon({
@@ -22,15 +24,58 @@ const activeIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+const defaultIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const getMarkerIcon = (status: string, score: number, needsReview: boolean) => {
+  if (status === 'failed_analysis' || needsReview) return activeIcon; // Orange for manual review
+  if (status === 'dispatched') return activeIcon;
+  if (status === 'resolved') return defaultIcon;
+  
+  if (status === 'triaged') {
+    if (score >= 70) return criticalIcon;
+    if (score >= 40) return activeIcon;
+    return defaultIcon;
+  }
+  return defaultIcon; // Pending
+};
+
 export default function MainCommandDashboard() { 
   
-  // Dummy Data for the Queue
-  const dispatchQueue = [
-    { id: 'RPT-8821', location: 'Estero de Paco, Pandacan', status: 'CRITICAL', time: '10 mins ago', type: 'Heavy Blockage', coords: [14.5878, 121.0023] },
-    { id: 'RPT-8820', location: 'Estero de San Miguel', status: 'DISPATCHED', time: '45 mins ago', type: 'Flood Risk', coords: [14.5939, 120.9906] },
-    { id: 'RPT-8819', location: 'Estero de Binondo', status: 'PENDING', time: '2 hours ago', type: 'Moderate Siltation', coords: [14.6000, 120.9750] },
-    { id: 'RPT-8818', location: 'Estero de Quiapo', status: 'PENDING', time: '3 hours ago', type: 'Trash Build-up', coords: [14.5980, 120.9830] },
-  ];
+  const [reports, setReports] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (!error && data) {
+        setReports(data);
+      }
+    };
+    
+    fetchReports();
+
+    // Subscribe to real-time updates from citizen reports
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
+        fetchReports();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <div className="w-full h-full flex flex-col pb-10">
@@ -49,19 +94,25 @@ export default function MainCommandDashboard() {
         <div className="flex gap-4">
           <div className="bg-semantic-urgent/10 border border-semantic-urgent/30 px-6 py-3 rounded-sm -skew-x-[6deg] shadow-lg">
             <div className="skew-x-[6deg] flex flex-col items-center">
-              <span className="text-3xl font-black text-semantic-urgent">12</span>
+              <span className="text-3xl font-black text-semantic-urgent">
+                {reports.filter(r => r.priority_score >= 70 && r.status === 'triaged').length}
+              </span>
               <span className="text-xs uppercase tracking-widest font-bold text-semantic-urgent/80">Critical</span>
             </div>
           </div>
           <div className="bg-semantic-warning/10 border border-semantic-warning/30 px-6 py-3 rounded-sm -skew-x-[6deg] shadow-lg">
             <div className="skew-x-[6deg] flex flex-col items-center">
-              <span className="text-3xl font-black text-semantic-warning">8</span>
-              <span className="text-xs uppercase tracking-widest font-bold text-semantic-warning/80">Active</span>
+              <span className="text-3xl font-black text-semantic-warning">
+                {reports.filter(r => r.status === 'failed_analysis' || r.needs_human_review).length}
+              </span>
+              <span className="text-xs uppercase tracking-widest font-bold text-semantic-warning/80">Needs Review</span>
             </div>
           </div>
           <div className="bg-semantic-success/10 border border-semantic-success/30 px-6 py-3 rounded-sm -skew-x-[6deg] shadow-lg">
             <div className="skew-x-[6deg] flex flex-col items-center">
-              <span className="text-3xl font-black text-semantic-success">45</span>
+              <span className="text-3xl font-black text-semantic-success">
+                {reports.filter(r => r.status === 'dispatched' || r.status === 'resolved').length}
+              </span>
               <span className="text-xs uppercase tracking-widest font-bold text-semantic-success/80">Resolved</span>
             </div>
           </div>
@@ -88,20 +139,22 @@ export default function MainCommandDashboard() {
                 />
                 <ZoomControl position="bottomright" />
                 
-                {/* Render markers from queue */}
-                {dispatchQueue.map((item) => (
+                {/* Render markers from Supabase database */}
+                {reports.map((report) => (
                   <Marker 
-                    key={item.id} 
-                    position={item.coords as [number, number]} 
-                    icon={item.status === 'CRITICAL' ? criticalIcon : activeIcon}
+                    key={report.report_id} 
+                    position={[report.latitude, report.longitude]} 
+                    icon={getMarkerIcon(report.status, report.priority_score, report.needs_human_review)}
                   >
                     <Popup className="custom-popup">
                       <div className="font-sans">
-                        <h3 className="font-bold text-lg text-gray-900">{item.id}</h3>
-                        <p className="text-sm font-semibold text-red-600 mb-1">{item.type}</p>
-                        <p className="text-xs text-gray-600">{item.location}</p>
-                        <button className="mt-3 w-full bg-brand-primary text-white text-xs font-bold py-2 rounded">
-                          VIEW DETAILS
+                        <h3 className="font-bold text-lg text-gray-900">{report.tracking_reference}</h3>
+                        <p className={`text-sm font-semibold mb-1 ${report.priority_score >= 70 ? 'text-red-600' : 'text-orange-600'}`}>
+                          {report.status === 'failed_analysis' ? 'MANUAL REVIEW REQUIRED' : `AI Score: ${report.priority_score || 'N/A'}`}
+                        </p>
+                        <p className="text-xs text-gray-600">{new Date(report.created_at).toLocaleString()}</p>
+                        <button className="mt-3 w-full bg-brand-primary text-white text-xs font-bold py-2 rounded hover:bg-brand-secondary transition-colors">
+                          VIEW FULL REPORT
                         </button>
                       </div>
                     </Popup>
@@ -143,54 +196,61 @@ export default function MainCommandDashboard() {
             {/* Queue List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 skew-x-[2deg]">
               
-              {dispatchQueue.map((report) => (
-                <div 
-                  key={report.id}
-                  className={`w-full p-4 border rounded-sm relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg cursor-pointer ${
-                    report.status === 'CRITICAL' 
-                      ? 'border-semantic-urgent bg-semantic-urgent/5' 
-                      : report.status === 'DISPATCHED'
-                        ? 'border-semantic-warning bg-semantic-warning/5'
-                        : 'border-border-subtle bg-app-bg hover:border-brand-primary'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-mono font-bold tracking-wider text-text-muted">{report.id}</span>
-                    
-                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full ${
-                      report.status === 'CRITICAL' ? 'bg-semantic-urgent text-white' :
-                      report.status === 'DISPATCHED' ? 'bg-semantic-warning text-white' :
-                      'bg-surface-subtle text-text-secondary border border-border-subtle'
-                    }`}>
-                      {report.status}
-                    </span>
-                  </div>
-                  
-                  <h3 className="font-bold text-text-primary text-lg mb-1">{report.type}</h3>
-                  
-                  <div className="flex items-center gap-1 text-text-secondary text-sm mb-3">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span className="truncate">{report.location}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border-subtle/50">
-                    <div className="flex items-center gap-1 text-xs text-text-muted">
-                      <Clock className="w-3.5 h-3.5" />
-                      {report.time}
+              {reports.map((report) => {
+                const isCritical = report.status === 'triaged' && report.priority_score >= 70;
+                const needsReview = report.status === 'failed_analysis' || report.needs_human_review;
+                
+                return (
+                  <div 
+                    key={report.report_id}
+                    className={`w-full p-4 border rounded-sm relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg cursor-pointer ${
+                      isCritical
+                        ? 'border-semantic-urgent bg-semantic-urgent/5' 
+                        : needsReview
+                          ? 'border-semantic-warning bg-semantic-warning/5'
+                          : 'border-border-subtle bg-app-bg hover:border-brand-primary'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-xs font-mono font-bold tracking-wider text-text-muted">{report.tracking_reference}</span>
+                      
+                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full ${
+                        isCritical ? 'bg-semantic-urgent text-white' :
+                        needsReview ? 'bg-semantic-warning text-white' :
+                        'bg-surface-subtle text-text-secondary border border-border-subtle'
+                      }`}>
+                        {needsReview ? 'NEEDS REVIEW' : report.status.replace('_', ' ')}
+                      </span>
                     </div>
                     
-                    {report.status === 'CRITICAL' ? (
-                      <button className="text-xs font-bold text-brand-white bg-semantic-urgent hover:bg-red-600 px-3 py-1.5 rounded-sm flex items-center gap-1 transition-colors">
-                        <Truck className="w-3 h-3" /> DISPATCH
-                      </button>
-                    ) : (
-                      <button className="text-xs font-bold text-brand-primary hover:text-brand-secondary flex items-center gap-1">
-                        DETAILS <ArrowRight className="w-3 h-3" />
-                      </button>
-                    )}
+                    <h3 className="font-bold text-text-primary text-lg mb-1 truncate">
+                      {report.citizen_notes || "No citizen notes provided"}
+                    </h3>
+                    
+                    <div className="flex items-center gap-1 text-text-secondary text-sm mb-3">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span className="truncate">Lat: {report.latitude.toFixed(4)}, Lng: {report.longitude.toFixed(4)}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-border-subtle/50">
+                      <div className="flex items-center gap-1 text-xs text-text-muted">
+                        <Clock className="w-3.5 h-3.5" />
+                        {new Date(report.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </div>
+                      
+                      {isCritical ? (
+                        <button className="text-xs font-bold text-brand-white bg-semantic-urgent hover:bg-red-600 px-3 py-1.5 rounded-sm flex items-center gap-1 transition-colors">
+                          <Truck className="w-3 h-3" /> DISPATCH CREW
+                        </button>
+                      ) : (
+                        <button className="text-xs font-bold text-brand-primary hover:text-brand-secondary flex items-center gap-1">
+                          DETAILS <ArrowRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
             </div>
           </div>
