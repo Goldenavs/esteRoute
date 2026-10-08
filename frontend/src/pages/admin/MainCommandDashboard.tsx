@@ -219,11 +219,11 @@ export default function MainCommandDashboard() {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(234, 88, 12, 0.4);
+          background: rgba(63, 114, 175, 0.4);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(234, 88, 12, 0.8);
+          background: rgba(63, 114, 175, 0.8);
         }
       `}</style>
       
@@ -469,7 +469,7 @@ export default function MainCommandDashboard() {
             </div>
 
             {/* Queue List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
               {reports.map((report) => {
                 const isCritical = report.status === 'triaged' && report.priority_score >= 70;
                 const needsReview = report.status === 'failed_analysis' || report.needs_human_review;
