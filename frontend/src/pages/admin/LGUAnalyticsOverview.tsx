@@ -33,8 +33,8 @@ export default function LGUAnalyticsOverview() {
   const stats = useMemo(() => {
     // 1. Apply Time Filter
     const now = new Date();
-    const filterMs = timeFilter === '7' ? 7 * 24 * 60 * 60 * 1000 : timeFilter === '30' ? 30 * 24 * 60 * 60 * 1000 : Infinity;
-    const thresholdDate = new Date(now.getTime() - filterMs);
+    const filterMs = timeFilter === '7' ? 7 * 24 * 60 * 60 * 1000 : timeFilter === '30' ? 30 * 24 * 60 * 60 * 1000 : null;
+    const thresholdDate = filterMs ? new Date(now.getTime() - filterMs) : new Date(0);
 
     const filteredReports = reports.filter(r => new Date(r.created_at) >= thresholdDate);
     const validReportIds = new Set(filteredReports.map(r => r.report_id));
