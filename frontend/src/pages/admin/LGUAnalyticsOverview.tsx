@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
-import { BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle, Calendar, Trophy, Trash2 } from 'lucide-react';
+import { BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle, Trophy, Trash2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 
 export default function LGUAnalyticsOverview() {
