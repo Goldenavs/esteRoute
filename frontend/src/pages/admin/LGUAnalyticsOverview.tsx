@@ -74,8 +74,24 @@ export default function LGUAnalyticsOverview() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    // Map 28 days of activity (dummy mix with real length for impact)
-    const weeklyActivity = Array.from({length: 28}, () => Math.floor(Math.random() * 40) + (reports.length > 0 ? 10 : 0));
+    // Map 28 days of activity based on real reports data
+    const weeklyActivity = new Array(28).fill(0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    reports.forEach(r => {
+      if (r.created_at) {
+        const reportDate = new Date(r.created_at);
+        reportDate.setHours(0, 0, 0, 0);
+        const diffTime = today.getTime() - reportDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays >= 0 && diffDays < 28) {
+          // index 27 is today, index 0 is 27 days ago
+          weeklyActivity[27 - diffDays]++;
+        }
+      }
+    });
 
     return { totalReports, resolutionRate, avgClearanceHours, severityData, wasteData, weeklyActivity };
   }, [reports, agentResults, dispatchLogs]);
