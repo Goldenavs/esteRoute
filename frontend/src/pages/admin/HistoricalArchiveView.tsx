@@ -38,16 +38,18 @@ export default function HistoricalArchiveView() {
     return reports.map(r => {
       const agentRes = agentResults.find(ar => ar.report_id === r.report_id);
       const category = agentRes?.result_json?.waste_categories?.[0] || 'Unknown';
-      const date = new Date(r.created_at).toLocaleDateString();
-      const location = `[${r.location_lat.toFixed(4)}, ${r.location_lng.toFixed(4)}]`;
+      const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : 'N/A';
+      const location = (r.location_lat != null && r.location_lng != null)
+        ? `[${Number(r.location_lat).toFixed(4)}, ${Number(r.location_lng).toFixed(4)}]`
+        : 'Unknown Location';
       
       return {
-        id: r.report_id,
-        shortId: r.report_id.slice(0, 8).toUpperCase(),
+        id: r.report_id || 'UNKNOWN',
+        shortId: (r.report_id || 'UNKNOWN').slice(0, 8).toUpperCase(),
         date,
         location,
         category,
-        status: r.status.toUpperCase(),
+        status: (r.status || 'UNKNOWN').toUpperCase(),
         team: 'LGU Dispatch' // Placeholder until team routing is implemented
       };
     }).filter(item => {
