@@ -9,6 +9,8 @@ export default function LGUAnalyticsOverview() {
   const [agentResults, setAgentResults] = useState<any[]>([]);
   const [dispatchLogs, setDispatchLogs] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
+  
+  const [timeFilter, setTimeFilter] = useState<'7' | '30' | 'ALL'>('30');
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -29,13 +31,23 @@ export default function LGUAnalyticsOverview() {
   }, []);
 
   const stats = useMemo(() => {
-    const totalReports = reports.length;
-    const resolvedReports = reports.filter(r => r.status === 'resolved').length;
+    // 1. Apply Time Filter
+    const now = new Date();
+    const filterMs = timeFilter === '7' ? 7 * 24 * 60 * 60 * 1000 : timeFilter === '30' ? 30 * 24 * 60 * 60 * 1000 : Infinity;
+    const thresholdDate = new Date(now.getTime() - filterMs);
+
+    const filteredReports = reports.filter(r => new Date(r.created_at) >= thresholdDate);
+    const validReportIds = new Set(filteredReports.map(r => r.report_id));
+    const filteredAgentResults = agentResults.filter(ar => validReportIds.has(ar.report_id));
+    const filteredDispatchLogs = dispatchLogs.filter(log => validReportIds.has(log.report_id));
+
+    const totalReports = filteredReports.length;
+    const resolvedReports = filteredReports.filter(r => r.status === 'resolved').length;
     const resolutionRate = totalReports > 0 ? Math.round((resolvedReports / totalReports) * 100) : 0;
 
     let totalMs = 0;
     let resolvedCount = 0;
-    const resolutionLogs = dispatchLogs.filter(log => log.to_status === 'resolved');
+    const resolutionLogs = filteredDispatchLogs.filter(log => log.to_status === 'resolved');
     
     resolutionLogs.forEach(log => {
       const report = reports.find(r => r.report_id === log.report_id);
@@ -50,7 +62,7 @@ export default function LGUAnalyticsOverview() {
     const avgClearanceHours = resolvedCount > 0 ? (totalMs / resolvedCount / (1000 * 60 * 60)).toFixed(1) : "0.0";
 
     let critical = 0, severe = 0, moderate = 0;
-    reports.forEach(r => {
+    filteredReports.forEach(r => {
       if (r.priority_score >= 70) critical++;
       else if (r.priority_score >= 40) severe++;
       else moderate++;
@@ -63,7 +75,7 @@ export default function LGUAnalyticsOverview() {
     ];
 
     const categoryCounts: Record<string, number> = {};
-    agentResults.forEach(res => {
+    filteredAgentResults.forEach(res => {
       const cats = res.result_json?.waste_categories || [];
       cats.forEach((c: string) => {
         categoryCounts[c] = (categoryCounts[c] || 0) + 1;
@@ -79,7 +91,7 @@ export default function LGUAnalyticsOverview() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    reports.forEach(r => {
+    filteredReports.forEach(r => {
       if (r.created_at) {
         const reportDate = new Date(r.created_at);
         reportDate.setHours(0, 0, 0, 0);
@@ -94,7 +106,7 @@ export default function LGUAnalyticsOverview() {
     });
 
     return { totalReports, resolutionRate, avgClearanceHours, severityData, wasteData, weeklyActivity };
-  }, [reports, agentResults, dispatchLogs]);
+  }, [reports, agentResults, dispatchLogs, timeFilter]);
 
   const getHeatmapColor = (value: number) => {
     if (value > 40) return 'bg-brand-primary/100';
@@ -119,9 +131,17 @@ export default function LGUAnalyticsOverview() {
         
         {/* Filter / Actions */}
         <div className="flex items-center gap-4">
-          <div className="bg-surface border border-border-subtle px-4 py-2 flex items-center gap-2 rounded-sm -skew-x-[6deg] cursor-pointer hover:border-brand-primary transition-colors">
+          <div className="bg-surface border border-border-subtle px-4 py-2 flex items-center gap-2 rounded-sm -skew-x-[6deg] hover:border-brand-primary transition-colors focus-within:border-brand-primary">
             <Calendar className="w-4 h-4 text-brand-primary skew-x-[6deg]" />
-            <span className="skew-x-[6deg] text-sm font-bold uppercase tracking-widest">Last 30 Days</span>
+            <select 
+              value={timeFilter}
+              onChange={(e) => setTimeFilter(e.target.value as any)}
+              className="skew-x-[6deg] bg-transparent text-sm font-bold uppercase tracking-widest outline-none cursor-pointer text-text-primary appearance-none pr-2"
+            >
+              <option value="7" className="bg-surface text-text-primary">Last 7 Days</option>
+              <option value="30" className="bg-surface text-text-primary">Last 30 Days</option>
+              <option value="ALL" className="bg-surface text-text-primary">All Time</option>
+            </select>
           </div>
         </div>
       </div>
