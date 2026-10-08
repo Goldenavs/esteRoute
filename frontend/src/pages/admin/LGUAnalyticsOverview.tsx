@@ -130,19 +130,27 @@ export default function LGUAnalyticsOverview() {
         </div>
         
         {/* Filter / Actions */}
-        <div className="flex items-center gap-4">
-          <div className="bg-surface border border-border-subtle px-4 py-2 flex items-center gap-2 rounded-sm -skew-x-[6deg] hover:border-brand-primary transition-colors focus-within:border-brand-primary">
-            <Calendar className="w-4 h-4 text-brand-primary skew-x-[6deg]" />
-            <select 
-              value={timeFilter}
-              onChange={(e) => setTimeFilter(e.target.value as any)}
-              className="skew-x-[6deg] bg-transparent text-sm font-bold uppercase tracking-widest outline-none cursor-pointer text-text-primary appearance-none pr-2"
-            >
-              <option value="7" className="bg-surface text-text-primary">Last 7 Days</option>
-              <option value="30" className="bg-surface text-text-primary">Last 30 Days</option>
-              <option value="ALL" className="bg-surface text-text-primary">All Time</option>
-            </select>
-          </div>
+        <div className="flex items-center bg-surface border border-border-subtle rounded-sm -skew-x-[6deg]">
+          <button 
+            onClick={() => setTimeFilter('7')}
+            className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors ${timeFilter === '7' ? 'bg-brand-primary text-white' : 'hover:bg-brand-primary/20 text-text-muted'}`}
+          >
+            <span className="skew-x-[6deg] inline-block">7 Days</span>
+          </button>
+          <div className="w-[1px] h-4 bg-border-strong"></div>
+          <button 
+            onClick={() => setTimeFilter('30')}
+            className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors ${timeFilter === '30' ? 'bg-brand-primary text-white' : 'hover:bg-brand-primary/20 text-text-muted'}`}
+          >
+            <span className="skew-x-[6deg] inline-block">30 Days</span>
+          </button>
+          <div className="w-[1px] h-4 bg-border-strong"></div>
+          <button 
+            onClick={() => setTimeFilter('ALL')}
+            className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors ${timeFilter === 'ALL' ? 'bg-brand-primary text-white' : 'hover:bg-brand-primary/20 text-text-muted'}`}
+          >
+            <span className="skew-x-[6deg] inline-block">All</span>
+          </button>
         </div>
       </div>
 
