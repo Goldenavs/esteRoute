@@ -8,6 +8,8 @@ export default function HistoricalArchiveView() {
   const [agentResults, setAgentResults] = useState<any[]>([]);
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
@@ -49,6 +51,9 @@ export default function HistoricalArchiveView() {
         team: 'LGU Dispatch' // Placeholder until team routing is implemented
       };
     }).filter(item => {
+      if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
+      if (categoryFilter !== 'ALL' && item.category !== categoryFilter) return false;
+
       if (!searchTerm) return true;
       const term = searchTerm.toLowerCase();
       return item.id.toLowerCase().includes(term) || 
@@ -56,7 +61,7 @@ export default function HistoricalArchiveView() {
              item.category.toLowerCase().includes(term) ||
              item.team.toLowerCase().includes(term);
     });
-  }, [reports, agentResults, searchTerm]);
+  }, [reports, agentResults, searchTerm, categoryFilter, statusFilter]);
 
   const totalPages = Math.ceil(archiveData.length / itemsPerPage) || 1;
   const currentData = archiveData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -103,12 +108,35 @@ export default function HistoricalArchiveView() {
           
           {/* Filters */}
           <div className="flex gap-2 w-full md:w-auto">
-            <button className="flex-1 md:flex-none bg-app-bg border border-border-subtle px-4 py-2 flex items-center justify-center gap-2 rounded-sm hover:border-brand-primary transition-colors text-sm font-bold text-text-secondary">
-              <Filter className="w-4 h-4" /> Category
-            </button>
-            <button className="flex-1 md:flex-none bg-app-bg border border-border-subtle px-4 py-2 flex items-center justify-center gap-2 rounded-sm hover:border-brand-primary transition-colors text-sm font-bold text-text-secondary">
-              <Filter className="w-4 h-4" /> Status
-            </button>
+            <div className="flex-1 md:flex-none relative bg-app-bg border border-border-subtle flex items-center gap-1 rounded-sm hover:border-brand-primary transition-colors text-sm font-bold text-text-secondary px-2">
+              <Filter className="w-4 h-4 ml-1" />
+              <select
+                value={categoryFilter}
+                onChange={e => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+                className="bg-transparent py-2 pr-2 outline-none appearance-none cursor-pointer w-full uppercase tracking-widest text-[10px]"
+              >
+                <option value="ALL" className="bg-surface text-text-primary">All Categories</option>
+                <option value="Plastic" className="bg-surface text-text-primary">Plastic</option>
+                <option value="Organic" className="bg-surface text-text-primary">Organic</option>
+                <option value="Medical" className="bg-surface text-text-primary">Medical</option>
+                <option value="Hazardous" className="bg-surface text-text-primary">Hazardous</option>
+                <option value="Unknown" className="bg-surface text-text-primary">Unknown</option>
+              </select>
+            </div>
+            
+            <div className="flex-1 md:flex-none relative bg-app-bg border border-border-subtle flex items-center gap-1 rounded-sm hover:border-brand-primary transition-colors text-sm font-bold text-text-secondary px-2">
+              <Filter className="w-4 h-4 ml-1" />
+              <select
+                value={statusFilter}
+                onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="bg-transparent py-2 pr-2 outline-none appearance-none cursor-pointer w-full uppercase tracking-widest text-[10px]"
+              >
+                <option value="ALL" className="bg-surface text-text-primary">All Status</option>
+                <option value="RESOLVED" className="bg-surface text-text-primary">Resolved</option>
+                <option value="FALSE_ALARM" className="bg-surface text-text-primary">False Alarm</option>
+                <option value="FAILED" className="bg-surface text-text-primary">Failed</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
