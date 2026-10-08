@@ -96,7 +96,7 @@ export default function MainCommandDashboard() {
   }, []);
 
   return (
-    <div className="relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-app-bg text-text-primary select-none -m-4 md:-m-6 lg:-m-8">
+    <div className="relative w-full h-[100dvh] overflow-hidden bg-app-bg text-text-primary select-none">
       
       {/* 1. The Map Background (Z-0) */}
       <div className="absolute inset-0 z-0">
@@ -107,10 +107,11 @@ export default function MainCommandDashboard() {
           className="w-full h-full z-10"
           ref={mapRef}
         >
-          {/* Minimal Dark Tile Layer for Premium Look */}
+          {/* Default OSM with CSS Invert for Tactical Dark Look */}
           <TileLayer
-            attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            className="invert hue-rotate-180 brightness-[0.8] contrast-[1.2]"
           />
           <ZoomControl position="bottomright" />
           

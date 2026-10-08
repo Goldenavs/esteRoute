@@ -125,8 +125,10 @@ export default function AdminLayout() {
       <main className="flex-1 bg-app-bg overflow-x-hidden relative flex flex-col pb-24 md:pb-0">
         <div className={twMerge(
           clsx(
-            "flex-1 flex flex-col p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in transition-all duration-700 ease-[cubic-bezier(0.76,0,0.24,1)]",
-            isNavVisible ? "md:pt-28 lg:pt-32" : "md:pt-6 lg:pt-8"
+            "flex-1 flex flex-col w-full animate-fade-in transition-all duration-700 ease-[cubic-bezier(0.76,0,0.24,1)]",
+            location.pathname === '/admin' 
+              ? "p-0 max-w-none" 
+              : clsx("p-4 md:p-6 lg:p-8 max-w-7xl mx-auto", isNavVisible ? "md:pt-28 lg:pt-32" : "md:pt-6 lg:pt-8")
           )
         )}>
           <Outlet />
