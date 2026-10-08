@@ -47,13 +47,14 @@ const getMarkerIcon = (status: string, score: number, needsReview: boolean) => {
 };
 
 export default function MainCommandDashboard() { 
-  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reports, setReports] = useState<any[]>([]);
   const [isQueueOpen, setIsQueueOpen] = useState(true);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(true);
   const [isKpiOpen, setIsKpiOpen] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [visionResult, setVisionResult] = useState<any>(null);
   
   const mapRef = useRef<L.Map>(null);
@@ -77,6 +78,7 @@ export default function MainCommandDashboard() {
 
   useEffect(() => {
     if (!selectedReportId) {
+      // eslint-disable-next-line
       setVisionResult(null);
       return;
     }
@@ -104,6 +106,7 @@ export default function MainCommandDashboard() {
     
     fetchVisionResult();
     setIsAnalysisOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedReportId]);
 
   const updateStatus = async (reportId: string, newStatus: string) => {

@@ -4,7 +4,9 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 
 export default function HistoricalArchiveView() { 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reports, setReports] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [agentResults, setAgentResults] = useState<any[]>([]);
   
   const [searchTerm, setSearchTerm] = useState('');

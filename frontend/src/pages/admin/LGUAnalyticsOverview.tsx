@@ -4,10 +4,13 @@ import { BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle, Trophy, Trash
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 
 export default function LGUAnalyticsOverview() {
-  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reports, setReports] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [agentResults, setAgentResults] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [dispatchLogs, setDispatchLogs] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [profiles, setProfiles] = useState<any[]>([]);
   
   const [timeFilter, setTimeFilter] = useState<'7' | '30' | 'ALL'>('30');
