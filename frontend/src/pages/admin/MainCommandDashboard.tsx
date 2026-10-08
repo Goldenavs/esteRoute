@@ -60,12 +60,33 @@ export default function MainCommandDashboard() {
   
   const mapRef = useRef<L.Map>(null);
 
+  const goToCurrentLocation = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          mapRef.current?.flyTo([latitude, longitude], 16, { duration: 1.5 });
+        },
+        (error) => {
+          console.error("GPS Error:", error);
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+  };
+
   const selectedReport = reports.find(r => r.report_id === selectedReportId);
 
   useEffect(() => {
     if (!selectedReportId) {
       setVisionResult(null);
       return;
+    }
+    
+    // Auto-pan to the selected report on the map
+    const report = reports.find(r => r.report_id === selectedReportId);
+    if (report && mapRef.current) {
+      mapRef.current.flyTo([report.latitude, report.longitude], 17, { duration: 1.2 });
     }
     
     const fetchVisionResult = async () => {
@@ -139,18 +160,18 @@ export default function MainCommandDashboard() {
               position={[report.latitude, report.longitude]} 
               icon={getMarkerIcon(report.status, report.priority_score, report.needs_human_review)}
             >
-              <Popup className="custom-popup">
-                <div className="font-sans">
-                  <h3 className="font-bold text-lg text-gray-900">{report.tracking_reference}</h3>
-                  <p className={`text-sm font-semibold mb-1 ${report.priority_score >= 70 ? 'text-red-600' : 'text-orange-600'}`}>
-                    {report.status === 'failed_analysis' ? 'MANUAL REVIEW REQUIRED' : `AI Score: ${report.priority_score || 'N/A'}`}
+              <Popup className="custom-popup" closeButton={false}>
+                <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-48 text-text-primary -m-5">
+                  <h3 className="font-mono font-bold text-xs text-text-muted tracking-widest">{report.tracking_reference}</h3>
+                  <p className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm mt-2 mb-2 inline-block ${report.priority_score >= 70 ? 'bg-semantic-urgent text-white' : 'bg-semantic-warning text-white'}`}>
+                    {report.status === 'failed_analysis' ? 'NEEDS REVIEW' : `AI Score: ${report.priority_score || 'N/A'}`}
                   </p>
-                  <p className="text-xs text-gray-600">{new Date(report.created_at).toLocaleString()}</p>
+                  <p className="text-[10px] text-text-muted mb-2">{new Date(report.created_at).toLocaleTimeString()}</p>
                   <button 
                     onClick={() => setSelectedReportId(report.report_id)}
-                    className="mt-3 w-full bg-brand-primary text-white text-xs font-bold py-2 rounded hover:bg-brand-secondary transition-colors"
+                    className="w-full bg-brand-primary text-brand-white text-[9px] font-black py-1.5 rounded-sm hover:bg-brand-secondary transition-colors uppercase tracking-widest transform -skew-x-[6deg]"
                   >
-                    VIEW FULL REPORT
+                    <span className="inline-block transform skew-x-[6deg]">SELECT REPORT</span>
                   </button>
                 </div>
               </Popup>
@@ -216,16 +237,27 @@ export default function MainCommandDashboard() {
           </button>
         )}
 
+        {/* Locate Device Button - Right side, just beside Queue */}
+        <div className={`pointer-events-auto absolute bottom-4 transition-all duration-500 z-40 ${isFocusMode || !isQueueOpen ? 'right-4' : 'right-[29rem]'}`}>
+          <button 
+            onClick={goToCurrentLocation}
+            className="bg-surface/90 hover:bg-brand-primary/10 text-text-primary h-[38px] w-[38px] flex items-center justify-center rounded-sm shadow-xl transition-all border border-border-strong group transform -skew-x-[6deg]"
+            title="Find My Location"
+          >
+            <Crosshair className="w-4 h-4 text-brand-secondary group-hover:text-brand-primary transform skew-x-[6deg]" />
+          </button>
+        </div>
+
         {/* Focus Mode Toggle - Bottom Center */}
         <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2">
             <button
                 type="button"
                 onClick={() => setIsFocusMode((v) => !v)}
                 aria-label="Toggle Focus Mode"
-                className="flex h-10 items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-6 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group"
+                className="flex h-[38px] items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-6 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group"
             >
                 <span className="inline-block transform skew-x-[12deg] flex items-center gap-2">
-                    {isFocusMode ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+                    {isFocusMode ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />}
                     <span className="hidden sm:inline">FOCUS</span>
                 </span>
             </button>
