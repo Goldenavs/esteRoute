@@ -30,11 +30,32 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
     setIsLoading(true);
     setAdminError('');
 
-    if (adminEmail === 'admin@lgu.gov.ph' && adminPassword === 'admin') {
-      navigate('/admin');
-    } else {
-      setAdminError('Invalid Dispatcher Credentials. Use admin@lgu.gov.ph / admin');
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: adminEmail,
+      password: adminPassword,
+    });
+
+    if (error) {
+      setIsLoading(false);
+      setAdminError(error.message);
+      return;
     }
+
+    if (data.user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError || !profile || (profile.role !== 'admin' && profile.role !== 'dispatcher')) {
+        await supabase.auth.signOut();
+        setAdminError('Access denied. Dispatcher/Admin role required.');
+      } else {
+        navigate('/admin');
+      }
+    }
+    setIsLoading(false);
   };
 
   // Citizen Auth
