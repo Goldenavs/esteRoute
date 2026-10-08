@@ -1,15 +1,102 @@
 import { Archive, Search, Filter, Download, ChevronLeft, ChevronRight, Eye, CheckCircle2, XCircle } from 'lucide-react';
 
+import { useEffect, useState, useMemo } from 'react';
+import { supabase } from '../../lib/supabase';
+
 export default function HistoricalArchiveView() { 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [reports, setReports] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [agentResults, setAgentResults] = useState<any[]>([]);
   
-  const archiveData = [
-    { id: 'RPT-8712', date: '2026-09-28', location: 'Estero de Paco', category: 'Heavy Blockage', status: 'RESOLVED', team: 'Alpha Team' },
-    { id: 'RPT-8711', date: '2026-09-28', location: 'Estero de San Miguel', category: 'Siltation', status: 'RESOLVED', team: 'Bravo Team' },
-    { id: 'RPT-8710', date: '2026-09-27', location: 'Estero de Binondo', category: 'Illegal Dumping', status: 'FAILED', team: 'Delta Team' },
-    { id: 'RPT-8709', date: '2026-09-27', location: 'Estero de Quiapo', category: 'Heavy Blockage', status: 'RESOLVED', team: 'Alpha Team' },
-    { id: 'RPT-8708', date: '2026-09-26', location: 'Estero de Magdalena', category: 'Flood Risk', status: 'RESOLVED', team: 'Charlie Team' },
-    { id: 'RPT-8707', date: '2026-09-25', location: 'Estero de Vitas', category: 'Siltation', status: 'RESOLVED', team: 'Bravo Team' },
-  ];
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      // Only fetch closed/terminal states for the archive
+      const { data: repData } = await supabase
+        .from('reports')
+        .select('*')
+        .in('status', ['resolved', 'failed', 'false_alarm'])
+        .order('created_at', { ascending: false });
+        
+      const { data: agentData } = await supabase
+        .from('agent_results')
+        .select('*')
+        .eq('agent_type', 'vision_triage');
+
+      if (repData) setReports(repData);
+      if (agentData) setAgentResults(agentData);
+    };
+
+    fetchData();
+  }, []);
+
+  const archiveData = useMemo(() => {
+    return reports.map(r => {
+      const agentRes = agentResults.find(ar => ar.report_id === r.report_id);
+      const category = agentRes?.result_json?.waste_categories?.[0] || 'Unknown';
+      const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : 'N/A';
+      const location = (r.location_lat != null && r.location_lng != null)
+        ? `[${Number(r.location_lat).toFixed(4)}, ${Number(r.location_lng).toFixed(4)}]`
+        : 'Unknown Location';
+      
+      return {
+        id: r.report_id || 'UNKNOWN',
+        shortId: (r.report_id || 'UNKNOWN').slice(0, 8).toUpperCase(),
+        date,
+        location,
+        category,
+        status: (r.status || 'UNKNOWN').toUpperCase(),
+        team: 'LGU Dispatch' // Placeholder until team routing is implemented
+      };
+    }).filter(item => {
+      if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
+      if (categoryFilter !== 'ALL' && item.category !== categoryFilter) return false;
+
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      return item.id.toLowerCase().includes(term) || 
+             item.location.toLowerCase().includes(term) || 
+             item.category.toLowerCase().includes(term) ||
+             item.team.toLowerCase().includes(term);
+    });
+  }, [reports, agentResults, searchTerm, categoryFilter, statusFilter]);
+
+  const totalPages = Math.ceil(archiveData.length / itemsPerPage) || 1;
+  const currentData = archiveData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleExportCSV = () => {
+    if (archiveData.length === 0) return;
+
+    const headers = ['Report ID', 'Date Filed', 'Location', 'Category', 'Dispatch Team', 'Status'];
+    
+    const csvRows = archiveData.map(row => {
+      return [
+        `"${row.id}"`,
+        `"${row.date}"`,
+        `"${row.location}"`,
+        `"${row.category}"`,
+        `"${row.team}"`,
+        `"${row.status.replace('_', ' ')}"`
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    link.href = url;
+    link.setAttribute('download', `esteroute_archive_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="w-full h-full flex flex-col pb-10">
@@ -26,7 +113,10 @@ export default function HistoricalArchiveView() {
         
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <button className="bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/30 px-6 py-2.5 flex items-center gap-2 rounded-sm -skew-x-[6deg] hover:bg-brand-secondary hover:text-white transition-colors shadow-lg">
+          <button 
+            onClick={handleExportCSV}
+            className="bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/30 px-6 py-2.5 flex items-center gap-2 rounded-sm -skew-x-[6deg] hover:bg-brand-secondary hover:text-white transition-colors shadow-lg"
+          >
             <Download className="w-4 h-4 skew-x-[6deg]" />
             <span className="skew-x-[6deg] text-sm font-bold uppercase tracking-widest">Export CSV</span>
           </button>
@@ -42,18 +132,46 @@ export default function HistoricalArchiveView() {
             <input 
               type="text" 
               placeholder="Search by Report ID, Location, or Team..." 
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1); // Reset pagination on search
+              }}
               className="w-full bg-app-bg border border-border-subtle rounded-sm py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-brand-primary text-text-primary placeholder:text-text-muted"
             />
           </div>
           
           {/* Filters */}
           <div className="flex gap-2 w-full md:w-auto">
-            <button className="flex-1 md:flex-none bg-app-bg border border-border-subtle px-4 py-2 flex items-center justify-center gap-2 rounded-sm hover:border-brand-primary transition-colors text-sm font-bold text-text-secondary">
-              <Filter className="w-4 h-4" /> Category
-            </button>
-            <button className="flex-1 md:flex-none bg-app-bg border border-border-subtle px-4 py-2 flex items-center justify-center gap-2 rounded-sm hover:border-brand-primary transition-colors text-sm font-bold text-text-secondary">
-              <Filter className="w-4 h-4" /> Status
-            </button>
+            <div className="flex-1 md:flex-none relative bg-app-bg border border-border-subtle flex items-center gap-1 rounded-sm hover:border-brand-primary transition-colors text-sm font-bold text-text-secondary px-2">
+              <Filter className="w-4 h-4 ml-1" />
+              <select
+                value={categoryFilter}
+                onChange={e => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+                className="bg-transparent py-2 pr-2 outline-none appearance-none cursor-pointer w-full uppercase tracking-widest text-[10px]"
+              >
+                <option value="ALL" className="bg-surface text-text-primary">All Categories</option>
+                <option value="Plastic" className="bg-surface text-text-primary">Plastic</option>
+                <option value="Organic" className="bg-surface text-text-primary">Organic</option>
+                <option value="Medical" className="bg-surface text-text-primary">Medical</option>
+                <option value="Hazardous" className="bg-surface text-text-primary">Hazardous</option>
+                <option value="Unknown" className="bg-surface text-text-primary">Unknown</option>
+              </select>
+            </div>
+            
+            <div className="flex-1 md:flex-none relative bg-app-bg border border-border-subtle flex items-center gap-1 rounded-sm hover:border-brand-primary transition-colors text-sm font-bold text-text-secondary px-2">
+              <Filter className="w-4 h-4 ml-1" />
+              <select
+                value={statusFilter}
+                onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="bg-transparent py-2 pr-2 outline-none appearance-none cursor-pointer w-full uppercase tracking-widest text-[10px]"
+              >
+                <option value="ALL" className="bg-surface text-text-primary">All Status</option>
+                <option value="RESOLVED" className="bg-surface text-text-primary">Resolved</option>
+                <option value="FALSE_ALARM" className="bg-surface text-text-primary">False Alarm</option>
+                <option value="FAILED" className="bg-surface text-text-primary">Failed</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -75,9 +193,9 @@ export default function HistoricalArchiveView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle/50">
-              {archiveData.map((row) => (
+              {currentData.map((row) => (
                 <tr key={row.id} className="hover:bg-app-bg/50 transition-colors group">
-                  <td className="p-4 pl-6 font-mono font-bold text-sm text-text-primary">{row.id}</td>
+                  <td className="p-4 pl-6 font-mono font-bold text-sm text-text-primary">{row.shortId}</td>
                   <td className="p-4 text-sm text-text-secondary">{row.date}</td>
                   <td className="p-4 text-sm text-text-primary font-medium">{row.location}</td>
                   <td className="p-4 text-sm text-text-secondary">{row.category}</td>
@@ -86,10 +204,12 @@ export default function HistoricalArchiveView() {
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                       row.status === 'RESOLVED' 
                         ? 'bg-semantic-success/10 text-semantic-success border border-semantic-success/20' 
+                        : row.status === 'FALSE_ALARM'
+                        ? 'bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20'
                         : 'bg-semantic-urgent/10 text-semantic-urgent border border-semantic-urgent/20'
                     }`}>
                       {row.status === 'RESOLVED' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                      {row.status}
+                      {row.status.replace('_', ' ')}
                     </span>
                   </td>
                   <td className="p-4 pr-6 text-right">
@@ -99,6 +219,13 @@ export default function HistoricalArchiveView() {
                   </td>
                 </tr>
               ))}
+              {currentData.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-text-muted font-bold italic text-sm">
+                    No archive records found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
 
@@ -107,28 +234,30 @@ export default function HistoricalArchiveView() {
 
       {/* Pagination */}
       <div className="w-full mt-6 flex justify-between items-center -skew-x-[2deg]">
-        <span className="skew-x-[2deg] text-xs font-bold uppercase tracking-widest text-text-muted">Showing 1-6 of 248 records</span>
+        <span className="skew-x-[2deg] text-xs font-bold uppercase tracking-widest text-text-muted">
+          Showing {archiveData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, archiveData.length)} of {archiveData.length} records
+        </span>
         
         <div className="flex gap-2">
-          <button className="bg-surface border border-border-subtle p-2 rounded-sm hover:border-brand-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-text-secondary" disabled>
+          <button 
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="bg-surface border border-border-subtle p-2 rounded-sm hover:border-brand-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-text-secondary"
+          >
             <ChevronLeft className="w-4 h-4 skew-x-[2deg]" />
           </button>
           
           <button className="bg-brand-primary text-white px-3 py-1 text-sm font-bold rounded-sm">
-            <span className="skew-x-[2deg] block">1</span>
+            <span className="skew-x-[2deg] block">{currentPage}</span>
           </button>
-          <button className="bg-surface border border-border-subtle hover:bg-surface-subtle px-3 py-1 text-sm font-bold text-text-secondary rounded-sm transition-colors">
-            <span className="skew-x-[2deg] block">2</span>
-          </button>
-          <button className="bg-surface border border-border-subtle hover:bg-surface-subtle px-3 py-1 text-sm font-bold text-text-secondary rounded-sm transition-colors">
-            <span className="skew-x-[2deg] block">3</span>
-          </button>
-          <span className="px-2 py-1 text-text-muted skew-x-[2deg]">...</span>
-          <button className="bg-surface border border-border-subtle hover:bg-surface-subtle px-3 py-1 text-sm font-bold text-text-secondary rounded-sm transition-colors">
-            <span className="skew-x-[2deg] block">42</span>
-          </button>
+          
+          <span className="px-2 py-1 text-text-muted skew-x-[2deg]">/ {totalPages}</span>
 
-          <button className="bg-surface border border-border-subtle p-2 rounded-sm hover:border-brand-primary transition-colors text-text-secondary">
+          <button 
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="bg-surface border border-border-subtle p-2 rounded-sm hover:border-brand-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-text-secondary"
+          >
             <ChevronRight className="w-4 h-4 skew-x-[2deg]" />
           </button>
         </div>

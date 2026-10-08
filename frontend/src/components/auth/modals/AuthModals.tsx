@@ -30,17 +30,32 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
     setIsLoading(true);
     setAdminError('');
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: adminEmail,
       password: adminPassword,
     });
 
-    setIsLoading(false);
     if (error) {
+      setIsLoading(false);
       setAdminError(error.message);
-    } else {
-      navigate('/admin');
+      return;
     }
+
+    if (data.user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError || !profile || (profile.role !== 'admin' && profile.role !== 'dispatcher')) {
+        await supabase.auth.signOut();
+        setAdminError('Access denied. Dispatcher/Admin role required.');
+      } else {
+        navigate('/admin');
+      }
+    }
+    setIsLoading(false);
   };
 
   // Citizen Auth

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
+from pydantic import BaseModel
 from typing import Optional
 import uuid
 import os
@@ -107,3 +108,30 @@ async def get_agent_log(report_id: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch agent logs: {str(e)}")
+
+class StatusUpdateRequest(BaseModel):
+    status: str
+
+@router.patch("/{report_id}/status")
+async def update_report_status(report_id: str, payload: StatusUpdateRequest):
+    """
+    Phase 5.5 Dispatcher Status Transition Controls & Audit Log
+    Updates the report status and inserts a record into the dispatch_status_log table.
+    """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase is not configured in backend .env")
+        
+    try:
+        # 1. Update report status
+        supabase.table("reports").update({"status": payload.status}).eq("report_id", report_id).execute()
+        
+        # 2. Insert into dispatch_status_log
+        supabase.table("dispatch_status_log").insert({
+            "report_id": report_id,
+            "to_status": payload.status
+        }).execute()
+        
+        return {"message": f"Status updated to {payload.status}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update status: {str(e)}")
+
