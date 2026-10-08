@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle, Calendar, Trophy, Trash2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 
@@ -184,7 +184,7 @@ export default function LGUAnalyticsOverview() {
                     cursor={{fill: 'rgba(63, 114, 175, 0.1)'}}
                   />
                   <Bar dataKey="value" fill="#3F72AF" radius={[0, 4, 4, 0]} maxBarSize={40}>
-                    {stats.wasteData.map((entry, index) => (
+                    {stats.wasteData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={index === 0 ? '#F59E0B' : '#3F72AF'} />
                     ))}
                   </Bar>
@@ -309,6 +309,7 @@ export default function LGUAnalyticsOverview() {
             </div>
           </div>
         </div>
+      </div>
     </div>
   )
 }

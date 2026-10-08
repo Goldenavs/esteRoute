@@ -2,9 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, Crosshair, CheckCircle } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 // Custom Map Marker Icon
