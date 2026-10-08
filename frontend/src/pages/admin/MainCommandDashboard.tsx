@@ -55,8 +55,37 @@ export default function MainCommandDashboard() {
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(true);
   const [isKpiOpen, setIsKpiOpen] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [visionResult, setVisionResult] = useState<any>(null);
   
   const mapRef = useRef<L.Map>(null);
+
+  const selectedReport = reports.find(r => r.report_id === selectedReportId);
+
+  useEffect(() => {
+    if (!selectedReportId) {
+      setVisionResult(null);
+      return;
+    }
+    
+    const fetchVisionResult = async () => {
+      const { data, error } = await supabase
+        .from('agent_results')
+        .select('*')
+        .eq('report_id', selectedReportId)
+        .eq('agent_type', 'vision_triage')
+        .single();
+        
+      if (!error && data) {
+        setVisionResult(data.result_json);
+      } else {
+        setVisionResult(null);
+      }
+    };
+    
+    fetchVisionResult();
+    setIsAnalysisOpen(true);
+  }, [selectedReportId]);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -117,7 +146,10 @@ export default function MainCommandDashboard() {
                     {report.status === 'failed_analysis' ? 'MANUAL REVIEW REQUIRED' : `AI Score: ${report.priority_score || 'N/A'}`}
                   </p>
                   <p className="text-xs text-gray-600">{new Date(report.created_at).toLocaleString()}</p>
-                  <button className="mt-3 w-full bg-brand-primary text-white text-xs font-bold py-2 rounded hover:bg-brand-secondary transition-colors">
+                  <button 
+                    onClick={() => setSelectedReportId(report.report_id)}
+                    className="mt-3 w-full bg-brand-primary text-white text-xs font-bold py-2 rounded hover:bg-brand-secondary transition-colors"
+                  >
                     VIEW FULL REPORT
                   </button>
                 </div>
@@ -215,11 +247,84 @@ export default function MainCommandDashboard() {
                 <span className="font-bold">&lt;</span>
               </button>
             </div>
-            <div className="flex-1 p-4 flex flex-col items-center justify-center text-text-muted text-xs border-[2px] border-dashed border-border-subtle m-4 bg-app-bg/50">
-              <ShieldAlert className="w-8 h-8 mb-2 opacity-50" />
-              <p className="tracking-widest uppercase font-bold opacity-50">Awaiting Target</p>
-              <p className="mt-2 text-center px-4 opacity-50">Select a report from the queue to view the AI's analysis rationale.</p>
-            </div>
+            {selectedReport ? (
+              <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+                <div className="p-4 flex flex-col gap-5">
+                  
+                  {/* Header / ID */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-mono font-bold tracking-wider text-text-muted">{selectedReport.tracking_reference}</span>
+                    <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm ${
+                        selectedReport.status === 'triaged' && selectedReport.priority_score >= 70 ? 'bg-semantic-urgent text-white' :
+                        (selectedReport.status === 'failed_analysis' || selectedReport.needs_human_review) ? 'bg-semantic-warning text-white' :
+                        'bg-surface-subtle text-text-secondary border border-border-subtle'
+                    }`}>
+                      {selectedReport.status.replace('_', ' ')}
+                    </span>
+                  </div>
+
+                  {/* Submitted Image */}
+                  <div className="w-full h-48 rounded-sm bg-border-subtle overflow-hidden relative group border border-border-strong shadow-inner">
+                    <img src={selectedReport.image_url} alt="Reported issue" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                    <div className="absolute bottom-2 left-2 flex gap-1">
+                      <span className="bg-black/50 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded">Vision Source</span>
+                    </div>
+                  </div>
+                  
+                  {/* AI Scores & Details */}
+                  <div className="flex gap-3">
+                    <div className="flex-1 bg-surface-subtle p-3 rounded-sm border border-border-subtle shadow-sm transform -skew-x-[6deg]">
+                       <div className="transform skew-x-[6deg]">
+                         <div className="text-[9px] uppercase font-bold text-text-muted mb-1 tracking-widest">Blockage Severity</div>
+                         <div className="text-2xl font-black text-semantic-warning leading-none">{visionResult?.blockage_severity_score ?? selectedReport.priority_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></div>
+                       </div>
+                    </div>
+                    <div className="flex-1 bg-surface-subtle p-3 rounded-sm border border-border-subtle shadow-sm transform -skew-x-[6deg]">
+                       <div className="transform skew-x-[6deg]">
+                         <div className="text-[9px] uppercase font-bold text-text-muted mb-1 tracking-widest">Detected Waste</div>
+                         <div className="flex flex-wrap gap-1 mt-1.5">
+                           {(visionResult?.waste_categories || []).length > 0 ? (
+                             (visionResult.waste_categories).map((c: string) => (
+                                <span key={c} className="text-[8px] bg-brand-primary/10 border border-brand-primary/30 text-brand-primary px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider">{c}</span>
+                             ))
+                           ) : (
+                             <span className="text-[9px] text-text-muted italic">Scanning...</span>
+                           )}
+                         </div>
+                       </div>
+                    </div>
+                  </div>
+                  
+                  {/* AI Rationale */}
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-brand-primary mb-2 tracking-widest flex items-center gap-1.5">
+                      <ShieldAlert className="w-3.5 h-3.5" /> AI Assessment
+                    </div>
+                    <p className="text-sm text-text-primary leading-relaxed bg-surface p-4 border-l-2 border-brand-primary italic shadow-md">
+                      "{visionResult?.rationale || 'Awaiting full AI visual analysis...'}"
+                    </p>
+                  </div>
+
+                  {/* Citizen Notes */}
+                  {selectedReport.citizen_notes && (
+                    <div className="pt-2 border-t border-border-subtle">
+                      <div className="text-[9px] uppercase font-bold text-text-muted mb-2 tracking-widest">Citizen Report Notes</div>
+                      <p className="text-xs text-text-secondary leading-relaxed bg-surface-subtle p-3 rounded-sm border border-border-subtle">
+                        {selectedReport.citizen_notes}
+                      </p>
+                    </div>
+                  )}
+                  
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 p-4 flex flex-col items-center justify-center text-text-muted text-xs border-[2px] border-dashed border-border-subtle m-4 bg-app-bg/50">
+                <ShieldAlert className="w-8 h-8 mb-2 opacity-50" />
+                <p className="tracking-widest uppercase font-bold opacity-50">Awaiting Target</p>
+                <p className="mt-2 text-center px-4 opacity-50">Select a report from the queue to view the AI's analysis rationale.</p>
+              </div>
+            )}
           </div>
         </div>
         
@@ -267,7 +372,10 @@ export default function MainCommandDashboard() {
                 return (
                   <div 
                     key={report.report_id}
+                    onClick={() => setSelectedReportId(report.report_id)}
                     className={`w-full p-4 border rounded-sm relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg cursor-pointer ${
+                      selectedReportId === report.report_id ? 'ring-2 ring-brand-primary shadow-xl z-10 scale-[1.02]' : ''
+                    } ${
                       isCritical
                         ? 'border-semantic-urgent bg-semantic-urgent/10' 
                         : needsReview
