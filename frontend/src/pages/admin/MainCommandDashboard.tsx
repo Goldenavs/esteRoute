@@ -161,7 +161,7 @@ export default function MainCommandDashboard() {
               icon={getMarkerIcon(report.status, report.priority_score, report.needs_human_review)}
             >
               <Popup className="custom-popup" closeButton={false}>
-                <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-48 text-text-primary -m-5">
+                <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-48 text-text-primary">
                   <h3 className="font-mono font-bold text-xs text-text-muted tracking-widest">{report.tracking_reference}</h3>
                   <p className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm mt-2 mb-2 inline-block ${report.priority_score >= 70 ? 'bg-semantic-urgent text-white' : 'bg-semantic-warning text-white'}`}>
                     {report.status === 'failed_analysis' ? 'NEEDS REVIEW' : `AI Score: ${report.priority_score || 'N/A'}`}
@@ -180,8 +180,37 @@ export default function MainCommandDashboard() {
         </MapContainer>
       </div>
 
+      {/* Inline styles to nuke Leaflet's default white popup box */}
+      <style>{`
+        .custom-popup .leaflet-popup-content-wrapper {
+          background: transparent;
+          box-shadow: none;
+          padding: 0;
+          border-radius: 0;
+        }
+        .custom-popup .leaflet-popup-content {
+          margin: 0;
+          width: auto !important;
+        }
+        .custom-popup .leaflet-popup-tip-container {
+          display: none;
+        }
+      `}</style>
+      
       {/* 2. Floating Overlays (Z-50) */}
       <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
+        
+        {/* Locate Device Button - Top Right (Safe from panels) */}
+        <div className="pointer-events-auto absolute top-4 right-4 z-40 transition-all duration-500">
+          <button 
+            onClick={goToCurrentLocation}
+            className="bg-surface/90 hover:bg-brand-primary/10 text-text-primary h-[38px] px-4 flex items-center justify-center gap-2 rounded-sm shadow-xl transition-all border border-border-strong group transform -skew-x-[6deg]"
+            title="Find My Location"
+          >
+            <Navigation className="w-4 h-4 text-brand-secondary group-hover:text-brand-primary transform skew-x-[6deg]" />
+            <span className="text-[10px] font-bold tracking-widest uppercase transform skew-x-[6deg]">Locate Me</span>
+          </button>
+        </div>
         
         {/* Bottom Left KPI & Legend Panel */}
         <div className={`pointer-events-auto absolute bottom-4 left-4 z-40 transition-transform duration-500 ease-out ${(isKpiOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'}`}>
@@ -236,17 +265,6 @@ export default function MainCommandDashboard() {
             <span className="font-bold text-xs">&gt;</span>
           </button>
         )}
-
-        {/* Locate Device Button - Right side, just beside Queue */}
-        <div className={`pointer-events-auto absolute bottom-4 transition-all duration-500 z-40 ${isFocusMode || !isQueueOpen ? 'right-4' : 'right-[29rem]'}`}>
-          <button 
-            onClick={goToCurrentLocation}
-            className="bg-surface/90 hover:bg-brand-primary/10 text-text-primary h-[38px] w-[38px] flex items-center justify-center rounded-sm shadow-xl transition-all border border-border-strong group transform -skew-x-[6deg]"
-            title="Find My Location"
-          >
-            <Crosshair className="w-4 h-4 text-brand-secondary group-hover:text-brand-primary transform skew-x-[6deg]" />
-          </button>
-        </div>
 
         {/* Focus Mode Toggle - Bottom Center */}
         <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2">
