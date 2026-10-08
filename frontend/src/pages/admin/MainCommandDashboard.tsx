@@ -53,24 +53,10 @@ export default function MainCommandDashboard() {
   const [reports, setReports] = useState<any[]>([]);
   const [isQueueOpen, setIsQueueOpen] = useState(true);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(true);
+  const [isKpiOpen, setIsKpiOpen] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
   
   const mapRef = useRef<L.Map>(null);
-
-  const goToCurrentLocation = () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          mapRef.current?.flyTo([latitude, longitude], 16, { duration: 1.5 });
-        },
-        (error) => {
-          console.error("GPS Error:", error);
-        },
-        { enableHighAccuracy: true }
-      );
-    }
-  };
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -144,65 +130,59 @@ export default function MainCommandDashboard() {
       {/* 2. Floating Overlays (Z-50) */}
       <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
         
-        {/* Header & KPI Strip - Top Left (Pushed down to avoid navbar) */}
-        <div 
-          className={`pointer-events-auto absolute left-4 z-30 flex flex-col gap-4 transition-all duration-500 ease-in-out ${isFocusMode ? '-top-32 opacity-0 pointer-events-none' : 'top-[6.5rem] opacity-100'}`}
-        >
-          <div className="bg-surface/90 backdrop-blur-md border border-border-strong px-5 py-3 rounded-sm shadow-xl flex items-center gap-3 w-max transform -skew-x-[6deg]">
-            <div className="transform skew-x-[6deg] flex items-center gap-3">
-              <ShieldAlert className="w-8 h-8 text-brand-primary" />
-              <div>
-                <h1 className="text-2xl font-heading font-black tracking-tight leading-tight">Tactical Command</h1>
-                <p className="text-[10px] text-text-muted font-bold tracking-widest uppercase">Live Dispatch Network</p>
+        {/* Bottom Left KPI & Legend Panel */}
+        <div className={`pointer-events-auto absolute bottom-4 left-4 z-40 transition-transform duration-500 ease-out ${(isKpiOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'}`}>
+          <div className="flex gap-2 items-end">
+            <div className="bg-surface/90 backdrop-blur-md border border-border-strong p-2.5 rounded-sm shadow-lg transform -skew-x-[6deg] flex gap-5 w-max">
+              <div className="transform skew-x-[6deg] flex gap-5 items-center">
+                
+                {/* Critical KPI */}
+                <div className="flex flex-col items-center px-1">
+                   <div className="text-xl font-black text-semantic-urgent leading-none">{reports.filter(r => r.priority_score >= 70 && r.status === 'triaged').length}</div>
+                   <div className="text-[9px] uppercase tracking-widest font-bold text-text-muted mt-1">Critical</div>
+                </div>
+                
+                {/* Review KPI */}
+                <div className="flex flex-col items-center px-1 border-l border-border-subtle pl-5">
+                   <div className="text-xl font-black text-semantic-warning leading-none">{reports.filter(r => r.status === 'failed_analysis' || r.needs_human_review).length}</div>
+                   <div className="text-[9px] uppercase tracking-widest font-bold text-text-muted mt-1">Review</div>
+                </div>
+                
+                {/* Legend */}
+                <div className="flex flex-col gap-2 px-1 border-l border-border-subtle pl-5 justify-center">
+                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div> Critical
+                   </div>
+                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                      <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div> Review
+                   </div>
+                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                      <div className="w-2.5 h-2.5 rounded-full bg-gray-500"></div> Resolved
+                   </div>
+                </div>
+                
               </div>
             </div>
-          </div>
 
-          <div className="flex gap-3">
-            <div className="bg-surface/95 backdrop-blur-md border-l-4 border-semantic-urgent px-4 py-2 rounded-r-sm shadow-lg w-32 transform -skew-x-[6deg]">
-              <div className="transform skew-x-[6deg]">
-                <div className="text-[10px] uppercase tracking-widest font-bold text-text-muted mb-1">Critical</div>
-                <div className="text-3xl font-black text-semantic-urgent leading-none">
-                  {reports.filter(r => r.priority_score >= 70 && r.status === 'triaged').length}
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-surface/95 backdrop-blur-md border-l-4 border-semantic-warning px-4 py-2 rounded-r-sm shadow-lg w-32 transform -skew-x-[6deg]">
-              <div className="transform skew-x-[6deg]">
-                <div className="text-[10px] uppercase tracking-widest font-bold text-text-muted mb-1">Review</div>
-                <div className="text-3xl font-black text-semantic-warning leading-none">
-                  {reports.filter(r => r.status === 'failed_analysis' || r.needs_human_review).length}
-                </div>
-              </div>
-            </div>
+            {/* Close button for KPI */}
+            <button 
+              onClick={() => setIsKpiOpen(false)}
+              className="bg-surface/90 backdrop-blur-md border border-border-strong text-text-muted hover:text-brand-primary h-8 w-6 flex items-center justify-center rounded-sm transition-colors transform -skew-x-[6deg]"
+            >
+               <span className="transform skew-x-[6deg] font-bold text-xs">&lt;</span>
+            </button>
           </div>
         </div>
 
-        {/* Legend Overlay - Bottom Left */}
-        <div className="pointer-events-auto absolute bottom-4 left-4 z-40 flex flex-col gap-3">
-          <div className="bg-surface/90 backdrop-blur-md border border-border-strong p-3 rounded-sm shadow-lg flex items-center gap-4 transform -skew-x-[6deg]">
-            <div className="transform skew-x-[6deg] flex items-center gap-4">
-              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div> Critical
-              </div>
-              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider">
-                <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div> Review
-              </div>
-              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider">
-                <div className="w-2.5 h-2.5 rounded-full bg-gray-500"></div> Resolved
-              </div>
-            </div>
-          </div>
-          
-          <button 
-            onClick={goToCurrentLocation}
-            className="bg-surface hover:bg-brand-primary/10 text-text-primary p-3 rounded-sm shadow-xl transition-all hover:scale-105 border border-border-strong group w-max transform -skew-x-[6deg]"
-            title="Find My Location"
+        {/* Toggle for KPI when minimized */}
+        {(!isKpiOpen && !isFocusMode) && (
+          <button
+            onClick={() => setIsKpiOpen(true)}
+            className="pointer-events-auto absolute left-0 bottom-4 z-30 flex h-[48px] w-8 items-center justify-center border border-l-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-r-sm"
           >
-            <Crosshair className="w-6 h-6 text-brand-secondary group-hover:text-brand-primary transform skew-x-[6deg]" />
+            <span className="font-bold text-xs">&gt;</span>
           </button>
-        </div>
+        )}
 
         {/* Focus Mode Toggle - Bottom Center */}
         <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2">
@@ -221,7 +201,7 @@ export default function MainCommandDashboard() {
 
         {/* Left Panel: AI Vision Analysis (Placeholder) */}
         <div 
-          className={`pointer-events-auto absolute bottom-4 left-4 top-[14.5rem] w-[24rem] z-20 transition-transform duration-500 ease-out ${(isAnalysisOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'}`}
+          className={`pointer-events-auto absolute bottom-[6.5rem] left-4 top-[5rem] w-[24rem] z-20 transition-transform duration-500 ease-out ${(isAnalysisOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'}`}
         >
           <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm">
             <div className="p-4 border-b border-border-subtle bg-surface-subtle flex justify-between items-center relative rounded-t-sm">
@@ -247,7 +227,7 @@ export default function MainCommandDashboard() {
         {!isFocusMode && !isAnalysisOpen && (
           <button
             onClick={() => setIsAnalysisOpen(true)}
-            className="pointer-events-auto absolute left-0 top-[14.5rem] z-30 flex h-[46px] w-12 items-center justify-center border border-l-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-r-sm"
+            className="pointer-events-auto absolute left-0 top-[5rem] z-30 flex h-[46px] w-12 items-center justify-center border border-l-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-r-sm"
           >
             <span className="font-bold">&gt;</span>
           </button>
@@ -255,7 +235,7 @@ export default function MainCommandDashboard() {
 
         {/* Right Panel: Dispatch Queue */}
         <div 
-          className={`pointer-events-auto absolute bottom-4 right-4 top-[14.5rem] w-[28rem] z-20 transition-transform duration-500 ease-out ${(isQueueOpen && !isFocusMode) ? 'translate-x-0' : 'translate-x-[calc(100%+1rem)]'}`}
+          className={`pointer-events-auto absolute bottom-4 right-4 top-[5rem] w-[28rem] z-20 transition-transform duration-500 ease-out ${(isQueueOpen && !isFocusMode) ? 'translate-x-0' : 'translate-x-[calc(100%+1rem)]'}`}
         >
           <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm">
             
@@ -345,7 +325,7 @@ export default function MainCommandDashboard() {
         {!isFocusMode && !isQueueOpen && (
           <button
             onClick={() => setIsQueueOpen(true)}
-            className="pointer-events-auto absolute right-0 top-[14.5rem] z-30 flex h-[46px] w-12 items-center justify-center border border-r-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-l-sm"
+            className="pointer-events-auto absolute right-0 top-[5rem] z-30 flex h-[46px] w-12 items-center justify-center border border-r-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-l-sm"
           >
             <span className="font-bold">&lt;</span>
           </button>
