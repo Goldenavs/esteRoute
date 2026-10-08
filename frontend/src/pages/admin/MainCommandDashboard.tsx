@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
+import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, Crosshair } from 'lucide-react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { supabase } from '../../lib/supabase';
 
 // Custom Map Marker Icon
 const criticalIcon = new L.Icon({
@@ -49,6 +51,30 @@ const getMarkerIcon = (status: string, score: number, needsReview: boolean) => {
 export default function MainCommandDashboard() { 
   
   const [reports, setReports] = useState<any[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const mapRef = useRef<L.Map>(null);
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+    setTimeout(() => {
+      mapRef.current?.invalidateSize();
+    }, 300);
+  };
+
+  const goToCurrentLocation = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          mapRef.current?.flyTo([latitude, longitude], 16, { duration: 1.5 });
+        },
+        (error) => {
+          console.error("GPS Error:", error);
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+  };
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -122,15 +148,31 @@ export default function MainCommandDashboard() {
       <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 flex-1 min-h-0">
         
         {/* Left Column: Interactive Map */}
-        <div className="lg:col-span-8 flex flex-col gap-4">
-          <div className="w-full flex-1 min-h-[500px] bg-surface border border-border-strong rounded-sm relative overflow-hidden -skew-x-[2deg] shadow-xl group">
-            <div className="absolute inset-0 bg-app-bg z-0 skew-x-[2deg] scale-110">
+        <div className={twMerge(
+          clsx(
+            "flex flex-col gap-4 transition-all duration-300",
+            isFullscreen ? "fixed inset-0 z-[999] bg-app-bg pb-0 h-screen" : "lg:col-span-8"
+          )
+        )}>
+          <div className={twMerge(
+            clsx(
+              "w-full flex-1 bg-surface border border-border-strong relative overflow-hidden group shadow-xl",
+              isFullscreen ? "rounded-none h-full" : "min-h-[500px] rounded-sm -skew-x-[2deg] lg:-skew-x-[4deg]"
+            )
+          )}>
+            <div className={twMerge(
+              clsx(
+                "absolute inset-0 bg-app-bg z-0 transition-transform duration-300",
+                isFullscreen ? "scale-100" : "skew-x-[2deg] lg:skew-x-[4deg] scale-[1.10]"
+              )
+            )}>
               
               <MapContainer 
                 center={[14.5995, 120.9842]} 
                 zoom={14} 
                 zoomControl={false}
                 className="w-full h-full z-10"
+                ref={mapRef}
               >
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -165,25 +207,77 @@ export default function MainCommandDashboard() {
             </div>
             
             {/* Map UI Overlay */}
-            <div className="absolute top-4 left-4 z-20 pointer-events-none skew-x-[2deg]">
-              <div className="bg-surface/90 backdrop-blur-md border border-border-strong p-3 rounded-sm shadow-lg pointer-events-auto flex items-center gap-3">
-                <div className="flex items-center gap-2 text-xs font-bold">
-                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div> Critical
-                </div>
-                <div className="flex items-center gap-2 text-xs font-bold">
-                  <div className="w-3 h-3 rounded-full bg-orange-500"></div> Dispatched
+            <div className={twMerge(
+              clsx(
+                "absolute top-4 left-4 z-[400] pointer-events-none transition-transform duration-300",
+                !isFullscreen && "skew-x-[2deg] lg:skew-x-[4deg]"
+              )
+            )}>
+              <div className={twMerge(
+                clsx(
+                  "bg-surface/95 backdrop-blur-md border border-border-strong p-3 rounded-sm shadow-lg pointer-events-auto flex items-center gap-3",
+                  !isFullscreen && "-skew-x-[4deg]"
+                )
+              )}>
+                <div className={twMerge(clsx("flex items-center gap-3", !isFullscreen && "skew-x-[4deg]"))}>
+                  <div className="flex items-center gap-2 text-xs font-bold">
+                    <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div> Critical
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-bold">
+                    <div className="w-3 h-3 rounded-full bg-orange-500"></div> Needs Review
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* Floating Action Controls */}
+            <div className={twMerge(
+              clsx(
+                "absolute bottom-6 right-6 md:right-8 z-[400] pointer-events-none flex flex-col gap-3 transition-transform duration-300",
+                !isFullscreen && "skew-x-[2deg] lg:skew-x-[4deg]"
+              )
+            )}>
+               <button 
+                 onClick={goToCurrentLocation}
+                 className={twMerge(
+                   clsx(
+                     "bg-surface hover:bg-brand-primary/10 text-text-primary p-3 rounded-sm shadow-xl transition-all hover:scale-105 pointer-events-auto flex items-center justify-center border border-border-strong group",
+                     !isFullscreen && "-skew-x-[4deg]"
+                   )
+                 )}
+                 title="Find My Location"
+               >
+                 <Crosshair className={twMerge(clsx("w-6 h-6 text-brand-secondary group-hover:text-brand-primary", !isFullscreen && "skew-x-[4deg]"))} />
+               </button>
+
+               <button 
+                 onClick={toggleFullscreen}
+                 className={twMerge(
+                   clsx(
+                     "bg-brand-primary hover:bg-brand-secondary text-white p-3 rounded-sm shadow-xl transition-all hover:scale-105 pointer-events-auto flex items-center justify-center group/btn",
+                     !isFullscreen && "-skew-x-[4deg]"
+                   )
+                 )}
+                 title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+               >
+                 {isFullscreen ? (
+                   <Minimize className={twMerge(clsx("w-6 h-6 transition-transform group-hover/btn:scale-90", !isFullscreen && "skew-x-[4deg]"))} />
+                 ) : (
+                   <Maximize className={twMerge(clsx("w-6 h-6 transition-transform group-hover/btn:scale-110", !isFullscreen && "skew-x-[4deg]"))} />
+                 )}
+               </button>
+            </div>
+
           </div>
         </div>
 
-        {/* Right Column: Dispatch Queue */}
+        {/* Right Column: Dispatch Queue (Unskewed for clean UI) */}
+        {!isFullscreen && (
         <div className="lg:col-span-4 flex flex-col h-full min-h-[500px]">
-          <div className="w-full bg-surface border border-border-strong rounded-sm shadow-xl flex flex-col h-full -skew-x-[2deg]">
+          <div className="w-full bg-surface border border-border-strong rounded-sm shadow-xl flex flex-col h-full">
             
             {/* Header */}
-            <div className="p-4 border-b border-border-subtle bg-surface-subtle flex justify-between items-center skew-x-[2deg]">
+            <div className="p-4 border-b border-border-subtle bg-surface-subtle flex justify-between items-center">
               <h2 className="font-heading font-black text-lg flex items-center gap-2">
                 <Navigation className="w-5 h-5 text-brand-primary" />
                 Dispatch Queue
@@ -194,7 +288,7 @@ export default function MainCommandDashboard() {
             </div>
 
             {/* Queue List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 skew-x-[2deg]">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               
               {reports.map((report) => {
                 const isCritical = report.status === 'triaged' && report.priority_score >= 70;
@@ -255,6 +349,7 @@ export default function MainCommandDashboard() {
             </div>
           </div>
         </div>
+        )}
 
       </div>
     </div>
