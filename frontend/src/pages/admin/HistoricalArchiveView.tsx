@@ -68,6 +68,34 @@ export default function HistoricalArchiveView() {
   const totalPages = Math.ceil(archiveData.length / itemsPerPage) || 1;
   const currentData = archiveData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const handleExportCSV = () => {
+    if (archiveData.length === 0) return;
+
+    const headers = ['Report ID', 'Date Filed', 'Location', 'Category', 'Dispatch Team', 'Status'];
+    
+    const csvRows = archiveData.map(row => {
+      return [
+        `"${row.id}"`,
+        `"${row.date}"`,
+        `"${row.location}"`,
+        `"${row.category}"`,
+        `"${row.team}"`,
+        `"${row.status.replace('_', ' ')}"`
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    link.href = url;
+    link.setAttribute('download', `esteroute_archive_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="w-full h-full flex flex-col pb-10">
       
@@ -83,7 +111,10 @@ export default function HistoricalArchiveView() {
         
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <button className="bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/30 px-6 py-2.5 flex items-center gap-2 rounded-sm -skew-x-[6deg] hover:bg-brand-secondary hover:text-white transition-colors shadow-lg">
+          <button 
+            onClick={handleExportCSV}
+            className="bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/30 px-6 py-2.5 flex items-center gap-2 rounded-sm -skew-x-[6deg] hover:bg-brand-secondary hover:text-white transition-colors shadow-lg"
+          >
             <Download className="w-4 h-4 skew-x-[6deg]" />
             <span className="skew-x-[6deg] text-sm font-bold uppercase tracking-widest">Export CSV</span>
           </button>
