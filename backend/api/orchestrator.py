@@ -4,6 +4,7 @@ from supabase import create_client, Client
 from api.agents.vision_triage import run_vision_triage
 from api.agents.meteorological import run_meteorological_agent
 from api.agents.synthesis import run_dispatch_synthesis
+from api.logger import log_transaction
 
 # Initialize Supabase client
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -16,16 +17,16 @@ async def triage_report_pipeline(report_id: str, image_url: str, latitude: float
     Orchestrates the Vision Agent, Meteorological Agent, and Dispatch Synthesis Engine.
     """
     if not supabase:
-        print("Orchestrator aborted: No Supabase client configured.")
+        log_transaction("Orchestrator aborted: No Supabase client configured.")
         return
 
-    print(f"[{report_id}] Starting AI Triage Pipeline...")
+    log_transaction(f"[{report_id}] Starting AI Triage Pipeline...")
 
     # Step 1: Vision Triage Agent
     vision_result = await run_vision_triage(report_id, image_url, citizen_notes)
     
     if not vision_result:
-        print(f"[{report_id}] Vision Agent failed. Setting manual review.")
+        log_transaction(f"[{report_id}] Vision Agent failed. Setting manual review.")
         supabase.table("reports").update({
             "status": "failed_analysis",
             "needs_human_review": True
@@ -43,7 +44,7 @@ async def triage_report_pipeline(report_id: str, image_url: str, latitude: float
         "agent_type": "vision_triage",
         "result_json": vision_result
     }).execute()
-    print(f"[{report_id}] Vision Triage completed.")
+    log_transaction(f"[{report_id}] Vision Triage completed. Confidence: {vision_result.get('confidence', 'unknown').upper()}")
 
     # Step 2: Meteorological Agent
     weather_result = await run_meteorological_agent(report_id, latitude, longitude)
@@ -54,7 +55,7 @@ async def triage_report_pipeline(report_id: str, image_url: str, latitude: float
             "agent_type": "meteorological",
             "result_json": weather_result
         }).execute()
-        print(f"[{report_id}] Meteorological Triage completed.")
+        log_transaction(f"[{report_id}] Meteorological Agent completed. RPI: {weather_result.get('rain_probability_index', 0)}")
 
     # Step 3: Dispatch Synthesis Engine
     priority_score, priority_label = run_dispatch_synthesis(vision_result, weather_result)
@@ -74,4 +75,4 @@ async def triage_report_pipeline(report_id: str, image_url: str, latitude: float
         "to_status": "triaged"
     }).execute()
 
-    print(f"[{report_id}] Triage Pipeline Complete. Priority: {priority_label} (Score: {priority_score})")
+    log_transaction(f"[{report_id}] Pipeline Complete. Priority: {priority_label} (Score: {priority_score})")

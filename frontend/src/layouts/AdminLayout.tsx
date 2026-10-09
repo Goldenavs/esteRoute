@@ -1,14 +1,16 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Droplets, LayoutDashboard, Archive, BarChart3, LogOut } from 'lucide-react';
+import { Droplets, LayoutDashboard, Archive, BarChart3, LogOut, Terminal } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
+import SystemLogsModal from '../components/admin/SystemLogsModal';
 
 export default function AdminLayout() {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [isNavVisible, setIsNavVisible] = useState(true);
+  const [isLogsOpen, setIsLogsOpen] = useState(false);
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -103,6 +105,13 @@ export default function AdminLayout() {
               {/* Right: Actions */}
               <div className="flex-1 flex justify-end items-center gap-4 skew-x-12">
                 <button 
+                  onClick={() => setIsLogsOpen(true)}
+                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-muted hover:text-brand-primary pointer-events-auto"
+                  aria-label="System Logs"
+                >
+                  <Terminal className="w-4 h-4" />
+                </button>
+                <button 
                   onClick={toggleTheme} 
                   className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-muted hover:text-text-primary pointer-events-auto"
                   aria-label="Toggle Theme"
@@ -158,6 +167,9 @@ export default function AdminLayout() {
           );
         })}
       </nav>
+
+      {/* System Logs Modal */}
+      <SystemLogsModal isOpen={isLogsOpen} onClose={() => setIsLogsOpen(false)} />
 
     </div>
   );

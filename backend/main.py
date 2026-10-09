@@ -18,3 +18,13 @@ app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 @app.get("/api/health")
 def health_check():
     return {"status": "ok", "message": "esteRoute API is running"}
+
+@app.get("/api/logs")
+def get_logs():
+    log_file = os.path.join(os.path.dirname(__file__), "agent_transactions.log")
+    if not os.path.exists(log_file):
+        return {"logs": ""}
+    with open(log_file, "r") as f:
+        # Return last 150 lines
+        lines = f.readlines()
+        return {"logs": "".join(lines[-150:])}
