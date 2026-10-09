@@ -242,7 +242,7 @@ export default function MainCommandDashboard() {
       <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
         
         {/* Bottom Left KPI & Legend Panel */}
-        <div className={`pointer-events-auto absolute bottom-4 left-4 z-40 transition-transform duration-500 ease-out ${(isKpiOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'}`}>
+        <div className={`pointer-events-auto absolute bottom-4 left-4 z-40 transition-transform duration-500 ease-out ${(isKpiOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+3rem)]'}`}>
           <div className="flex gap-2 items-end">
             <div className="bg-surface/90 backdrop-blur-md border border-border-strong p-2.5 rounded-sm shadow-lg transform -skew-x-[6deg] flex gap-5 w-max">
               <div className="transform skew-x-[6deg] flex gap-5 items-center">
@@ -261,6 +261,9 @@ export default function MainCommandDashboard() {
                 
                 {/* Legend */}
                 <div className="flex flex-col gap-2 px-1 border-l border-border-subtle pl-5 justify-center">
+                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                      <div className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse"></div> Analyzing
+                   </div>
                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">
                       <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div> Critical
                    </div>
