@@ -325,7 +325,7 @@ export default function MainCommandDashboard() {
 
         {/* Left Panel: AI Vision Analysis (Placeholder) */}
         <div 
-          className={`pointer-events-auto absolute bottom-[6.5rem] left-4 top-[5rem] w-[24rem] z-20 transition-transform duration-500 ease-out ${(isAnalysisOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'}`}
+          className={`pointer-events-auto absolute bottom-[8.5rem] left-4 top-[5rem] w-[24rem] z-20 transition-transform duration-500 ease-out ${(isAnalysisOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'}`}
         >
           <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm">
             <div className="p-4 border-b border-border-subtle bg-surface-subtle flex justify-between items-center relative rounded-t-sm">
