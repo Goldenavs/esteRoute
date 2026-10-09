@@ -14,7 +14,8 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
   const fetchLogs = async () => {
     setIsRefreshing(true);
     try {
-      const res = await fetch('http://localhost:8000/api/logs');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${API_URL}/api/logs`);
       if (res.ok) {
         const data = await res.json();
         setLogs(data.logs);

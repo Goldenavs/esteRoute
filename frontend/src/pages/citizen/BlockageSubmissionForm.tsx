@@ -303,7 +303,8 @@ export default function BlockageSubmissionForm() {
         formData.append("notes", notes.trim());
       }
 
-      const response = await fetch("http://localhost:8000/api/reports/", {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const response = await fetch(`${API_URL}/api/reports/`, {
         method: "POST",
         body: formData,
       });
