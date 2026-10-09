@@ -33,18 +33,17 @@ const defaultIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-const analyzingIcon = new L.DivIcon({
-  className: 'bg-transparent',
-  html: `<div class="relative w-8 h-8 flex items-center justify-center">
-          <div class="absolute inset-0 bg-brand-secondary rounded-full animate-ping opacity-75"></div>
-          <div class="relative bg-brand-primary rounded-full w-4 h-4 shadow-lg border-2 border-white"></div>
-         </div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
+const pendingIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
 });
 
 const getMarkerIcon = (status: string, score: number, needsReview: boolean) => {
-  if (status === 'pending_analysis') return analyzingIcon;
+  if (status === 'pending_analysis') return pendingIcon;
   if (status === 'failed_analysis' || needsReview) return activeIcon; // Orange for manual review
   if (status === 'dispatched') return activeIcon;
   if (status === 'resolved') return defaultIcon;
@@ -190,8 +189,8 @@ export default function MainCommandDashboard() {
               <Popup className="custom-popup" closeButton={false}>
                 <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-48 text-text-primary">
                   <h3 className="font-mono font-bold text-xs text-text-muted tracking-widest">{report.tracking_reference}</h3>
-                  <p className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm mt-2 mb-2 inline-block ${report.priority_score >= 70 ? 'bg-semantic-urgent text-white' : 'bg-semantic-warning text-white'}`}>
-                    {report.status === 'failed_analysis' ? 'NEEDS REVIEW' : `AI Score: ${report.priority_score || 'N/A'}`}
+                  <p className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm mt-2 mb-2 inline-block ${report.priority_score >= 70 ? 'bg-semantic-urgent text-white' : report.status === 'pending_analysis' ? 'bg-brand-primary text-white animate-pulse' : 'bg-semantic-warning text-white'}`}>
+                    {report.status === 'pending_analysis' ? 'ANALYZING...' : report.status === 'failed_analysis' ? 'NEEDS REVIEW' : `AI Score: ${report.priority_score || 'N/A'}`}
                   </p>
                   <p className="text-[10px] text-text-muted mb-2">{new Date(report.created_at).toLocaleTimeString()}</p>
                   <button 
