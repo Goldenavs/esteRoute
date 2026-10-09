@@ -28,6 +28,7 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchLogs();
       const interval = setInterval(fetchLogs, 3000);
       return () => clearInterval(interval);
