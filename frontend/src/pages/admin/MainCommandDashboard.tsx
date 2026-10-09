@@ -33,7 +33,18 @@ const defaultIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+const analyzingIcon = new L.DivIcon({
+  className: 'bg-transparent',
+  html: `<div class="relative w-8 h-8 flex items-center justify-center">
+          <div class="absolute inset-0 bg-brand-secondary rounded-full animate-ping opacity-75"></div>
+          <div class="relative bg-brand-primary rounded-full w-4 h-4 shadow-lg border-2 border-white"></div>
+         </div>`,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
+
 const getMarkerIcon = (status: string, score: number, needsReview: boolean) => {
+  if (status === 'pending_analysis') return analyzingIcon;
   if (status === 'failed_analysis' || needsReview) return activeIcon; // Orange for manual review
   if (status === 'dispatched') return activeIcon;
   if (status === 'resolved') return defaultIcon;

@@ -264,6 +264,13 @@ export default function BlockageSubmissionForm() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        alert("Invalid file format. Please select a JPEG, PNG, or WebP image.");
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
       if (file.size > 8 * 1024 * 1024) {
         alert("File size exceeds 8MB limit. Please choose a smaller photo.");
         if (fileInputRef.current) fileInputRef.current.value = '';
