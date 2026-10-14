@@ -436,10 +436,14 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
           <div className="absolute inset-0 bg-gradient-to-b from-surface/75 via-surface/45 to-surface/80 pointer-events-none" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/15 via-transparent to-transparent pointer-events-none" />
 
-          {/* Un-skewed Content Container: counteracts the -12deg skew of the parent */}
+          {/* Un-skewed Content Container: counteracts the -12deg skew of the parent with dynamic padding */}
           <div 
-            className="relative z-10 h-full flex flex-col justify-between p-12 lg:p-20"
-            style={{ transform: 'skewX(12deg)' }}
+            className="relative z-10 h-full flex flex-col justify-between py-12 lg:py-16 transition-all duration-500"
+            style={{ 
+              transform: 'skewX(12deg)',
+              paddingLeft: activePortal === 'citizen' ? '14vw' : '6vw',
+              paddingRight: activePortal === 'citizen' ? '6vw' : '14vw',
+            }}
           >
             
             {/* Top Brand & Civic Tag */}

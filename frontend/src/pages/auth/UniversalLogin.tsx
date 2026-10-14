@@ -16,8 +16,8 @@ export default function UniversalLogin() {
 
   useEffect(() => {
     const handleScroll = () => {
-      // Elevate navbar when scrolled past top offset
-      setIsScrolled(window.scrollY > 20);
+      // Show navbar ONLY when scrolled past the hero section (into features section)
+      setIsScrolled(window.scrollY > window.innerHeight - 150);
 
       if (isScrollingRef.current) return;
       

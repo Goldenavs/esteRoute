@@ -63,7 +63,9 @@ export default function AuthNavbar({
   };
 
   return (
-    <header className="fixed top-4 w-full z-50 pointer-events-none transition-all duration-300">
+    <header className={`fixed top-4 w-full z-50 pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+      isScrolled ? 'translate-y-0' : '-translate-y-[160%]'
+    }`}>
       <div className="flex flex-col items-center px-4 md:px-6">
         <div className="w-full max-w-[95%] xl:max-w-7xl relative pointer-events-none">
           
