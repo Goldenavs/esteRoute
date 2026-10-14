@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -12,7 +12,6 @@ import {
   Loader2, 
   CheckCircle2, 
   ChevronDown,
-  MapPin,
   Camera,
   Check
 } from 'lucide-react';
@@ -119,6 +118,29 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
   const [isCitizenLoading, setIsCitizenLoading] = useState(false);
   const [showCitizenPassword, setShowCitizenPassword] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  // Rotating live ticker messages (cycles every 3 seconds)
+  const [tickerIndex, setTickerIndex] = useState(0);
+
+  const citizenTicker = [
+    'Gemini 1.5 multimodal vision triage in under 5 seconds',
+    'Open-Meteo 48-hour local precipitation risk modeling',
+    'Automated barangay canal blockage severity ranking',
+    'Direct coordination with municipal sanitation response units'
+  ];
+
+  const adminTicker = [
+    'A* algorithmic cleanup fleet pathfinding & optimization',
+    'Real-time drone telemetry & incident photo queue ingestion',
+    'Priority score synthesis: rainfall probability + occlusion severity',
+    'Dynamic status transitions from pending triage to resolved'
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTickerIndex((prev) => (prev + 1) % 4);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Admin Login Handler
   const handleAdminLogin = async (e: React.FormEvent) => {
@@ -327,15 +349,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
             </form>
 
             {/* Consistent, Clean Footer */}
-            <div className="mt-8 pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-text-secondary">
-              <button
-                type="button"
-                onClick={() => navigate('/citizen/public-map')}
-                className="text-text-secondary hover:text-text-primary flex items-center gap-1.5 font-medium cursor-pointer"
-              >
-                <MapPin className="w-3.5 h-3.5 text-brand-primary" />
-                <span>Public Estero Map</span>
-              </button>
+            <div className="mt-8 pt-4 border-t border-border-subtle flex items-center justify-end text-xs text-text-secondary">
               <button
                 type="button"
                 onClick={() => setActivePortal('citizen')}
@@ -442,6 +456,57 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                     </button>
                   </div>
 
+                  {/* Password Strength Meter */}
+                  <AnimatePresence>
+                    {citizenMode === 'signup' && citizenPassword.length > 0 && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }} 
+                        animate={{ opacity: 1, height: 'auto' }} 
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-1.5 overflow-hidden"
+                      >
+                        <div className="flex gap-1 h-1.5 w-full">
+                          {[1, 2, 3, 4].map((level) => {
+                            let score = 0;
+                            if (citizenPassword.length > 5) score += 1;
+                            if (citizenPassword.length > 7) score += 1;
+                            if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
+                            if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
+                            const strength = Math.min(score, 4);
+                            
+                            let bgClass = "bg-border-subtle";
+                            if (strength >= level) {
+                              if (strength <= 1) bgClass = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]";
+                              else if (strength === 2) bgClass = "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.4)]";
+                              else if (strength === 3) bgClass = "bg-brand-primary shadow-[0_0_8px_rgba(59,130,246,0.4)]";
+                              else bgClass = "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]";
+                            }
+                            return (
+                              <div key={level} className={`flex-1 rounded-sm transition-all duration-300 ${bgClass}`} />
+                            );
+                          })}
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-text-muted">Min 6 chars</span>
+                          <span className="font-heading font-bold uppercase tracking-wider">
+                            {(() => {
+                              let score = 0;
+                              if (citizenPassword.length > 5) score += 1;
+                              if (citizenPassword.length > 7) score += 1;
+                              if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
+                              if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
+                              const strength = Math.min(score, 4);
+                              if (strength <= 1) return <span className="text-red-500">Weak</span>;
+                              if (strength === 2) return <span className="text-yellow-500">Fair</span>;
+                              if (strength === 3) return <span className="text-brand-primary">Good</span>;
+                              return <span className="text-green-500">Strong</span>;
+                            })()}
+                          </span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <button
                     type="submit"
                     disabled={isCitizenLoading}
@@ -526,6 +591,34 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
             }}
           >
             <div className="max-w-lg">
+              {/* Dynamic Live Telemetry Ticker (Changes every 3 seconds) */}
+              <div className="mb-6 flex items-center">
+                <div className={`inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full border text-xs font-semibold backdrop-blur-md transition-all duration-300 ${
+                  isLight 
+                    ? 'bg-white/10 border-white/15 text-slate-200' 
+                    : 'bg-brand-primary/10 border-brand-primary/20 text-[#112D4E]'
+                }`}>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-primary"></span>
+                  </span>
+                  <div className="overflow-hidden h-4 flex items-center">
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={`${activePortal}-${tickerIndex}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3 }}
+                        className="inline-block truncate max-w-sm sm:max-w-md font-data text-[11px] tracking-wide"
+                      >
+                        {activePortal === 'citizen' ? citizenTicker[tickerIndex] : adminTicker[tickerIndex]}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
+
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activePortal}
