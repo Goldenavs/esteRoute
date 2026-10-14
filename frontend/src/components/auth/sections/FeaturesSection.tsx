@@ -133,12 +133,12 @@ export default function FeaturesSection() {
           {/* FEATURE 1: Frictionless Citizen Reporting (2 cols)        */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:py-8 md:pr-8 md:pl-12 lg:pl-14 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
               {/* Eye-friendly perimeter traveling light */}
               <BorderBeam delay={0} />
 
               <div className="md:skew-x-12 h-full flex flex-col justify-between">
-                <div>
+                <div className="pl-2 md:pl-6 pr-2">
                   <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Frictionless Citizen Reporting
                   </h3>
@@ -147,13 +147,13 @@ export default function FeaturesSection() {
                   </p>
                 </div>
 
-                {/* Parallel-skewed inner letterbox with horizontally centered image */}
+                {/* Symmetrically centered parallel-skewed inner letterbox */}
                 <div className="w-full h-28 md:h-32 bg-surface-subtle/50 border-2 border-border-subtle -skew-x-12 flex items-center justify-center overflow-hidden relative group-hover:border-brand-primary/50 transition-colors">
                   <div 
-                    className="absolute inset-y-0 -inset-x-12 opacity-25 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                    className="absolute inset-y-0 -inset-x-10 opacity-20 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                     style={{ transform: 'skewX(12deg)' }}
                   />
-                  <span className="skew-x-12 font-heading font-black text-xs md:text-sm lg:text-base text-text-primary uppercase tracking-widest z-10 drop-shadow-md px-4 text-center">
+                  <span className="skew-x-12 font-heading font-black text-xs md:text-sm lg:text-base text-text-primary uppercase tracking-widest z-10 drop-shadow-sm px-4 text-center">
                     No App Install Needed · Instant Ingestion
                   </span>
                 </div>
@@ -165,11 +165,11 @@ export default function FeaturesSection() {
           {/* FEATURE 2: Meteorological Agent (1 col)                   */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:py-8 md:pr-8 md:pl-10 lg:pl-12 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
               <BorderBeam delay={2.25} />
 
               <div className="md:skew-x-12 h-full flex flex-col justify-between">
-                <div>
+                <div className="pl-2 md:pl-5 pr-2">
                   <h3 className="font-heading font-black text-2xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Meteorological Agent
                   </h3>
@@ -178,7 +178,7 @@ export default function FeaturesSection() {
                   </p>
                 </div>
 
-                {/* Parallel-skewed inner stat block */}
+                {/* Symmetrically centered parallel-skewed inner stat block */}
                 <div className="w-full h-28 md:h-32 bg-surface-subtle/50 border-2 border-border-subtle -skew-x-12 flex flex-col items-center justify-center p-4 relative group-hover:border-brand-primary/50 transition-colors">
                   <div className="skew-x-12 flex flex-col items-center">
                     <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none mb-1">
@@ -197,11 +197,11 @@ export default function FeaturesSection() {
           {/* FEATURE 3: Vision Triage Agent (1 col)                   */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:py-8 md:pr-8 md:pl-10 lg:pl-12 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
               <BorderBeam delay={4.5} />
 
               <div className="md:skew-x-12 h-full flex flex-col justify-between">
-                <div>
+                <div className="pl-2 md:pl-5 pr-2">
                   <h3 className="font-heading font-black text-2xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Vision Triage Agent
                   </h3>
@@ -210,7 +210,7 @@ export default function FeaturesSection() {
                   </p>
                 </div>
 
-                {/* Parallel-skewed inner stat block */}
+                {/* Symmetrically centered parallel-skewed inner stat block */}
                 <div className="w-full h-28 md:h-32 bg-surface-subtle/50 border-2 border-border-subtle -skew-x-12 flex flex-col items-center justify-center p-4 relative group-hover:border-brand-primary/50 transition-colors">
                   <div className="skew-x-12 flex flex-col items-center">
                     <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none mb-1">
@@ -229,11 +229,11 @@ export default function FeaturesSection() {
           {/* FEATURE 4: LGU Dispatcher Dashboard (2 cols)             */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:py-8 md:pr-8 md:pl-12 lg:pl-14 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
               <BorderBeam delay={6.75} />
 
               <div className="md:skew-x-12 h-full flex flex-col justify-between">
-                <div>
+                <div className="pl-2 md:pl-6 pr-2">
                   <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     LGU Dispatcher Dashboard
                   </h3>
@@ -242,10 +242,10 @@ export default function FeaturesSection() {
                   </p>
                 </div>
 
-                {/* Parallel-skewed inner letterbox with horizontally centered image */}
+                {/* Symmetrically centered parallel-skewed inner letterbox */}
                 <div className="w-full h-28 md:h-32 bg-surface-subtle/50 border-2 border-border-subtle -skew-x-12 flex items-center justify-center overflow-hidden relative group-hover:border-brand-primary/50 transition-colors">
                   <div 
-                    className="absolute inset-y-0 -inset-x-12 opacity-25 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                    className="absolute inset-y-0 -inset-x-10 opacity-20 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                     style={{ transform: 'skewX(12deg)' }}
                   />
                   <span className="skew-x-12 font-heading font-black text-xs md:text-sm lg:text-base text-text-primary uppercase tracking-widest z-10 drop-shadow-md px-4 text-center">
