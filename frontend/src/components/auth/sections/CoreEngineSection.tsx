@@ -68,7 +68,7 @@ export default function CoreEngineSection() {
     <section 
       id="core-engine" 
       ref={ref}
-      className="relative z-20 bg-surface/90 backdrop-blur-md flex flex-col items-center overflow-hidden border-border-subtle"
+      className="relative z-20 bg-surface/20 backdrop-blur-[2px] flex flex-col items-center overflow-hidden"
       style={{
         clipPath: 'polygon(0 5vw, 100% 0, 100% 100%, 0 calc(100% - 5vw))',
         marginTop: '-5vw',
@@ -109,7 +109,7 @@ export default function CoreEngineSection() {
           className="w-full relative mt-12 mb-20"
         >
           {/* Outer parallelogram container */}
-          <div className="w-full h-[400px] md:h-[450px] bg-app-bg border-2 border-border-subtle md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-2xl md:rounded-none">
+          <div className="w-full h-[400px] md:h-[450px] bg-surface/30 backdrop-blur-md border-2 border-border-subtle md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-2xl md:rounded-none">
             {/* Subtle grid background inside the parallelogram */}
             <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none md:skew-x-12 scale-150" />
             

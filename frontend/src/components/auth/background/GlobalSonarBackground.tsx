@@ -58,27 +58,28 @@ export default function GlobalSonarBackground() {
       {/* ========================================================= */}
       {/* LAYER 2: Drifting Topographic / Bathymetric Contour Lines  */}
       {/* ========================================================= */}
-      <div className="absolute inset-0 opacity-40">
+      <div className="absolute inset-0 opacity-70">
         <svg 
           className="w-full h-full min-w-[1200px] min-h-[900px]" 
           viewBox="0 0 1600 1200" 
           preserveAspectRatio="none"
           fill="none"
         >
-          {/* Wave group A: Slowly drifting natural elevation curves */}
+          {/* Wave group A: Noticeably drifting natural elevation curves */}
           <motion.g
             animate={{
-              x: [0, 45, -35, 0],
-              y: [0, -35, 25, 0],
+              x: [0, 90, -60, 0],
+              y: [0, -50, 35, 0],
+              scale: [1, 1.03, 0.98, 1],
             }}
             transition={{
-              duration: 34,
+              duration: 16,
               repeat: Infinity,
               ease: "easeInOut",
             }}
             stroke={strokeColor}
-            strokeWidth="1.2"
-            opacity={isLight ? 0.15 : 0.22}
+            strokeWidth="1.4"
+            opacity={isLight ? 0.22 : 0.32}
           >
             <path d="M-200,120 C200,40 500,240 950,150 S1450,40 1900,180" />
             <path d="M-200,280 C150,190 550,400 1000,290 S1500,190 1900,340" />
@@ -88,25 +89,37 @@ export default function GlobalSonarBackground() {
             <path d="M-200,980 C180,880 600,1060 1080,970 S1500,860 1900,1040" />
           </motion.g>
 
-          {/* Wave group B: Counter-flowing micro bathymetric currents */}
+          {/* Wave group B: Counter-flowing micro bathymetric currents with flowing dashes */}
           <motion.g
             animate={{
-              x: [0, -35, 25, 0],
-              y: [0, 25, -20, 0],
+              x: [0, -70, 50, 0],
+              y: [0, 40, -30, 0],
             }}
             transition={{
-              duration: 40,
+              duration: 20,
               repeat: Infinity,
               ease: "easeInOut",
             }}
             stroke={strokeColor}
-            strokeWidth="0.8"
-            strokeDasharray="6 6"
-            opacity={isLight ? 0.1 : 0.16}
+            strokeWidth="1.0"
+            strokeDasharray="10 10"
+            opacity={isLight ? 0.16 : 0.26}
           >
-            <path d="M-200,200 C300,100 650,320 1100,220 S1600,100 1900,260" />
-            <path d="M-200,530 C200,430 620,630 1080,530 S1560,430 1900,590" />
-            <path d="M-200,890 C320,780 680,980 1150,880 S1620,770 1900,940" />
+            <motion.path 
+              animate={{ strokeDashoffset: [0, -200] }}
+              transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+              d="M-200,200 C300,100 650,320 1100,220 S1600,100 1900,260" 
+            />
+            <motion.path 
+              animate={{ strokeDashoffset: [0, -200] }}
+              transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+              d="M-200,530 C200,430 620,630 1080,530 S1560,430 1900,590" 
+            />
+            <motion.path 
+              animate={{ strokeDashoffset: [0, -200] }}
+              transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+              d="M-200,890 C320,780 680,980 1150,880 S1620,770 1900,940" 
+            />
           </motion.g>
         </svg>
       </div>
@@ -119,8 +132,8 @@ export default function GlobalSonarBackground() {
         style={{
           opacity: 'var(--spotlight-opacity)',
           background: isLight
-            ? `radial-gradient(750px circle at var(--mouse-x) var(--mouse-y), rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.05) 45%, transparent 75%)`
-            : `radial-gradient(750px circle at var(--mouse-x) var(--mouse-y), rgba(59, 130, 246, 0.22), rgba(30, 58, 138, 0.08) 50%, transparent 80%)`,
+            ? `radial-gradient(750px circle at var(--mouse-x) var(--mouse-y), rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.06) 45%, transparent 75%)`
+            : `radial-gradient(750px circle at var(--mouse-x) var(--mouse-y), rgba(59, 130, 246, 0.25), rgba(30, 58, 138, 0.1) 50%, transparent 80%)`,
         }}
       />
 
@@ -139,27 +152,73 @@ export default function GlobalSonarBackground() {
         <div 
           className="absolute inset-0"
           style={{
-            opacity: isLight ? 0.35 : 0.45,
+            opacity: isLight ? 0.45 : 0.55,
             backgroundImage: `radial-gradient(${strokeColor} 1.6px, transparent 1.6px)`,
             backgroundSize: '48px 48px',
           }}
         />
 
-        {/* Luminous high-contrast contour curves illuminated by cursor */}
+        {/* Luminous animated contour curves illuminated by cursor */}
         <svg 
           className="w-full h-full min-w-[1200px] min-h-[900px]" 
           viewBox="0 0 1600 1200" 
           preserveAspectRatio="none"
           fill="none"
         >
-          <g stroke="#3B82F6" strokeWidth="1.8" opacity={isLight ? 0.45 : 0.65}>
+          <motion.g 
+            animate={{
+              x: [0, 90, -60, 0],
+              y: [0, -50, 35, 0],
+              scale: [1, 1.03, 0.98, 1],
+            }}
+            transition={{
+              duration: 16,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            stroke="#3B82F6" 
+            strokeWidth="2.0" 
+            opacity={isLight ? 0.6 : 0.8}
+          >
             <path d="M-200,120 C200,40 500,240 950,150 S1450,40 1900,180" />
             <path d="M-200,280 C150,190 550,400 1000,290 S1500,190 1900,340" />
             <path d="M-200,450 C240,360 450,560 960,460 S1550,360 1900,520" />
             <path d="M-200,620 C160,530 580,720 1050,620 S1480,520 1900,690" />
             <path d="M-200,800 C260,700 480,900 980,810 S1520,700 1900,860" />
             <path d="M-200,980 C180,880 600,1060 1080,970 S1500,860 1900,1040" />
-          </g>
+          </motion.g>
+
+          <motion.g
+            animate={{
+              x: [0, -70, 50, 0],
+              y: [0, 40, -30, 0],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            stroke="#60A5FA"
+            strokeWidth="1.4"
+            strokeDasharray="10 10"
+            opacity={isLight ? 0.45 : 0.65}
+          >
+            <motion.path 
+              animate={{ strokeDashoffset: [0, -200] }}
+              transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+              d="M-200,200 C300,100 650,320 1100,220 S1600,100 1900,260" 
+            />
+            <motion.path 
+              animate={{ strokeDashoffset: [0, -200] }}
+              transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+              d="M-200,530 C200,430 620,630 1080,530 S1560,430 1900,590" 
+            />
+            <motion.path 
+              animate={{ strokeDashoffset: [0, -200] }}
+              transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+              d="M-200,890 C320,780 680,980 1150,880 S1620,770 1900,940" 
+            />
+          </motion.g>
         </svg>
       </div>
     </div>
