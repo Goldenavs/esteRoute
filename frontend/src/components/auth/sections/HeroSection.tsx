@@ -14,11 +14,9 @@ import {
   Loader2, 
   CheckCircle2, 
   ChevronDown,
-  Sparkles,
-  CloudRain,
-  Navigation,
   MapPin,
-  Camera
+  Camera,
+  Check
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 
@@ -126,7 +124,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
   return (
     <section 
       id="hero" 
-      className="relative w-full h-screen min-h-[720px] overflow-hidden bg-app-bg flex flex-col justify-between"
+      className="relative w-full h-screen min-h-[700px] overflow-hidden bg-app-bg flex flex-col justify-between"
     >
       {/* ========================================================= */}
       {/* FULL-WIDTH DUAL BASE CANVAS (Left: Admin, Right: Citizen)  */}
@@ -162,25 +160,17 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         {/* --------------------------------------------------------- */}
         <div className={`relative md:absolute md:left-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-8 lg:p-16 z-10 ${activePortal === 'admin' ? 'flex' : 'hidden md:flex'}`}>
           
-          {/* Admin Cinematic Background Image */}
-          <div className="absolute inset-0 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center opacity-20 pointer-events-none scale-105" />
+          {/* Admin Cinematic Background Image with Gradient Mask */}
+          <div className="absolute inset-0 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center opacity-25 pointer-events-none scale-105" />
           <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/95 to-surface/90 pointer-events-none" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent pointer-events-none" />
 
           {/* Form Container */}
           <div className="relative z-10 w-full max-w-md">
-            <div className="inline-flex items-center gap-3 px-4 py-2 bg-brand-primary/10 border border-brand-primary/20 mb-6 -skew-x-12">
-              <ShieldAlert className="w-5 h-5 text-brand-primary skew-x-12" />
-              <span className="skew-x-12 text-xs font-heading font-black tracking-widest uppercase text-brand-primary">
-                LGU Command Portal
-              </span>
-            </div>
-            
             <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
-              Officer Sign In
+              LGU Officer Sign In
             </h2>
-            <p className="text-sm text-text-secondary mb-6 font-medium">
-              Authorized municipal sanitation dispatchers, flood management officers, and fleet operators.
+            <p className="text-sm text-text-secondary mb-8 font-normal">
+              Sanitation supervisors, dispatch officers, and fleet operators.
             </p>
 
             <form onSubmit={handleAdminLogin} className="flex flex-col gap-4" noValidate>
@@ -259,25 +249,17 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         {/* --------------------------------------------------------- */}
         <div className={`relative md:absolute md:right-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-8 lg:p-16 z-10 ${activePortal === 'citizen' ? 'flex' : 'hidden md:flex'}`}>
           
-          {/* Citizen Cinematic Background Image */}
-          <div className="absolute inset-0 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center opacity-25 pointer-events-none scale-105" />
+          {/* Citizen Cinematic Background Image with Gradient Mask */}
+          <div className="absolute inset-0 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center opacity-30 pointer-events-none scale-105" />
           <div className="absolute inset-0 bg-gradient-to-l from-surface via-surface/95 to-surface/90 pointer-events-none" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent pointer-events-none" />
 
           {/* Form Container */}
           <div className="relative z-10 w-full max-w-md">
-            <div className="inline-flex items-center gap-3 px-4 py-2 bg-brand-primary/10 border border-brand-primary/20 mb-6 -skew-x-12">
-              <Sprout className="w-5 h-5 text-brand-primary skew-x-12" />
-              <span className="skew-x-12 text-xs font-heading font-black tracking-widest uppercase text-brand-primary">
-                Citizen Reporter Gateway
-              </span>
-            </div>
-
             <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
               {citizenMode === 'login' ? 'Citizen Sign In' : 'Create Account'}
             </h2>
-            <p className="text-sm text-text-secondary mb-6 font-medium">
-              Submit canal blockages, monitor waterways, and help prevent community flooding.
+            <p className="text-sm text-text-secondary mb-8 font-normal">
+              Submit canal blockages and safeguard neighborhood waterways.
             </p>
 
             {showEmailConfirmation ? (
@@ -414,10 +396,10 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         </div>
 
         {/* ========================================================= */}
-        {/* PARALLELOGRAM SKEWED SLIDING OVERLAY CONTAINER (Desktop)  */}
+        {/* PURE FROSTED GLASS PARALLELOGRAM SLIDING CONTAINER        */}
         {/* ========================================================= */}
         <motion.div
-          className="hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden backdrop-blur-3xl bg-surface/85 text-text-primary border-x-2 border-brand-primary/40 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex-col justify-between"
+          className="hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden backdrop-blur-2xl bg-surface/65 text-text-primary border-x border-border-subtle/80 shadow-[0_8px_32px_0_rgba(0,0,0,0.12)] flex-col justify-between"
           style={{ width: '60vw' }}
           initial={false}
           animate={{
@@ -426,19 +408,12 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
           }}
           transition={{ type: "spring", stiffness: 150, damping: 24 }}
         >
-          {/* Background Images shining subtly through frosted glass */}
-          <div 
-            className={`absolute inset-0 bg-cover bg-center transition-all duration-1000 opacity-20 pointer-events-none scale-110 ${
-              activePortal === 'citizen' ? "bg-[url('/Auth/AdminAuth.jpg')]" : "bg-[url('/Auth/CitizenAuth.jpg')]"
-            }`} 
-          />
-          {/* Frosted Glass Theme-adaptive gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-surface/75 via-surface/45 to-surface/80 pointer-events-none" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/15 via-transparent to-transparent pointer-events-none" />
+          {/* Subtle Frosted Glass Depth Shimmer (Adapts to light & dark surface) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/5 dark:from-white/5 pointer-events-none" />
 
-          {/* Un-skewed Content Container: counteracts the -12deg skew of the parent with dynamic padding */}
+          {/* Un-skewed Content Container with Dynamic Responsive Padding */}
           <div 
-            className="relative z-10 h-full flex flex-col justify-between py-12 lg:py-16 transition-all duration-500"
+            className="relative z-10 h-full flex flex-col justify-between py-14 lg:py-20 transition-all duration-500"
             style={{ 
               transform: 'skewX(12deg)',
               paddingLeft: activePortal === 'citizen' ? '14vw' : '6vw',
@@ -446,31 +421,15 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
             }}
           >
             
-            {/* Top Brand & Civic Tag */}
+            {/* Main Brand Messaging */}
             <div className="max-w-lg">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-sm bg-brand-primary/10 border border-brand-primary/30 text-brand-primary mb-6">
-                <span className="text-[11px] font-heading font-black tracking-widest uppercase text-brand-primary flex items-center gap-2">
-                  {activePortal === 'citizen' ? (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5 text-brand-primary" />
-                      Autonomous Multi-Agent Mitigation
-                    </>
-                  ) : (
-                    <>
-                      <Navigation className="w-3.5 h-3.5 text-brand-primary" />
-                      Decision-Support Command Hub
-                    </>
-                  )}
-                </span>
-              </div>
-
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activePortal}
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.3 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.25 }}
                 >
                   <h1 className="text-3xl lg:text-5xl font-heading font-black tracking-tight uppercase leading-[1.08] mb-4 text-text-primary drop-shadow-sm">
                     {activePortal === 'citizen' ? (
@@ -481,96 +440,108 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                     ) : (
                       <>
                         Precision <span className="text-brand-primary">triage</span> & <br />
-                        automated cleanup fleet dispatch.
+                        cleanup fleet dispatch.
                       </>
                     )}
                   </h1>
 
-                  <p className="text-text-secondary text-sm lg:text-base leading-relaxed mb-6 font-normal max-w-md">
+                  <p className="text-text-secondary text-sm lg:text-base leading-relaxed mb-8 font-normal max-w-md">
                     {activePortal === 'citizen'
-                      ? 'Submit photos of canal obstructions in seconds. Gemini 1.5 multimodal AI and Open-Meteo precipitation models automatically compute flood risk and alert municipal responders.'
-                      : 'Transform unranked citizen reports into a prioritized, weather-aware dispatch queue. Coordinate drone surveys, route sanitation crews via A* pathfinding, and log resolved waterways.'}
+                      ? 'Submit photos of canal obstructions in seconds. AI and rain forecast models automatically alert municipal cleanup crews.'
+                      : 'Prioritized drainage response for sanitation units. Dynamic hazard ranking and optimized cleanup routing.'}
                   </p>
                 </motion.div>
               </AnimatePresence>
 
-              {/* Telemetry Micro-Badges */}
-              <div className="space-y-3 mt-6 max-w-md">
+              {/* Minimalist Highlights */}
+              <div className="space-y-2.5 max-w-md text-xs sm:text-sm text-text-secondary">
                 {activePortal === 'citizen' ? (
                   <>
-                    <div className="flex items-center gap-3 p-3 bg-surface-subtle/70 border border-border-subtle rounded-sm backdrop-blur-sm">
-                      <Camera className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span className="text-xs font-medium text-text-primary">
-                        Zero Friction: No registration required to submit canal photos
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5 text-brand-primary" />
+                      </div>
+                      <span>Zero registration required to submit canal photos</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-surface-subtle/70 border border-border-subtle rounded-sm backdrop-blur-sm">
-                      <CloudRain className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span className="text-xs font-medium text-text-primary">
-                        48h Rain Forecast Risk Analysis via Open-Meteo
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5 text-brand-primary" />
+                      </div>
+                      <span>Automated 48h flood risk & rain analysis</span>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-3 p-3 bg-surface-subtle/70 border border-border-subtle rounded-sm backdrop-blur-sm">
-                      <Navigation className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span className="text-xs font-medium text-text-primary">
-                        A* Algorithmic Optimization for Fleet Cleaning Routes
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5 text-brand-primary" />
+                      </div>
+                      <span>Real-time weather-aware priority queue</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-surface-subtle/70 border border-border-subtle rounded-sm backdrop-blur-sm">
-                      <ShieldAlert className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span className="text-xs font-medium text-text-primary">
-                        Dynamic Severity Prioritization & Live Map Tracking
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5 text-brand-primary" />
+                      </div>
+                      <span>A* pathfinding for cleanup fleet routing</span>
                     </div>
                   </>
                 )}
               </div>
             </div>
 
-            {/* Bottom Door Actions */}
-            <div className="pt-6 border-t border-border-subtle flex flex-col gap-3 max-w-lg">
+            {/* Bottom Controls: Map Link & Stylized Slide Door Cues */}
+            <div className="pt-6 border-t border-border-subtle/80 flex items-center justify-between max-w-lg">
               {activePortal === 'citizen' ? (
-                <div className="flex items-center justify-between">
+                <>
                   <button
                     type="button"
                     onClick={() => navigate('/citizen/public-map')}
-                    className="inline-flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-primary transition-colors cursor-pointer group"
                   >
-                    <MapPin className="w-4 h-4 text-brand-primary" />
-                    <span>View Public Estero Map →</span>
+                    <MapPin className="w-3.5 h-3.5 text-brand-primary" />
+                    <span>View Estero Map</span>
+                    <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
                   </button>
 
+                  {/* Stylized Door Slide Indicator Button (Muted, non-competing) */}
                   <button
                     type="button"
                     onClick={() => setActivePortal('admin')}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-primary text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer hover:shadow-lg hover:shadow-brand-primary/40 group rounded-sm"
+                    className="group flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-subtle/70 hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary/50 text-xs font-semibold text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-sm"
+                    title="Slide to reveal LGU Dispatcher Portal"
                   >
-                    <span>LGU Dispatch Login</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                    <ShieldAlert className="w-3.5 h-3.5 text-text-muted group-hover:text-brand-primary transition-colors" />
+                    <span>LGU Staff Access</span>
+                    <span className="flex items-center text-text-muted group-hover:text-brand-primary transition-transform group-hover:translate-x-1 duration-300">
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
                   </button>
-                </div>
+                </>
               ) : (
-                <div className="flex items-center justify-between">
+                <>
+                  {/* Stylized Door Slide Indicator Button (Slide back to citizen) */}
                   <button
                     type="button"
                     onClick={() => setActivePortal('citizen')}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-primary text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer hover:shadow-lg hover:shadow-brand-primary/40 group rounded-sm"
+                    className="group flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-subtle/70 hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary/50 text-xs font-semibold text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-sm"
+                    title="Slide to return to Citizen Portal"
                   >
-                    <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
-                    <span>Return to Citizen Portal</span>
+                    <span className="flex items-center text-text-muted group-hover:text-brand-primary transition-transform group-hover:-translate-x-1 duration-300">
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                    </span>
+                    <Sprout className="w-3.5 h-3.5 text-text-muted group-hover:text-brand-primary transition-colors" />
+                    <span>Citizen Portal</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => navigate('/citizen')}
-                    className="inline-flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-primary transition-colors cursor-pointer group"
                   >
-                    <span>Submit Citizen Report →</span>
+                    <span>Submit Report</span>
+                    <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
                   </button>
-                </div>
+                </>
               )}
             </div>
 
