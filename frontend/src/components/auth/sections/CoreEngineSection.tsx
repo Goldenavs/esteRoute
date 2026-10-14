@@ -62,11 +62,9 @@ export default function CoreEngineSection() {
     <section 
       id="core-engine" 
       ref={ref}
-      className="relative z-20 flex flex-col items-center overflow-hidden border-y-2 border-border-subtle shadow-2xl"
+      className="relative z-20 flex flex-col items-center overflow-hidden border-y border-brand-primary/30 shadow-2xl"
       style={{
-        backgroundColor: 'color-mix(in srgb, var(--theme-surface) 50%, transparent)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
+        backgroundColor: 'color-mix(in srgb, var(--color-brand-primary) 10%, transparent)',
         clipPath: 'polygon(0 5vw, 100% 0, 100% 100%, 0 calc(100% - 5vw))',
         marginTop: '-5vw',
         marginBottom: '-5vw',
@@ -133,13 +131,11 @@ export default function CoreEngineSection() {
           transition={{ duration: 0.8 }}
           className="w-full relative mt-8 mb-20"
         >
-          {/* Outer parallelogram container (Frosted Glass) */}
+          {/* Outer parallelogram container (Translucent Glass) */}
           <div 
             className="w-full h-[520px] md:h-[540px] border-2 border-border-subtle md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-2xl md:rounded-none"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--theme-surface) 35%, transparent)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)'
+              backgroundColor: 'color-mix(in srgb, var(--theme-surface) 15%, transparent)',
             }}
           >
             {/* Subtle grid background inside the parallelogram */}
@@ -417,9 +413,7 @@ export default function CoreEngineSection() {
             <div 
               className="group border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none shadow-sm hover:shadow-xl"
               style={{
-                backgroundColor: 'color-mix(in srgb, var(--theme-surface) 35%, transparent)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)'
+                backgroundColor: 'color-mix(in srgb, var(--theme-surface) 15%, transparent)',
               }}
             >
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
@@ -444,9 +438,7 @@ export default function CoreEngineSection() {
             <div 
               className="group border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-300 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none shadow-sm hover:shadow-xl"
               style={{
-                backgroundColor: 'color-mix(in srgb, var(--theme-surface) 35%, transparent)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)'
+                backgroundColor: 'color-mix(in srgb, var(--theme-surface) 15%, transparent)',
               }}
             >
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
