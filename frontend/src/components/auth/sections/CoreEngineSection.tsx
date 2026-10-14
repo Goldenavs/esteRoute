@@ -68,7 +68,7 @@ export default function CoreEngineSection() {
     <section 
       id="core-engine" 
       ref={ref}
-      className="relative z-20 bg-surface flex flex-col items-center overflow-hidden border-border-subtle"
+      className="relative z-20 bg-surface/90 backdrop-blur-md flex flex-col items-center overflow-hidden border-border-subtle"
       style={{
         clipPath: 'polygon(0 5vw, 100% 0, 100% 100%, 0 calc(100% - 5vw))',
         marginTop: '-5vw',

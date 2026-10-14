@@ -86,7 +86,7 @@ export default function FaqsSection() {
       ref={ref}
       style={{ y, opacity }}
       id="faqs" 
-      className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-app-bg relative z-10 overflow-hidden"
+      className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-transparent relative z-10 overflow-hidden"
     >
       <div className="w-full max-w-5xl mx-auto">
         

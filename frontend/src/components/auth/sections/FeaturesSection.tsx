@@ -49,7 +49,7 @@ export default function FeaturesSection() {
       ref={ref}
       id="features" 
       style={{ y, opacity }}
-      className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-app-bg relative overflow-hidden z-10"
+      className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-transparent relative overflow-hidden z-10"
     >
       <div className="w-full max-w-7xl mx-auto">
         <motion.div

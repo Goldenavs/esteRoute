@@ -6,6 +6,7 @@ import CoreEngineSection from '../../components/auth/sections/CoreEngineSection'
 import FaqsSection from '../../components/auth/sections/FaqsSection';
 import FooterSection from '../../components/auth/sections/FooterSection';
 import AuthModals from '../../components/auth/modals/AuthModals';
+import GlobalSonarBackground from '../../components/auth/background/GlobalSonarBackground';
 
 export default function UniversalLogin() {
   const [activeSection, setActiveSection] = useState('hero');
@@ -64,7 +65,8 @@ export default function UniversalLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-app-bg text-text-primary w-full overflow-x-hidden">
+    <div className="min-h-screen bg-app-bg text-text-primary w-full overflow-x-hidden relative">
+      <GlobalSonarBackground />
       <AuthNavbar 
         activeSection={activeSection} 
         isScrolled={isScrolled} 
