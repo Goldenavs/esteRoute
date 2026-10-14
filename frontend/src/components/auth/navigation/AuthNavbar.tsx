@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X, Sun, Moon } from 'lucide-react';
+import { Menu, X, Shield, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -120,20 +120,21 @@ export default function AuthNavbar({
               <button 
                 type="button" 
                 onClick={() => handlePortalSwitch('admin')} 
-                className={`text-xs xl:text-sm font-bold uppercase tracking-widest cursor-pointer transition-colors ${
+                className={`flex items-center gap-1.5 text-xs xl:text-sm font-bold uppercase tracking-widest cursor-pointer transition-colors ${
                   activePortal === 'admin' && activeSection === 'hero' 
                     ? 'text-brand-primary underline decoration-2 underline-offset-4' 
                     : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
-                LGU Portal
+                <Shield className="w-3.5 h-3.5" />
+                <span>LGU Portal</span>
               </button>
 
               <div className="w-px h-4 bg-border-strong" />
 
               <button 
                 onClick={toggleTheme} 
-                className="text-text-secondary hover:text-text-primary transition-colors cursor-pointer flex items-center justify-center"
+                className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-text-primary cursor-pointer"
                 aria-label="Toggle Theme"
                 title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
               >
@@ -145,7 +146,7 @@ export default function AuthNavbar({
             <div className="flex items-center gap-3 shrink-0 lg:hidden skew-x-12">
               <button 
                 onClick={toggleTheme} 
-                className="text-text-secondary hover:text-text-primary transition-colors pointer-events-auto flex items-center justify-center cursor-pointer"
+                className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary pointer-events-auto"
                 aria-label="Toggle Theme"
               >
                 {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
@@ -194,13 +195,16 @@ export default function AuthNavbar({
                     </button>
                     <button 
                       onClick={() => handlePortalSwitch('admin')} 
-                      className={`w-full py-3 text-sm font-bold uppercase tracking-widest text-center rounded-sm border cursor-pointer transition-colors -skew-x-12 ${
+                      className={`w-full py-3 text-sm font-bold uppercase tracking-widest text-center rounded-sm border cursor-pointer transition-colors -skew-x-12 flex items-center justify-center gap-2 ${
                         activePortal === 'admin'
                           ? 'bg-brand-primary text-white border-brand-primary'
                           : 'bg-surface text-text-primary border-border-subtle'
                       }`}
                     >
-                      <span className="skew-x-12 inline-block">LGU Dispatch Portal</span>
+                      <div className="skew-x-12 flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        <span>LGU Dispatch Portal</span>
+                      </div>
                     </button>
                   </div>
                 </div>
