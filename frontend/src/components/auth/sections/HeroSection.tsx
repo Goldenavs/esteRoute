@@ -2,15 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ShieldAlert, 
-  Sprout, 
   User, 
   Mail, 
   Lock, 
   Eye, 
   EyeOff, 
   ArrowRight, 
-  ArrowLeft,
   Loader2, 
   CheckCircle2, 
   ChevronDown,
@@ -19,6 +16,7 @@ import {
   Check
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { useTheme } from '../../../context/ThemeContext';
 
 interface HeroSectionProps {
   activePortal: 'citizen' | 'admin';
@@ -28,6 +26,8 @@ interface HeroSectionProps {
 
 export default function HeroSection({ activePortal, setActivePortal, scrollTo }: HeroSectionProps) {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   // Admin Auth State
   const [adminEmail, setAdminEmail] = useState('');
@@ -127,9 +127,25 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
       className="relative w-full h-screen min-h-[700px] overflow-hidden bg-app-bg flex flex-col justify-between"
     >
       {/* ========================================================= */}
-      {/* FULL-WIDTH DUAL BASE CANVAS (Left: Admin, Right: Citizen)  */}
+      {/* SEAMLESS FULL-VIEWPORT BACKGROUND WITH SMOOTH CROSSFADE   */}
+      {/* (Completely eliminates the split-seam artifact)           */}
       {/* ========================================================= */}
-      <div className="relative w-full h-full flex flex-col md:block">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div 
+          className={`absolute inset-0 bg-cover bg-center transition-all duration-700 ease-out scale-105 ${
+            activePortal === 'citizen' ? "bg-[url('/Auth/CitizenAuth.jpg')]" : "bg-[url('/Auth/AdminAuth.jpg')]"
+          }`}
+          style={{ opacity: 0.45 }}
+        />
+        {/* Balanced Vignette & Contrast Overlay so form inputs stay crisp */}
+        <div className="absolute inset-0 bg-gradient-to-t from-surface/90 via-surface/80 to-surface/70" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent" />
+      </div>
+
+      {/* ========================================================= */}
+      {/* BASE CANVAS (Left: Admin Form, Right: Citizen Form)       */}
+      {/* ========================================================= */}
+      <div className="relative w-full h-full flex flex-col md:block z-10">
         
         {/* Mobile Portal Tab Selector (< 768px) */}
         <div className="md:hidden z-30 pt-24 px-6 flex items-center justify-center gap-3 bg-app-bg/80 backdrop-blur-md pb-4">
@@ -159,12 +175,6 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         {/* LEFT 50%: LGU Dispatcher Base Section                     */}
         {/* --------------------------------------------------------- */}
         <div className={`relative md:absolute md:left-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-8 lg:p-16 z-10 ${activePortal === 'admin' ? 'flex' : 'hidden md:flex'}`}>
-          
-          {/* Admin Cinematic Background Image with Gradient Mask */}
-          <div className="absolute inset-0 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center opacity-25 pointer-events-none scale-105" />
-          <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/95 to-surface/90 pointer-events-none" />
-
-          {/* Form Container */}
           <div className="relative z-10 w-full max-w-md">
             <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
               LGU Officer Sign In
@@ -195,7 +205,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   placeholder="Officer Email"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                  className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                 />
               </div>
 
@@ -207,7 +217,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   placeholder="Security Password"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-10 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                  className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-10 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                 />
                 <button
                   type="button"
@@ -230,8 +240,16 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
               </button>
             </form>
 
+            {/* Consistent, Clean Footer */}
             <div className="mt-8 pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-text-secondary">
-              <span>Citizen reporting or looking for map?</span>
+              <button
+                type="button"
+                onClick={() => navigate('/citizen/public-map')}
+                className="text-text-secondary hover:text-text-primary flex items-center gap-1.5 font-medium cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5 text-brand-primary" />
+                <span>Public Estero Map</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setActivePortal('citizen')}
@@ -248,12 +266,6 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         {/* RIGHT 50%: Citizen Base Section                           */}
         {/* --------------------------------------------------------- */}
         <div className={`relative md:absolute md:right-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-8 lg:p-16 z-10 ${activePortal === 'citizen' ? 'flex' : 'hidden md:flex'}`}>
-          
-          {/* Citizen Cinematic Background Image with Gradient Mask */}
-          <div className="absolute inset-0 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center opacity-30 pointer-events-none scale-105" />
-          <div className="absolute inset-0 bg-gradient-to-l from-surface via-surface/95 to-surface/90 pointer-events-none" />
-
-          {/* Form Container */}
           <div className="relative z-10 w-full max-w-md">
             <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
               {citizenMode === 'login' ? 'Citizen Sign In' : 'Create Account'}
@@ -307,7 +319,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                           placeholder="Full Name"
                           value={citizenName}
                           onChange={(e) => setCitizenName(e.target.value)}
-                          className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                          className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                         />
                       </motion.div>
                     )}
@@ -321,7 +333,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                       placeholder="Email Address"
                       value={citizenEmail}
                       onChange={(e) => setCitizenEmail(e.target.value)}
-                      className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                      className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                     />
                   </div>
 
@@ -333,7 +345,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                       placeholder="Password"
                       value={citizenPassword}
                       onChange={(e) => setCitizenPassword(e.target.value)}
-                      className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-10 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                      className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-10 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                     />
                     <button
                       type="button"
@@ -373,21 +385,23 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   </div>
                 </button>
 
-                <div className="flex items-center justify-between mt-4 text-xs">
+                {/* Consistent, Clean Footer */}
+                <div className="mt-6 pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-text-secondary">
                   <button
                     type="button"
                     onClick={() => setCitizenMode(citizenMode === 'login' ? 'signup' : 'login')}
                     className="text-brand-primary font-bold hover:underline cursor-pointer"
                   >
-                    {citizenMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Login'}
+                    {citizenMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setActivePortal('admin')}
-                    className="text-text-muted hover:text-text-primary font-medium cursor-pointer"
+                    className="text-text-secondary hover:text-brand-primary font-semibold flex items-center gap-1 cursor-pointer"
                   >
-                    LGU Officer?
+                    <span>LGU Staff Access</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </>
@@ -396,10 +410,15 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         </div>
 
         {/* ========================================================= */}
-        {/* PURE FROSTED GLASS PARALLELOGRAM SLIDING CONTAINER        */}
+        {/* OPPOSITE-THEME FROSTED GLASS SLIDING PARALLELOGRAM        */}
+        {/* (Contrasts vividly against the base background)           */}
         {/* ========================================================= */}
         <motion.div
-          className="hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden backdrop-blur-2xl bg-surface/65 text-text-primary border-x border-border-subtle/80 shadow-[0_8px_32px_0_rgba(0,0,0,0.12)] flex-col justify-between"
+          className={`hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden backdrop-blur-3xl border-x transition-colors duration-500 flex-col justify-center ${
+            isLight
+              ? 'bg-[#0B1E36]/80 border-brand-primary/40 text-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]'
+              : 'bg-white/85 border-white/60 text-[#112D4E] shadow-[0_12px_40px_rgba(0,0,0,0.5)]'
+          }`}
           style={{ width: '60vw' }}
           initial={false}
           animate={{
@@ -408,20 +427,24 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
           }}
           transition={{ type: "spring", stiffness: 150, damping: 24 }}
         >
-          {/* Subtle Frosted Glass Depth Shimmer (Adapts to light & dark surface) */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/5 dark:from-white/5 pointer-events-none" />
+          {/* Subtle Opposite-Theme Frosted Glass Shimmer Overlay */}
+          <div 
+            className={`absolute inset-0 pointer-events-none ${
+              isLight 
+                ? 'bg-gradient-to-b from-white/10 via-transparent to-black/30' 
+                : 'bg-gradient-to-b from-white/50 via-transparent to-black/5'
+            }`} 
+          />
 
           {/* Un-skewed Content Container with Dynamic Responsive Padding */}
           <div 
-            className="relative z-10 h-full flex flex-col justify-between py-14 lg:py-20 transition-all duration-500"
+            className="relative z-10 flex flex-col justify-center py-16 transition-all duration-500"
             style={{ 
               transform: 'skewX(12deg)',
               paddingLeft: activePortal === 'citizen' ? '14vw' : '6vw',
               paddingRight: activePortal === 'citizen' ? '6vw' : '14vw',
             }}
           >
-            
-            {/* Main Brand Messaging */}
             <div className="max-w-lg">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -431,7 +454,9 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <h1 className="text-3xl lg:text-5xl font-heading font-black tracking-tight uppercase leading-[1.08] mb-4 text-text-primary drop-shadow-sm">
+                  <h1 className={`text-3xl lg:text-5xl font-heading font-black tracking-tight uppercase leading-[1.08] mb-4 drop-shadow-sm ${
+                    isLight ? 'text-white' : 'text-[#112D4E]'
+                  }`}>
                     {activePortal === 'citizen' ? (
                       <>
                         Keep our <span className="text-brand-primary">esteros</span> clean. <br />
@@ -445,7 +470,9 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                     )}
                   </h1>
 
-                  <p className="text-text-secondary text-sm lg:text-base leading-relaxed mb-8 font-normal max-w-md">
+                  <p className={`text-sm lg:text-base leading-relaxed mb-8 font-normal max-w-md ${
+                    isLight ? 'text-slate-300' : 'text-slate-600'
+                  }`}>
                     {activePortal === 'citizen'
                       ? 'Submit photos of canal obstructions in seconds. AI and rain forecast models automatically alert municipal cleanup crews.'
                       : 'Prioritized drainage response for sanitation units. Dynamic hazard ranking and optimized cleanup routing.'}
@@ -453,18 +480,24 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                 </motion.div>
               </AnimatePresence>
 
-              {/* Minimalist Highlights */}
-              <div className="space-y-2.5 max-w-md text-xs sm:text-sm text-text-secondary">
+              {/* Minimalist Feature Points */}
+              <div className={`space-y-3 max-w-md text-xs sm:text-sm font-medium ${
+                isLight ? 'text-slate-200' : 'text-slate-700'
+              }`}>
                 {activePortal === 'citizen' ? (
                   <>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                      }`}>
                         <Check className="w-2.5 h-2.5 text-brand-primary" />
                       </div>
                       <span>Zero registration required to submit canal photos</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                      }`}>
                         <Check className="w-2.5 h-2.5 text-brand-primary" />
                       </div>
                       <span>Automated 48h flood risk & rain analysis</span>
@@ -472,14 +505,18 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                      }`}>
                         <Check className="w-2.5 h-2.5 text-brand-primary" />
                       </div>
                       <span>Real-time weather-aware priority queue</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                      }`}>
                         <Check className="w-2.5 h-2.5 text-brand-primary" />
                       </div>
                       <span>A* pathfinding for cleanup fleet routing</span>
@@ -487,62 +524,6 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   </>
                 )}
               </div>
-            </div>
-
-            {/* Bottom Controls: Map Link & Stylized Slide Door Cues */}
-            <div className="pt-6 border-t border-border-subtle/80 flex items-center justify-between max-w-lg">
-              {activePortal === 'citizen' ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/citizen/public-map')}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-primary transition-colors cursor-pointer group"
-                  >
-                    <MapPin className="w-3.5 h-3.5 text-brand-primary" />
-                    <span>View Estero Map</span>
-                    <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                  </button>
-
-                  {/* Stylized Door Slide Indicator Button (Muted, non-competing) */}
-                  <button
-                    type="button"
-                    onClick={() => setActivePortal('admin')}
-                    className="group flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-subtle/70 hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary/50 text-xs font-semibold text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-sm"
-                    title="Slide to reveal LGU Dispatcher Portal"
-                  >
-                    <ShieldAlert className="w-3.5 h-3.5 text-text-muted group-hover:text-brand-primary transition-colors" />
-                    <span>LGU Staff Access</span>
-                    <span className="flex items-center text-text-muted group-hover:text-brand-primary transition-transform group-hover:translate-x-1 duration-300">
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  {/* Stylized Door Slide Indicator Button (Slide back to citizen) */}
-                  <button
-                    type="button"
-                    onClick={() => setActivePortal('citizen')}
-                    className="group flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-subtle/70 hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary/50 text-xs font-semibold text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-sm"
-                    title="Slide to return to Citizen Portal"
-                  >
-                    <span className="flex items-center text-text-muted group-hover:text-brand-primary transition-transform group-hover:-translate-x-1 duration-300">
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                    </span>
-                    <Sprout className="w-3.5 h-3.5 text-text-muted group-hover:text-brand-primary transition-colors" />
-                    <span>Citizen Portal</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => navigate('/citizen')}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-brand-primary transition-colors cursor-pointer group"
-                  >
-                    <span>Submit Report</span>
-                    <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                  </button>
-                </>
-              )}
             </div>
 
           </div>
