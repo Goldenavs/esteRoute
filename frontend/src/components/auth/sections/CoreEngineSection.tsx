@@ -55,11 +55,14 @@ export default function CoreEngineSection() {
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
   const opacity = useTransform(scrollYProgress, [0, 1], [1, 0.3]);
 
+  const PATH_UPPER = "M 50,220 C 150,220 180,105 280,105 L 290,105 C 390,105 415,220 505,220 L 725,220 L 970,220";
+  const PATH_LOWER = "M 50,220 C 150,220 180,335 280,335 L 290,335 C 390,335 415,220 505,220 L 725,220 L 970,220";
+
   return (
     <section 
       id="core-engine" 
       ref={ref}
-      className="relative z-20 bg-surface flex flex-col items-center overflow-hidden border-y-2 border-border-subtle shadow-2xl"
+      className="relative z-20 bg-surface/85 backdrop-blur-md flex flex-col items-center overflow-hidden border-y-2 border-border-subtle shadow-2xl"
       style={{
         clipPath: 'polygon(0 5vw, 100% 0, 100% 100%, 0 calc(100% - 5vw))',
         marginTop: '-5vw',
@@ -178,11 +181,19 @@ export default function CoreEngineSection() {
                       <stop offset="70%" stopColor="#F59E0B" stopOpacity="0.85" />
                       <stop offset="100%" stopColor="#10B981" stopOpacity="0.9" />
                     </linearGradient>
+
+                    <filter id="packetGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
                   </defs>
 
                   {/* Branch 1: Citizen Report -> Vision Triage */}
                   <path 
-                    d="M 60,220 C 160,220 180,105 270,105" 
+                    d="M 50,220 C 150,220 180,105 280,105" 
                     fill="none" 
                     stroke="url(#pipelineGrad)" 
                     strokeWidth="2.5" 
@@ -192,7 +203,7 @@ export default function CoreEngineSection() {
 
                   {/* Branch 2: Citizen Report -> Meteorological Agent */}
                   <path 
-                    d="M 60,220 C 160,220 180,335 270,335" 
+                    d="M 50,220 C 150,220 180,335 280,335" 
                     fill="none" 
                     stroke="url(#pipelineGrad)" 
                     strokeWidth="2.5" 
@@ -202,7 +213,7 @@ export default function CoreEngineSection() {
 
                   {/* Branch 3: Vision Triage -> Synthesis Engine */}
                   <path 
-                    d="M 290,105 C 380,105 400,220 500,220" 
+                    d="M 290,105 C 390,105 415,220 505,220" 
                     fill="none" 
                     stroke="url(#pipelineGrad)" 
                     strokeWidth="2.5" 
@@ -212,7 +223,7 @@ export default function CoreEngineSection() {
 
                   {/* Branch 4: Meteorological Agent -> Synthesis Engine */}
                   <path 
-                    d="M 290,335 C 380,335 400,220 500,220" 
+                    d="M 290,335 C 390,335 415,220 505,220" 
                     fill="none" 
                     stroke="url(#pipelineGrad)" 
                     strokeWidth="2.5" 
@@ -220,9 +231,9 @@ export default function CoreEngineSection() {
                     className="opacity-70"
                   />
 
-                  {/* Branch 5: Synthesis Engine -> Supabase */}
+                  {/* Trunk: Synthesis Engine -> Supabase -> LGU Dispatch */}
                   <path 
-                    d="M 500,220 L 725,220" 
+                    d="M 505,220 L 725,220 L 970,220" 
                     fill="none" 
                     stroke="url(#pipelineGrad)" 
                     strokeWidth="2.5" 
@@ -230,39 +241,83 @@ export default function CoreEngineSection() {
                     className="opacity-70"
                   />
 
-                  {/* Branch 6: Supabase -> LGU Dispatch */}
-                  <path 
-                    d="M 725,220 L 940,220" 
-                    fill="none" 
-                    stroke="url(#pipelineGrad)" 
-                    strokeWidth="2.5" 
-                    strokeDasharray="6 6"
-                    className="opacity-70"
-                  />
+                  {/* Packet 1: Vision Route (Blue) */}
+                  <g filter="url(#packetGlow)">
+                    <circle r="4.5" fill="#60A5FA">
+                      <animateMotion
+                        path={PATH_UPPER}
+                        dur="4.5s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        values="0;1;1;1;0"
+                        keyTimes="0;0.05;0.92;0.98;1"
+                        dur="4.5s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  </g>
 
-                  {/* Animated Data Packets Flowing Along Pipeline Branch A */}
-                  <motion.circle
-                    r="4.5"
-                    fill="#60A5FA"
-                    animate={{
-                      cx: [60, 160, 270, 380, 500, 725, 940],
-                      cy: [220, 220, 105, 105, 220, 220, 220],
-                      opacity: [0, 1, 1, 1, 1, 1, 0]
-                    }}
-                    transition={{ duration: 4.5, repeat: Infinity, ease: "linear" }}
-                  />
+                  {/* Packet 2: Meteorology Route (Cyan) */}
+                  <g filter="url(#packetGlow)">
+                    <circle r="4.5" fill="#38BDF8">
+                      <animateMotion
+                        path={PATH_LOWER}
+                        dur="4.5s"
+                        begin="1.12s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        values="0;1;1;1;0"
+                        keyTimes="0;0.05;0.92;0.98;1"
+                        dur="4.5s"
+                        begin="1.12s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  </g>
 
-                  {/* Animated Data Packets Flowing Along Pipeline Branch B */}
-                  <motion.circle
-                    r="4.5"
-                    fill="#38BDF8"
-                    animate={{
-                      cx: [60, 160, 270, 380, 500, 725, 940],
-                      cy: [220, 220, 335, 335, 220, 220, 220],
-                      opacity: [0, 1, 1, 1, 1, 1, 0]
-                    }}
-                    transition={{ duration: 4.5, repeat: Infinity, ease: "linear", delay: 2.25 }}
-                  />
+                  {/* Packet 3: Synthesis Wave (Amber) */}
+                  <g filter="url(#packetGlow)">
+                    <circle r="4.5" fill="#F59E0B">
+                      <animateMotion
+                        path={PATH_UPPER}
+                        dur="4.5s"
+                        begin="2.25s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        values="0;1;1;1;0"
+                        keyTimes="0;0.05;0.92;0.98;1"
+                        dur="4.5s"
+                        begin="2.25s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  </g>
+
+                  {/* Packet 4: Dispatch Wave (Emerald) */}
+                  <g filter="url(#packetGlow)">
+                    <circle r="4.5" fill="#10B981">
+                      <animateMotion
+                        path={PATH_LOWER}
+                        dur="4.5s"
+                        begin="3.37s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        values="0;1;1;1;0"
+                        keyTimes="0;0.05;0.92;0.98;1"
+                        dur="4.5s"
+                        begin="3.37s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  </g>
                 </svg>
 
                 {/* Node 1: Citizen Report (Left) */}
