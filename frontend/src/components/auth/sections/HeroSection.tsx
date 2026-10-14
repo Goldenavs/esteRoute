@@ -8,6 +8,7 @@ import {
   Eye, 
   EyeOff, 
   ArrowRight, 
+  ArrowLeft,
   Loader2, 
   CheckCircle2, 
   ChevronDown,
@@ -200,15 +201,28 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
       className="relative w-full h-screen min-h-[700px] overflow-hidden bg-app-bg flex flex-col justify-between"
     >
       {/* ========================================================= */}
-      {/* SEAMLESS FULL-VIEWPORT BACKGROUND WITH SMOOTH CROSSFADE   */}
+      {/* SEAMLESS DUAL BACKGROUND LAYERS WITH OPACITY CROSSFADE    */}
+      {/* (Fixed layers prevent abrupt stretching during door slide) */}
       {/* ========================================================= */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Citizen Background Layer */}
         <div 
-          className={`absolute inset-0 bg-cover bg-center transition-all duration-700 ease-out scale-105 ${
-            activePortal === 'citizen' ? "bg-[url('/Auth/CitizenAuth.jpg')]" : "bg-[url('/Auth/AdminAuth.jpg')]"
-          }`}
-          style={{ opacity: 0.45 }}
+          className="absolute inset-0 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center transition-opacity duration-700 ease-in-out"
+          style={{ 
+            opacity: activePortal === 'citizen' ? 0.45 : 0,
+            willChange: 'opacity',
+          }}
         />
+
+        {/* Admin Background Layer */}
+        <div 
+          className="absolute inset-0 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center transition-opacity duration-700 ease-in-out"
+          style={{ 
+            opacity: activePortal === 'admin' ? 0.45 : 0,
+            willChange: 'opacity',
+          }}
+        />
+
         {/* Contrast overlay so form inputs stay readable */}
         <div className="absolute inset-0 bg-gradient-to-t from-surface/90 via-surface/80 to-surface/70" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent" />
@@ -461,19 +475,19 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                 <div className="mt-6 pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-text-secondary">
                   <button
                     type="button"
-                    onClick={() => setCitizenMode(citizenMode === 'login' ? 'signup' : 'login')}
-                    className="text-brand-primary font-bold hover:underline cursor-pointer"
+                    onClick={() => setActivePortal('admin')}
+                    className="text-text-secondary hover:text-brand-primary font-semibold flex items-center gap-1.5 cursor-pointer"
                   >
-                    {citizenMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>LGU Staff Access</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setActivePortal('admin')}
-                    className="text-text-secondary hover:text-brand-primary font-semibold flex items-center gap-1 cursor-pointer"
+                    onClick={() => setCitizenMode(citizenMode === 'login' ? 'signup' : 'login')}
+                    className="text-brand-primary font-bold hover:underline cursor-pointer"
                   >
-                    <span>LGU Staff Access</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    {citizenMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
                   </button>
                 </div>
               </>
@@ -601,10 +615,14 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 hidden md:flex">
         <button 
           onClick={() => scrollTo('features')}
-          className="flex flex-col items-center gap-1 text-text-muted hover:text-brand-primary transition-colors cursor-pointer group"
+          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer group ${
+            activePortal === 'admin'
+              ? 'text-brand-primary hover:text-white'
+              : 'text-white hover:text-brand-primary'
+          }`}
         >
           <span className="text-[10px] font-bold uppercase tracking-widest group-hover:tracking-wider transition-all">
-            Explore Engine Architecture
+            Explore
           </span>
           <ChevronDown className="w-4 h-4 animate-bounce" />
         </button>
