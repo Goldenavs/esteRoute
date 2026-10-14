@@ -115,7 +115,7 @@ export default function FaqsSection() {
       id="faqs" 
       className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-transparent relative z-10 overflow-hidden"
     >
-      <div className="w-full max-w-5xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto">
         
         {/* Header */}
         <motion.div 
@@ -148,8 +148,8 @@ export default function FaqsSection() {
               </span>
             </span>
           </h2>
-          <p className="text-base md:text-lg text-text-secondary max-w-3xl mt-6 font-medium leading-relaxed">
-            Everything you need to know about the autonomous esteRoute triage and dispatch pipeline.
+          <p className="text-base md:text-lg text-text-secondary max-w-2xl mt-6 font-medium leading-relaxed">
+            Everything you need to know about the autonomous esteRoute triage and dispatch&nbsp;pipeline.
           </p>
           <motion.div 
             initial={{ width: 0 }}

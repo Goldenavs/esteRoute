@@ -156,22 +156,24 @@ export default function FooterSection() {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-2xl bg-surface border-2 border-border-subtle shadow-2xl overflow-hidden flex flex-col max-h-[80vh] -skew-x-3"
+                className="relative w-full max-w-2xl z-10"
               >
-                <div className="skew-x-3 h-full flex flex-col">
-                  <div className="p-6 border-b-2 border-border-subtle flex items-center justify-between bg-surface-subtle">
-                    <h3 className="text-xl font-heading font-black uppercase tracking-widest text-text-primary">{activeDoc}</h3>
-                    <button
-                      onClick={() => setActiveDoc(null)}
-                      className="p-2 text-text-secondary hover:text-brand-primary transition-colors bg-surface border-2 border-border-subtle hover:border-brand-primary cursor-pointer -skew-x-12"
-                    >
-                      <div className="skew-x-12">
-                        <CloseIcon className="w-5 h-5" />
-                      </div>
-                    </button>
-                  </div>
-                  <div className="p-8 text-base text-text-secondary leading-loose overflow-y-auto font-medium">
-                    <p>{legalContent[activeDoc]}</p>
+                <div className="w-full bg-surface border-2 border-border-subtle shadow-2xl overflow-hidden flex flex-col max-h-[80vh] md:-skew-x-6 rounded-2xl md:rounded-none">
+                  <div className="md:skew-x-6 h-full flex flex-col">
+                    <div className="p-6 border-b-2 border-border-subtle flex items-center justify-between bg-surface-subtle">
+                      <h3 className="text-xl font-heading font-black uppercase tracking-widest text-text-primary">{activeDoc}</h3>
+                      <button
+                        onClick={() => setActiveDoc(null)}
+                        className="p-2 text-text-secondary hover:text-brand-primary transition-colors bg-surface border-2 border-border-subtle hover:border-brand-primary cursor-pointer md:-skew-x-12"
+                      >
+                        <div className="md:skew-x-12">
+                          <CloseIcon className="w-5 h-5" />
+                        </div>
+                      </button>
+                    </div>
+                    <div className="p-8 text-base text-text-secondary leading-loose overflow-y-auto font-medium">
+                      <p>{legalContent[activeDoc]}</p>
+                    </div>
                   </div>
                 </div>
               </motion.div>
