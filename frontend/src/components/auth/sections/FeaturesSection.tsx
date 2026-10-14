@@ -7,7 +7,7 @@ const containerVariants: Variants = {
 };
 
 const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 35 },
+  hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 20 } }
 };
 
@@ -85,7 +85,7 @@ export default function FeaturesSection() {
           />
         </motion.div>
 
-        {/* Feature Grid with Frosted Glass Containers */}
+        {/* Feature Grid with Minimalist Skewed Frosted Glass Cards */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -97,67 +97,26 @@ export default function FeaturesSection() {
           {/* FEATURE 1: Frictionless Citizen Reporting (2 cols)        */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative rounded-2xl bg-surface/40 backdrop-blur-xl border border-border-subtle p-7 md:p-8 h-full flex flex-col justify-between overflow-hidden hover:border-brand-primary/60 hover:shadow-[0_20px_50px_rgba(59,130,246,0.12)] hover:-translate-y-1.5 transition-all duration-500">
-              {/* Subtle top edge glass reflection line */}
-              <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent" />
-              {/* Ambient radial hover sheen */}
-              <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none group-hover:bg-brand-primary/20 transition-all duration-700" />
-
-              <div>
-                {/* Meta Status Strip */}
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-subtle/60">
-                  <div className="flex items-center gap-2.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-primary"></span>
-                    </span>
-                    <span className="font-data text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                      Live Telemetry · Zero Auth Required
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl">
+              <div className="md:skew-x-12 h-full flex flex-col justify-between">
+                <div>
+                  <div className="mb-4">
+                    <span className="font-data text-[10px] font-bold uppercase tracking-widest text-brand-primary">
+                      01 · Public Ingestion
                     </span>
                   </div>
-                  <span className="font-data text-[10px] font-bold px-2.5 py-1 rounded-full bg-surface-subtle/80 border border-border-subtle text-text-primary uppercase tracking-wider">
-                    Capture ~1.8s
-                  </span>
+                  <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
+                    Frictionless Citizen Reporting
+                  </h3>
+                  <p className="text-sm md:text-base text-text-secondary leading-relaxed font-normal max-w-2xl mb-8">
+                    Submit geotagged photos of canal obstructions in seconds. Zero registration or app install required. Incident coordinates are captured automatically with optional descriptive notes.
+                  </p>
                 </div>
 
-                <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
-                  Frictionless Citizen Reporting
-                </h3>
-                <p className="text-sm md:text-base text-text-secondary leading-relaxed font-normal max-w-2xl mb-8">
-                  Submit geotagged photos of canal blockages in seconds with zero friction. No account setup or mobile app download required. Precise GPS coordinates and incident metadata are ingested instantly.
-                </p>
-              </div>
-
-              {/* Bespoke Visual: Simulated Viewfinder & Telemetry Reticle */}
-              <div className="relative w-full h-36 rounded-xl bg-surface-subtle/40 border border-border-subtle overflow-hidden flex items-center justify-between p-5 group-hover:border-brand-primary/40 transition-colors">
-                <div className="absolute inset-0 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center opacity-15 scale-100 group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-0 bg-gradient-to-r from-surface/80 via-surface/60 to-surface/80" />
-
-                {/* Viewfinder Corner Crosshairs */}
-                <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-brand-primary/70" />
-                <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-brand-primary/70" />
-                <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-brand-primary/70" />
-                <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-brand-primary/70" />
-
-                {/* HUD Data Overlay */}
-                <div className="relative z-10 flex flex-col justify-between h-full">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block w-2 h-2 rounded-sm bg-brand-primary animate-pulse" />
-                    <span className="font-data text-[11px] font-bold tracking-widest text-text-primary uppercase">
-                      TARGET ACQUIRED · ESTERO DRAINAGE
-                    </span>
-                  </div>
-                  <span className="font-data text-[10px] text-text-secondary tracking-wider">
-                    GPS: 14.5995° N, 120.9842° E [BINONDO SECTOR]
-                  </span>
-                </div>
-
-                <div className="relative z-10 hidden sm:flex flex-col items-end justify-between h-full">
-                  <span className="font-data text-[10px] font-bold px-2 py-0.5 rounded bg-brand-primary/20 border border-brand-primary/40 text-brand-primary uppercase">
-                    AI Pre-Filter: Passed
-                  </span>
-                  <span className="font-data text-[10px] text-text-muted">
-                    Format: Geotagged JPEG (EXIF Verified)
+                <div className="w-full h-32 bg-surface-subtle/50 border-2 border-border-subtle flex items-center justify-center overflow-hidden relative group-hover:border-brand-primary/50 transition-colors">
+                  <div className="absolute inset-0 opacity-20 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center scale-100 group-hover:scale-105 transition-transform duration-700" />
+                  <span className="font-heading font-black text-lg md:text-xl text-text-primary uppercase tracking-widest z-10 drop-shadow-sm">
+                    No App Install Needed · Instant Ingestion
                   </span>
                 </div>
               </div>
@@ -168,66 +127,29 @@ export default function FeaturesSection() {
           {/* FEATURE 2: Meteorological Agent (1 col)                   */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative rounded-2xl bg-surface/40 backdrop-blur-xl border border-border-subtle p-7 md:p-8 h-full flex flex-col justify-between overflow-hidden hover:border-brand-primary/60 hover:shadow-[0_20px_50px_rgba(59,130,246,0.12)] hover:-translate-y-1.5 transition-all duration-500">
-              <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent" />
-              <div className="absolute -top-20 -left-20 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/20 transition-all duration-700" />
-
-              <div>
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-subtle/60">
-                  <span className="font-data text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                    Open-Meteo · Live Radar
-                  </span>
-                  <span className="font-data text-[10px] font-bold px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
-                    48h Forecast
-                  </span>
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl">
+              <div className="md:skew-x-12 h-full flex flex-col justify-between">
+                <div>
+                  <div className="mb-4">
+                    <span className="font-data text-[10px] font-bold uppercase tracking-widest text-brand-primary">
+                      02 · Predictive Weather
+                    </span>
+                  </div>
+                  <h3 className="font-heading font-black text-2xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
+                    Meteorological Agent
+                  </h3>
+                  <p className="text-sm text-text-secondary leading-relaxed font-normal mb-8">
+                    Cross-references 48-hour precipitation data via Open-Meteo. Computes dynamic rain probability indices to preempt flash floods before downpours occur.
+                  </p>
                 </div>
 
-                <h3 className="font-heading font-black text-2xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
-                  Meteorological Agent
-                </h3>
-                <p className="text-sm text-text-secondary leading-relaxed font-normal mb-8">
-                  Continuously cross-references localized 48-hour precipitation projections to calculate an urgent rainfall multiplier before flash floods happen.
-                </p>
-              </div>
-
-              {/* Bespoke Visual: 48h Precipitation Barometer */}
-              <div className="w-full rounded-xl bg-surface-subtle/40 border border-border-subtle p-4 group-hover:border-brand-primary/40 transition-colors">
-                <div className="flex items-baseline justify-between mb-3">
-                  <span className="font-data text-[10px] uppercase tracking-wider text-text-muted">
-                    Peak Probability
-                  </span>
-                  <span className="font-heading font-black text-2xl text-brand-primary">
+                <div className="w-full h-32 bg-surface-subtle/50 border-2 border-border-subtle flex flex-col items-center justify-center p-4 relative group-hover:border-brand-primary/50 transition-colors">
+                  <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none mb-1">
                     84%
                   </span>
-                </div>
-
-                {/* 4-Step Rainfall Forecast Timeline */}
-                <div className="grid grid-cols-4 gap-2 mb-3">
-                  {[
-                    { time: '+12h', pct: '18%', active: false },
-                    { time: '+24h', pct: '42%', active: false },
-                    { time: '+36h', pct: '84%', active: true },
-                    { time: '+48h', pct: '56%', active: false },
-                  ].map((bar, idx) => (
-                    <div key={idx} className="flex flex-col items-center gap-1.5">
-                      <div className="w-full h-12 bg-surface/60 rounded flex items-end p-0.5 overflow-hidden">
-                        <div 
-                          className={`w-full rounded-sm transition-all duration-500 ${
-                            bar.active 
-                              ? 'bg-brand-primary shadow-[0_0_10px_rgba(59,130,246,0.5)]' 
-                              : 'bg-brand-primary/30'
-                          }`}
-                          style={{ height: bar.pct }}
-                        />
-                      </div>
-                      <span className="font-data text-[9px] text-text-secondary">{bar.time}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-2 border-t border-border-subtle/50 flex items-center justify-between text-[10px] font-data text-text-muted">
-                  <span>URGENCY MULTIPLIER</span>
-                  <span className="font-bold text-semantic-warning">1.84x ELEVATED</span>
+                  <span className="font-data text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                    Peak 48h Rain Hazard Index
+                  </span>
                 </div>
               </div>
             </div>
@@ -237,64 +159,29 @@ export default function FeaturesSection() {
           {/* FEATURE 3: Vision Triage Agent (1 col)                   */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative rounded-2xl bg-surface/40 backdrop-blur-xl border border-border-subtle p-7 md:p-8 h-full flex flex-col justify-between overflow-hidden hover:border-brand-primary/60 hover:shadow-[0_20px_50px_rgba(59,130,246,0.12)] hover:-translate-y-1.5 transition-all duration-500">
-              <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent" />
-              <div className="absolute -top-20 -right-20 w-48 h-48 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none group-hover:bg-brand-primary/20 transition-all duration-700" />
-
-              <div>
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-subtle/60">
-                  <span className="font-data text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                    Gemini 1.5 Flash
-                  </span>
-                  <span className="font-data text-[10px] font-bold px-2 py-0.5 rounded bg-semantic-success/10 text-semantic-success border border-semantic-success/20">
-                    Neural Vision
-                  </span>
-                </div>
-
-                <h3 className="font-heading font-black text-2xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
-                  Vision Triage Agent
-                </h3>
-                <p className="text-sm text-text-secondary leading-relaxed font-normal mb-8">
-                  Multimodal neural models decompose waste categories (plastics, silt, debris) and estimate canal blockage severity in under 4 seconds.
-                </p>
-              </div>
-
-              {/* Bespoke Visual: Neural Decomposition Breakdown */}
-              <div className="w-full rounded-xl bg-surface-subtle/40 border border-border-subtle p-4 group-hover:border-brand-primary/40 transition-colors">
-                <div className="flex items-baseline justify-between mb-3">
-                  <span className="font-data text-[10px] uppercase tracking-wider text-text-muted">
-                    Estimated Occlusion
-                  </span>
-                  <span className="font-heading font-black text-2xl text-brand-primary">
-                    74%
-                  </span>
-                </div>
-
-                <div className="space-y-2 mb-3">
-                  <div>
-                    <div className="flex justify-between text-[10px] font-data mb-1">
-                      <span className="text-text-secondary">Plastics & Bottled Waste</span>
-                      <span className="font-bold text-text-primary">68%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-surface/80 rounded-full overflow-hidden">
-                      <div className="w-[68%] h-full bg-brand-primary rounded-full" />
-                    </div>
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl">
+              <div className="md:skew-x-12 h-full flex flex-col justify-between">
+                <div>
+                  <div className="mb-4">
+                    <span className="font-data text-[10px] font-bold uppercase tracking-widest text-brand-primary">
+                      03 · Neural Vision
+                    </span>
                   </div>
-
-                  <div>
-                    <div className="flex justify-between text-[10px] font-data mb-1">
-                      <span className="text-text-secondary">Silt & Soil Runoff</span>
-                      <span className="font-bold text-text-primary">24%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-surface/80 rounded-full overflow-hidden">
-                      <div className="w-[24%] h-full bg-emerald-500 rounded-full" />
-                    </div>
-                  </div>
+                  <h3 className="font-heading font-black text-2xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
+                    Vision Triage Agent
+                  </h3>
+                  <p className="text-sm text-text-secondary leading-relaxed font-normal mb-8">
+                    Gemini 1.5 Flash multimodal AI classifies waste composition (plastics, silt, debris) and quantifies waterway blockage severity from photos.
+                  </p>
                 </div>
 
-                <div className="pt-2 border-t border-border-subtle/50 flex items-center justify-between text-[10px] font-data text-text-muted">
-                  <span>CONFIDENCE</span>
-                  <span className="font-bold text-text-primary">98.4% HIGH ACCURACY</span>
+                <div className="w-full h-32 bg-surface-subtle/50 border-2 border-border-subtle flex flex-col items-center justify-center p-4 relative group-hover:border-brand-primary/50 transition-colors">
+                  <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none mb-1">
+                    &lt; 4.2s
+                  </span>
+                  <span className="font-data text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                    Inference & Waste Severity Triage
+                  </span>
                 </div>
               </div>
             </div>
@@ -304,98 +191,27 @@ export default function FeaturesSection() {
           {/* FEATURE 4: LGU Dispatcher Dashboard (2 cols)             */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative rounded-2xl bg-surface/40 backdrop-blur-xl border border-border-subtle p-7 md:p-8 h-full flex flex-col justify-between overflow-hidden hover:border-brand-primary/60 hover:shadow-[0_20px_50px_rgba(59,130,246,0.12)] hover:-translate-y-1.5 transition-all duration-500">
-              <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent" />
-              <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-700" />
-
-              <div>
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-subtle/60">
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-2 w-2 rounded-full bg-semantic-success animate-pulse" />
-                    <span className="font-data text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                      A* Fleet Routing Matrix · 12 Units Online
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl">
+              <div className="md:skew-x-12 h-full flex flex-col justify-between">
+                <div>
+                  <div className="mb-4">
+                    <span className="font-data text-[10px] font-bold uppercase tracking-widest text-brand-primary">
+                      04 · Fleet Command
                     </span>
                   </div>
-                  <span className="font-data text-[10px] font-bold px-2.5 py-1 rounded-full bg-surface-subtle/80 border border-border-subtle text-text-primary uppercase tracking-wider">
-                    Console v2.4
+                  <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
+                    LGU Dispatcher Dashboard
+                  </h3>
+                  <p className="text-sm md:text-base text-text-secondary leading-relaxed font-normal max-w-2xl mb-8">
+                    A real-time prioritized triage queue and GIS dispatch matrix. Synthesizes rainfall forecast data and blockage metrics to direct cleanup crews to critical bottlenecks first.
+                  </p>
+                </div>
+
+                <div className="w-full h-32 bg-surface-subtle/50 border-2 border-border-subtle flex items-center justify-center overflow-hidden relative group-hover:border-brand-primary/50 transition-colors">
+                  <div className="absolute inset-0 opacity-20 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center scale-100 group-hover:scale-105 transition-transform duration-700" />
+                  <span className="font-heading font-black text-lg md:text-xl text-text-primary uppercase tracking-widest z-10 drop-shadow-sm">
+                    Real-Time Priority Queue · A* Optimization
                   </span>
-                </div>
-
-                <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
-                  LGU Dispatcher Dashboard
-                </h3>
-                <p className="text-sm md:text-base text-text-secondary leading-relaxed font-normal max-w-2xl mb-8">
-                  A high-velocity dispatch console and dynamic priority queue. Automatically synthesizes rainfall models and blockage metrics to route cleanup crews to critical zones first.
-                </p>
-              </div>
-
-              {/* Bespoke Visual: Live Dispatch Triage Matrix */}
-              <div className="w-full rounded-xl bg-surface-subtle/40 border border-border-subtle p-4 group-hover:border-brand-primary/40 transition-colors">
-                <div className="space-y-2">
-                  {/* Task 1 */}
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface/70 border border-red-500/30">
-                    <div className="flex items-center gap-3">
-                      <span className="font-data text-[11px] font-bold text-red-500">
-                        #EST-092
-                      </span>
-                      <span className="font-heading font-bold text-xs text-text-primary">
-                        Estero de Binondo
-                      </span>
-                      <span className="hidden sm:inline font-data text-[10px] text-text-muted">
-                        Occlusion: 88%
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-data text-[10px] font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/30">
-                        CRITICAL · FLEET EN ROUTE
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Task 2 */}
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface/70 border border-yellow-500/30">
-                    <div className="flex items-center gap-3">
-                      <span className="font-data text-[11px] font-bold text-yellow-500">
-                        #EST-088
-                      </span>
-                      <span className="font-heading font-bold text-xs text-text-primary">
-                        Estero de San Miguel
-                      </span>
-                      <span className="hidden sm:inline font-data text-[10px] text-text-muted">
-                        Rain: 84% Imminent
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-data text-[10px] font-bold px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-500 border border-yellow-500/30">
-                        HIGH PRIORITY · QUEUED
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Task 3 */}
-                  <div className="hidden sm:flex items-center justify-between p-2.5 rounded-lg bg-surface/50 border border-border-subtle">
-                    <div className="flex items-center gap-3">
-                      <span className="font-data text-[11px] font-bold text-emerald-500">
-                        #EST-084
-                      </span>
-                      <span className="font-heading font-bold text-xs text-text-primary">
-                        Estero de Quiapo
-                      </span>
-                      <span className="font-data text-[10px] text-text-muted">
-                        2.1 Tons Silt Cleared
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-data text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                        RESOLVED
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-2.5 border-t border-border-subtle/50 flex items-center justify-between text-[10px] font-data text-text-muted">
-                  <span>DISPATCH QUEUE LATENCY: &lt; 0.8s</span>
-                  <span className="text-text-secondary font-bold">100% AUDIT LOGGED</span>
                 </div>
               </div>
             </div>
