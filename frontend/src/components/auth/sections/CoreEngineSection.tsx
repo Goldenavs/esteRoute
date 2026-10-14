@@ -1,26 +1,6 @@
-import React, { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Camera, Sparkles, CloudRain, BrainCircuit, Database, MonitorDot } from 'lucide-react';
-
-const ScrollWriteText = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start 85%", "end 50%"]
-  });
-  
-  const clipPath = useTransform(scrollYProgress, [0, 1], ["inset(-100% 100% -100% -100%)", "inset(-100% -100% -100% -100%)"]);
-
-  return (
-    <motion.div
-      ref={ref}
-      style={{ clipPath }}
-      className={`inline-block ${className}`}
-    >
-      {children}
-    </motion.div>
-  );
-};
 
 interface SharpNodeProps {
   icon: React.ReactNode;
@@ -45,10 +25,10 @@ const SharpNode = ({ icon, label, sublabel, borderColor, iconColor, bgColor = "b
         {icon}
       </div>
     </div>
-    <div className={`mt-6 px-4 py-2 border-2 -skew-x-12 text-[10px] md:text-xs font-heading font-black tracking-widest uppercase shadow-md transition-colors ${bgColor} ${borderColor}`}>
-      <div className="skew-x-12 flex flex-col items-center text-text-primary">
+    <div className={`mt-4 md:mt-6 px-3 md:px-4 py-1.5 md:py-2 border-2 -skew-x-12 text-[10px] md:text-xs font-heading font-black tracking-widest uppercase shadow-md transition-colors ${bgColor} ${borderColor}`}>
+      <div className="skew-x-12 flex flex-col items-center text-text-primary text-center">
         <span>{label}</span>
-        {sublabel && <span className="text-[9px] text-brand-primary mt-1">{sublabel}</span>}
+        {sublabel && <span className="text-[9px] text-brand-primary mt-0.5">{sublabel}</span>}
       </div>
     </div>
   </motion.div>
@@ -57,6 +37,17 @@ const SharpNode = ({ icon, label, sublabel, borderColor, iconColor, bgColor = "b
 export default function CoreEngineSection() {
   const ref = useRef<HTMLElement>(null);
   
+  // Dynamic header cycling word (cycles every 3 seconds)
+  const [headerWordIndex, setHeaderWordIndex] = useState(0);
+  const headerWords = ['Orchestration.', 'Synthesis.', 'Execution.'];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeaderWordIndex((prev) => (prev + 1) % 3);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["end end", "end start"]
@@ -68,7 +59,7 @@ export default function CoreEngineSection() {
     <section 
       id="core-engine" 
       ref={ref}
-      className="relative z-20 bg-surface/20 backdrop-blur-[2px] flex flex-col items-center overflow-hidden"
+      className="relative z-20 bg-surface flex flex-col items-center overflow-hidden border-y-2 border-border-subtle shadow-2xl"
       style={{
         clipPath: 'polygon(0 5vw, 100% 0, 100% 100%, 0 calc(100% - 5vw))',
         marginTop: '-5vw',
@@ -89,115 +80,256 @@ export default function CoreEngineSection() {
         >
           <div className="inline-flex items-center justify-center px-4 py-2 bg-brand-primary/10 border-2 border-brand-primary/20 -skew-x-12 mb-6">
             <BrainCircuit className="w-4 h-4 text-brand-primary skew-x-12 mr-2" />
-            <span className="skew-x-12 text-xs font-heading font-black tracking-widest text-brand-primary uppercase">Agentic Pipeline</span>
+            <span className="skew-x-12 text-xs font-heading font-black tracking-widest text-brand-primary uppercase">
+              Agentic Pipeline
+            </span>
           </div>
-          <h2 className="text-4xl lg:text-6xl font-heading font-black text-text-primary mb-4 flex flex-col items-start tracking-tighter uppercase">
-            <ScrollWriteText>Multi-Agent AI</ScrollWriteText>
-            <ScrollWriteText className="text-text-muted mt-2">Orchestration.</ScrollWriteText>
+
+          <h2 className="text-4xl lg:text-6xl font-heading font-black text-text-primary mb-4 flex flex-col items-start tracking-tighter uppercase leading-[1.08]">
+            <span>Multi-Agent AI</span>
+            <span className="text-text-muted mt-2">
+              Pipeline for{' '}
+              <span className="relative inline-block overflow-hidden align-bottom">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={headerWordIndex}
+                    initial={{ y: '100%', opacity: 0 }}
+                    animate={{ y: '0%', opacity: 1 }}
+                    exit={{ y: '-100%', opacity: 0 }}
+                    transition={{ duration: 0.28, ease: 'easeOut' }}
+                    className="inline-block text-brand-primary"
+                  >
+                    {headerWords[headerWordIndex]}
+                  </motion.span>
+                </AnimatePresence>
+              </span>
+            </span>
           </h2>
-          <p className="text-lg text-text-secondary max-w-2xl mt-6 font-medium leading-relaxed">
+
+          <p className="text-base md:text-lg text-text-secondary max-w-2xl mt-6 font-medium leading-relaxed">
             A standalone three-tier architecture that intercepts citizen reports, routes them through specialized AI agents, and synthesizes a quantifiable Priority Score.
           </p>
+
+          <motion.div 
+            initial={{ width: 0 }}
+            whileInView={{ width: "5rem" }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+            className="h-1.5 bg-brand-primary mt-6 -skew-x-12" 
+          />
         </motion.div>
 
-        {/* Animated Flowchart */}
+        {/* Animated Flowchart Container */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.8 }}
-          className="w-full relative mt-12 mb-20"
+          className="w-full relative mt-8 mb-20"
         >
           {/* Outer parallelogram container */}
-          <div className="w-full h-[400px] md:h-[450px] bg-surface/30 backdrop-blur-md border-2 border-border-subtle md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-2xl md:rounded-none">
+          <div className="w-full h-[520px] md:h-[540px] bg-app-bg border-2 border-border-subtle md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-2xl md:rounded-none">
             {/* Subtle grid background inside the parallelogram */}
             <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none md:skew-x-12 scale-150" />
             
-            {/* Glows */}
+            {/* Dynamic Moving Circuit Data Lines */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-25 md:skew-x-12">
+              <svg className="w-full h-full min-w-[900px]" xmlns="http://www.w3.org/2000/svg">
+                <motion.line 
+                  x1="0%" y1="18%" x2="100%" y2="18%" 
+                  stroke="var(--color-brand-primary)" strokeWidth="1.5" strokeDasharray="16 28"
+                  animate={{ strokeDashoffset: [0, -200] }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                />
+                <motion.line 
+                  x1="0%" y1="50%" x2="100%" y2="50%" 
+                  stroke="var(--color-brand-primary)" strokeWidth="1" strokeDasharray="24 40"
+                  animate={{ strokeDashoffset: [0, 200] }}
+                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                  opacity="0.5"
+                />
+                <motion.line 
+                  x1="0%" y1="82%" x2="100%" y2="82%" 
+                  stroke="var(--color-brand-primary)" strokeWidth="1.5" strokeDasharray="16 28"
+                  animate={{ strokeDashoffset: [0, 200] }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                />
+              </svg>
+            </div>
+
+            {/* Ambient Glows */}
             <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-brand-primary/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none md:skew-x-12" />
             <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-[#10b981]/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none md:skew-x-12" />
             
-            {/* Unskewed content wrapper with scrolling */}
-            <div className="md:skew-x-12 w-full h-full flex items-center overflow-x-auto overflow-y-visible px-4 md:px-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              <div className="min-w-[900px] w-full flex items-center justify-between relative py-12">
-            
-            {/* Animated Dashed Line */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
-              <line x1="10%" y1="35%" x2="90%" y2="35%" stroke="var(--color-brand-primary)" strokeWidth="2" strokeDasharray="8 8" className="opacity-30" />
-              {/* Particles Flowing */}
-              {[0, 1.5, 3].map((delay, i) => (
-                <motion.circle
-                  key={`particle-${i}`}
-                  cy="35%" r="4" fill="var(--color-brand-primary)"
-                  initial={{ cx: "10%", opacity: 0 }}
-                  animate={{ cx: ["10%", "90%"], opacity: [0, 1, 1, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "linear", delay }}
+            {/* Unskewed content wrapper with horizontal scrolling for smaller screens */}
+            <div className="md:skew-x-12 w-full h-full flex items-center overflow-x-auto overflow-y-visible px-4 md:px-16 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="min-w-[920px] w-full h-[440px] flex items-center justify-between relative py-6">
+                
+                {/* ========================================================= */}
+                {/* AUTHENTIC PIPELINE CONNECTION SVG GRAPH                   */}
+                {/* (Cleanly forks from Citizen into Vision & Meteorology,    */}
+                {/*  then merges into Synthesis Engine, Supabase, & Dispatch) */}
+                {/* ========================================================= */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1000 440" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="pipelineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#3F72AF" stopOpacity="0.5" />
+                      <stop offset="35%" stopColor="#60A5FA" stopOpacity="0.85" />
+                      <stop offset="70%" stopColor="#F59E0B" stopOpacity="0.85" />
+                      <stop offset="100%" stopColor="#10B981" stopOpacity="0.9" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Branch 1: Citizen Report -> Vision Triage */}
+                  <path 
+                    d="M 60,220 C 160,220 180,105 270,105" 
+                    fill="none" 
+                    stroke="url(#pipelineGrad)" 
+                    strokeWidth="2.5" 
+                    strokeDasharray="6 6"
+                    className="opacity-70"
+                  />
+
+                  {/* Branch 2: Citizen Report -> Meteorological Agent */}
+                  <path 
+                    d="M 60,220 C 160,220 180,335 270,335" 
+                    fill="none" 
+                    stroke="url(#pipelineGrad)" 
+                    strokeWidth="2.5" 
+                    strokeDasharray="6 6"
+                    className="opacity-70"
+                  />
+
+                  {/* Branch 3: Vision Triage -> Synthesis Engine */}
+                  <path 
+                    d="M 290,105 C 380,105 400,220 500,220" 
+                    fill="none" 
+                    stroke="url(#pipelineGrad)" 
+                    strokeWidth="2.5" 
+                    strokeDasharray="6 6"
+                    className="opacity-70"
+                  />
+
+                  {/* Branch 4: Meteorological Agent -> Synthesis Engine */}
+                  <path 
+                    d="M 290,335 C 380,335 400,220 500,220" 
+                    fill="none" 
+                    stroke="url(#pipelineGrad)" 
+                    strokeWidth="2.5" 
+                    strokeDasharray="6 6"
+                    className="opacity-70"
+                  />
+
+                  {/* Branch 5: Synthesis Engine -> Supabase */}
+                  <path 
+                    d="M 500,220 L 725,220" 
+                    fill="none" 
+                    stroke="url(#pipelineGrad)" 
+                    strokeWidth="2.5" 
+                    strokeDasharray="6 6"
+                    className="opacity-70"
+                  />
+
+                  {/* Branch 6: Supabase -> LGU Dispatch */}
+                  <path 
+                    d="M 725,220 L 940,220" 
+                    fill="none" 
+                    stroke="url(#pipelineGrad)" 
+                    strokeWidth="2.5" 
+                    strokeDasharray="6 6"
+                    className="opacity-70"
+                  />
+
+                  {/* Animated Data Packets Flowing Along Pipeline Branch A */}
+                  <motion.circle
+                    r="4.5"
+                    fill="#60A5FA"
+                    animate={{
+                      cx: [60, 160, 270, 380, 500, 725, 940],
+                      cy: [220, 220, 105, 105, 220, 220, 220],
+                      opacity: [0, 1, 1, 1, 1, 1, 0]
+                    }}
+                    transition={{ duration: 4.5, repeat: Infinity, ease: "linear" }}
+                  />
+
+                  {/* Animated Data Packets Flowing Along Pipeline Branch B */}
+                  <motion.circle
+                    r="4.5"
+                    fill="#38BDF8"
+                    animate={{
+                      cx: [60, 160, 270, 380, 500, 725, 940],
+                      cy: [220, 220, 335, 335, 220, 220, 220],
+                      opacity: [0, 1, 1, 1, 1, 1, 0]
+                    }}
+                    transition={{ duration: 4.5, repeat: Infinity, ease: "linear", delay: 2.25 }}
+                  />
+                </svg>
+
+                {/* Node 1: Citizen Report (Left) */}
+                <SharpNode 
+                  icon={<Camera />} 
+                  label="Citizen Report" 
+                  sublabel="Geotagged Photo"
+                  borderColor="border-border-subtle group-hover:border-text-primary"
+                  iconColor="text-text-primary"
+                  bgColor="bg-surface-subtle"
+                  delay={0.1}
                 />
-              ))}
-            </svg>
+                
+                {/* Node 2: Multi-Agent Parallel Stack (Vertical) */}
+                <div className="flex flex-col gap-10 z-10">
+                  <SharpNode 
+                    icon={<Sparkles />} 
+                    label="Vision Triage" 
+                    sublabel="Gemini 1.5 Flash"
+                    borderColor="border-brand-primary/40 group-hover:border-brand-primary"
+                    iconColor="text-brand-primary"
+                    bgColor="bg-brand-primary/10"
+                    delay={0.3}
+                  />
+                  <SharpNode 
+                    icon={<CloudRain />} 
+                    label="Meteorological" 
+                    sublabel="Open-Meteo API"
+                    borderColor="border-[#38bdf8]/40 group-hover:border-[#38bdf8]"
+                    iconColor="text-[#38bdf8]"
+                    bgColor="bg-[#38bdf8]/10"
+                    delay={0.5}
+                  />
+                </div>
 
-            {/* Nodes */}
-            <SharpNode 
-              icon={<Camera />} 
-              label="Citizen Report" 
-              sublabel="Geotagged Photo"
-              borderColor="border-border-subtle group-hover:border-text-primary"
-              iconColor="text-text-primary"
-              bgColor="bg-surface-subtle"
-              delay={0.1}
-            />
-            
-            {/* Multi-Agent Stack (Vertical) */}
-            <div className="flex flex-col gap-8 z-10">
-              <SharpNode 
-                icon={<Sparkles />} 
-                label="Vision Triage" 
-                sublabel="Gemini 1.5 Flash"
-                borderColor="border-brand-primary/40 group-hover:border-brand-primary"
-                iconColor="text-brand-primary"
-                bgColor="bg-brand-primary/10"
-                delay={0.3}
-              />
-              <SharpNode 
-                icon={<CloudRain />} 
-                label="Meteorological" 
-                sublabel="Open-Meteo API"
-                borderColor="border-[#38bdf8]/40 group-hover:border-[#38bdf8]"
-                iconColor="text-[#38bdf8]"
-                bgColor="bg-[#38bdf8]/10"
-                delay={0.5}
-              />
-            </div>
+                {/* Node 3: Synthesis Engine (Center) */}
+                <SharpNode 
+                  icon={<BrainCircuit />} 
+                  label="Synthesis Engine" 
+                  sublabel="Priority Score"
+                  borderColor="border-[#f59e0b]/40 group-hover:border-[#f59e0b]"
+                  iconColor="text-[#f59e0b]"
+                  bgColor="bg-[#f59e0b]/10"
+                  delay={0.7}
+                />
 
-            <SharpNode 
-              icon={<BrainCircuit />} 
-              label="Synthesis Engine" 
-              sublabel="Priority Score"
-              borderColor="border-[#f59e0b]/40 group-hover:border-[#f59e0b]"
-              iconColor="text-[#f59e0b]"
-              bgColor="bg-[#f59e0b]/10"
-              delay={0.7}
-            />
+                {/* Node 4: Supabase Database */}
+                <SharpNode 
+                  icon={<Database />} 
+                  label="Supabase" 
+                  sublabel="PostgreSQL / RLS"
+                  borderColor="border-[#10b981]/40 group-hover:border-[#10b981]"
+                  iconColor="text-[#10b981]"
+                  bgColor="bg-[#10b981]/10"
+                  delay={0.9}
+                />
 
-            <SharpNode 
-              icon={<Database />} 
-              label="Supabase" 
-              sublabel="PostgreSQL / RLS"
-              borderColor="border-[#10b981]/40 group-hover:border-[#10b981]"
-              iconColor="text-[#10b981]"
-              bgColor="bg-[#10b981]/10"
-              delay={0.9}
-            />
-
-            <SharpNode 
-              icon={<MonitorDot />} 
-              label="LGU Dispatch" 
-              sublabel="Live Map Queue"
-              borderColor="border-border-subtle group-hover:border-text-primary"
-              iconColor="text-text-primary"
-              bgColor="bg-surface-subtle"
-              delay={1.1}
-            />
+                {/* Node 5: LGU Dispatch (Right) */}
+                <SharpNode 
+                  icon={<MonitorDot />} 
+                  label="LGU Dispatch" 
+                  sublabel="Live Map Queue"
+                  borderColor="border-border-subtle group-hover:border-text-primary"
+                  iconColor="text-text-primary"
+                  bgColor="bg-surface-subtle"
+                  delay={1.1}
+                />
 
               </div>
             </div>
@@ -205,20 +337,20 @@ export default function CoreEngineSection() {
         </motion.div>
 
         {/* Feature Bento Boxes (Parallelogram) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <div className="group bg-app-bg border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none">
+            <div className="group bg-app-bg border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none shadow-sm hover:shadow-xl">
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
               <div className="md:skew-x-12 h-full flex flex-col justify-center">
                 <div className="w-12 h-12 bg-brand-primary/10 border-2 border-brand-primary/20 flex items-center justify-center mb-6">
                   <Sparkles className="w-5 h-5 text-brand-primary" />
                 </div>
                 <h3 className="text-xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">Multimodal Vision</h3>
-                <p className="text-text-secondary leading-relaxed">
+                <p className="text-text-secondary leading-relaxed text-sm md:text-base">
                   Uses Google Gemini 1.5 Flash to automatically classify blockage severity and identify specific waste types (plastics, silt) directly from photos without human review.
                 </p>
               </div>
@@ -231,14 +363,14 @@ export default function CoreEngineSection() {
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
           >
-            <div className="group bg-app-bg border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-300 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none">
+            <div className="group bg-app-bg border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-300 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none shadow-sm hover:shadow-xl">
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
               <div className="md:skew-x-12 h-full flex flex-col justify-center">
                 <div className="w-12 h-12 bg-[#38bdf8]/10 border-2 border-[#38bdf8]/20 flex items-center justify-center mb-6">
                   <CloudRain className="w-5 h-5 text-[#38bdf8]" />
                 </div>
                 <h3 className="text-xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">Weather Synthesis</h3>
-                <p className="text-text-secondary leading-relaxed">
+                <p className="text-text-secondary leading-relaxed text-sm md:text-base">
                   Cross-references Open-Meteo's 48-hour precipitation data. The Synthesis Engine calculates a 60/40 weighted Priority Score combining physical severity and imminent rain risk.
                 </p>
               </div>
