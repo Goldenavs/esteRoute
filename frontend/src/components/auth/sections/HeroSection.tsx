@@ -1,141 +1,714 @@
 import { useState, useEffect } from 'react';
-import { ShieldAlert, Navigation, MonitorDot, Camera, MapPin, Sprout, ChevronDown, ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  User, 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ArrowRight, 
+  ArrowLeft,
+  Loader2, 
+  CheckCircle2, 
+  ChevronDown,
+  Camera,
+  Check
+} from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
 import { useTheme } from '../../../context/ThemeContext';
 
+interface HeroSectionProps {
+  activePortal: 'citizen' | 'admin';
+  setActivePortal: (portal: 'citizen' | 'admin') => void;
+  scrollTo: (id: string) => void;
+}
 
-export default function HeroSection({ scrollTo, onOpenModal }: { scrollTo: (id: string) => void; onOpenModal: (type: 'admin' | 'citizen') => void }) {
-  const [hoveredPanel, setHoveredPanel] = useState<'admin' | 'citizen' | null>(null);
+// Subtle, slowly moving topographic / bathymetric contour lines
+const AnimatedContourLines = ({ isLight }: { isLight: boolean }) => {
+  const strokeColor = isLight ? '#3F72AF' : '#112D4E';
+  
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+      <svg 
+        className="w-full h-full min-w-[800px] min-h-[700px] opacity-25" 
+        viewBox="0 0 1200 900" 
+        preserveAspectRatio="none"
+        fill="none"
+      >
+        {/* Layer 1: Primary organic topographic curves */}
+        <motion.g
+          animate={{
+            x: [0, 35, -20, 0],
+            y: [0, -20, 15, 0],
+          }}
+          transition={{
+            duration: 24,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          stroke={strokeColor}
+          strokeWidth="1.5"
+          opacity="0.85"
+        >
+          <path d="M-200,80 C150,20 380,180 720,100 S1100,20 1500,140" />
+          <path d="M-200,220 C100,150 420,320 760,230 S1150,150 1500,280" />
+          <path d="M-200,360 C180,280 340,450 720,370 S1200,290 1500,410" />
+          <path d="M-200,500 C120,420 440,590 800,500 S1120,410 1500,550" />
+          <path d="M-200,640 C200,550 360,710 740,630 S1180,540 1500,680" />
+          <path d="M-200,780 C140,690 460,840 820,760 S1140,660 1500,810" />
+          <path d="M-200,920 C220,830 380,970 760,890 S1210,790 1500,940" />
+        </motion.g>
+
+        {/* Layer 2: Secondary intermediate dashed elevation lines */}
+        <motion.g
+          animate={{
+            x: [0, -30, 25, 0],
+            y: [0, 25, -20, 0],
+          }}
+          transition={{
+            duration: 32,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          stroke={strokeColor}
+          strokeWidth="1.2"
+          strokeDasharray="4 8"
+          opacity="0.5"
+        >
+          <path d="M-200,150 C120,85 400,250 740,165 S1125,85 1500,210" />
+          <path d="M-200,290 C140,215 380,385 740,300 S1175,220 1500,345" />
+          <path d="M-200,430 C150,350 410,520 760,435 S1160,350 1500,480" />
+          <path d="M-200,570 C160,485 400,650 770,565 S1150,475 1500,615" />
+          <path d="M-200,710 C170,620 410,775 780,695 S1160,600 1500,745" />
+          <path d="M-200,850 C180,760 420,905 790,825 S1175,725 1500,875" />
+        </motion.g>
+      </svg>
+
+      {/* Subtle atmospheric sheen */}
+      <div 
+        className={`absolute inset-0 pointer-events-none ${
+          isLight 
+            ? 'bg-gradient-to-tr from-brand-primary/10 via-transparent to-brand-primary/5' 
+            : 'bg-gradient-to-tr from-brand-primary/5 via-transparent to-transparent'
+        }`} 
+      />
+    </div>
+  );
+};
+
+export default function HeroSection({ activePortal, setActivePortal, scrollTo }: HeroSectionProps) {
+  const navigate = useNavigate();
   const { theme } = useTheme();
-  const [isMobile, setIsMobile] = useState(false);
+  const isLight = theme === 'light';
+
+  // Admin Auth State
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [isAdminLoading, setIsAdminLoading] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+
+  // Citizen Auth State
+  const [citizenMode, setCitizenMode] = useState<'login' | 'signup'>('login');
+  const [citizenName, setCitizenName] = useState('');
+  const [citizenEmail, setCitizenEmail] = useState('');
+  const [citizenPassword, setCitizenPassword] = useState('');
+  const [citizenError, setCitizenError] = useState('');
+  const [isCitizenLoading, setIsCitizenLoading] = useState(false);
+  const [showCitizenPassword, setShowCitizenPassword] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  // Dynamic headline cycling word (cycles every 3 seconds in a 3-word loop)
+  const [dynamicWordIndex, setDynamicWordIndex] = useState(0);
+
+  const citizenWords = ['clean.', 'safe.', 'flowing.'];
+  const adminWords = ['dispatch.', 'routing.', 'response.'];
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const timer = setInterval(() => {
+      setDynamicWordIndex((prev) => (prev + 1) % 3);
+    }, 3000);
+    return () => clearInterval(timer);
   }, []);
+
+  // Admin Login Handler
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEmail || !adminPassword) {
+      setAdminError('Please fill in all required fields.');
+      return;
+    }
+    setIsAdminLoading(true);
+    setAdminError('');
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: adminEmail,
+      password: adminPassword,
+    });
+
+    if (error) {
+      setIsAdminLoading(false);
+      setAdminError(error.message);
+      return;
+    }
+
+    if (data.user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError || !profile || (profile.role !== 'admin' && profile.role !== 'dispatcher')) {
+        await supabase.auth.signOut();
+        setAdminError('Access denied. Dispatcher/Admin role required.');
+      } else {
+        navigate('/admin');
+      }
+    }
+    setIsAdminLoading(false);
+  };
+
+  // Citizen Auth Handler
+  const handleCitizenAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!citizenEmail || !citizenPassword || (citizenMode === 'signup' && !citizenName)) {
+      setCitizenError('Please fill in all required fields.');
+      return;
+    }
+    setIsCitizenLoading(true);
+    setCitizenError('');
+
+    if (citizenMode === 'signup') {
+      const { data, error } = await supabase.auth.signUp({
+        email: citizenEmail,
+        password: citizenPassword,
+        options: {
+          data: { full_name: citizenName },
+          emailRedirectTo: `${window.location.origin}/citizen`
+        }
+      });
+      if (error) {
+        setCitizenError(error.message);
+      } else if (data.user && !data.session) {
+        setShowEmailConfirmation(true);
+      } else {
+        navigate('/citizen');
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: citizenEmail,
+        password: citizenPassword,
+      });
+      if (error) setCitizenError(error.message);
+      else navigate('/citizen');
+    }
+    setIsCitizenLoading(false);
+  };
 
   return (
     <section 
       id="hero" 
-      className="relative flex flex-col-reverse md:block md:h-screen w-full md:overflow-hidden bg-app-bg"
+      className="relative w-full h-screen min-h-[700px] overflow-hidden bg-app-bg flex flex-col justify-between"
     >
-       {/* Left Side: Dispatcher / Admin (CURRENT THEME) */}
-       <motion.div 
-        className="relative md:absolute md:inset-0 w-full min-h-screen md:min-h-0 md:h-full bg-surface group md:origin-left overflow-hidden flex items-center"
-        initial={false}
-        animate={isMobile ? { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', opacity: 1, filter: 'none', zIndex: 1 } : {
-          clipPath: hoveredPanel === 'admin' 
-            ? 'polygon(0% 0%, 65% 0%, 55% 100%, 0% 100%)' 
-            : hoveredPanel === 'citizen' 
-            ? 'polygon(0% 0%, 45% 0%, 35% 100%, 0% 100%)' 
-            : 'polygon(0% 0%, 55% 0%, 45% 100%, 0% 100%)',
-          opacity: hoveredPanel === 'citizen' ? 0.6 : 1,
-          filter: hoveredPanel === 'citizen' ? 'blur(4px) brightness(0.5)' : 'blur(0px) brightness(1)',
-          zIndex: hoveredPanel === 'admin' ? 20 : 10,
-        }}
-        transition={{ type: "spring", stiffness: 200, damping: 30 }}
-        onMouseEnter={() => setHoveredPanel('admin')}
-        onMouseLeave={() => setHoveredPanel(null)}
-      >
-        {/* Cinematic Background Image with Parallax Hover */}
-        <div className="absolute inset-0 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center opacity-10 group-hover:opacity-30 transition-all duration-1000 group-hover:scale-105 pointer-events-none" />
-        
-        <div className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-dark via-surface/80 to-surface pointer-events-none" />
-        
-        {/* Inner Content Container - constrained to left half */}
-        <motion.div 
-          className="relative md:absolute md:left-0 md:top-0 w-full md:w-[55%] h-full flex flex-col justify-center items-center md:items-start p-8 lg:p-16 z-10 py-24 md:py-8"
-          animate={isMobile ? { scale: 1 } : { scale: hoveredPanel === 'admin' ? 1.05 : 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 30 }}
-        >
-          <div className="max-w-md">
-            <div className="bg-brand-dark/20 p-4 rounded-2xl mb-6 ring-1 ring-brand-dark/30 shadow-[0_0_30px_rgba(var(--brand-dark),0.3)] backdrop-blur-md inline-block">
-              <ShieldAlert className="w-10 h-10 text-brand-dark" />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-heading font-black mb-4 tracking-tighter drop-shadow-lg text-text-primary">LGU Command</h1>
-            <p className="text-text-secondary text-lg mb-8 font-medium">Dispatcher portal for real-time estero blockage monitoring, AI-optimized drone routes, and clean-up fleet management.</p>
-            <div className="space-y-4 mb-10 w-full">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-app-bg/50 border border-border-subtle/50 w-full backdrop-blur-sm">
-                <Navigation className="w-5 h-5 text-brand-dark" />
-                <span className="font-medium text-text-secondary">A* Pathfinding for Cleanup Routes</span>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-app-bg/50 border border-border-subtle/50 w-full backdrop-blur-sm">
-                <MonitorDot className="w-5 h-5 text-brand-dark" />
-                <span className="font-medium text-text-secondary">Live Fleet & Drone Dispatch</span>
-              </div>
-            </div>
-            <button onClick={() => onOpenModal('admin')} className="w-full md:w-auto flex items-center justify-center bg-brand-primary text-white px-8 py-4 font-bold hover:shadow-lg hover:shadow-brand-primary/40 transition-all hover:-translate-y-1 cursor-pointer -skew-x-12 border-2 border-brand-primary">
-              <div className="skew-x-12 flex items-center gap-2">
-                Enter Dispatch Portal
-                <ArrowRight className="w-5 h-5" />
-              </div>
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
+      {/* ========================================================= */}
+      {/* SEAMLESS DUAL BACKGROUND LAYERS WITH OPACITY CROSSFADE    */}
+      {/* (Fixed layers prevent abrupt stretching during door slide) */}
+      {/* ========================================================= */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Citizen Background Layer */}
+        <div 
+          className="absolute inset-0 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center transition-opacity duration-700 ease-in-out"
+          style={{ 
+            opacity: activePortal === 'citizen' ? 0.45 : 0,
+            willChange: 'opacity',
+          }}
+        />
 
-      {/* Right Side: Citizen (OPPOSITE THEME) */}
-      <motion.div 
-        className="relative md:absolute md:inset-0 w-full min-h-screen md:min-h-0 md:h-full bg-text-primary group md:origin-right overflow-hidden flex items-center"
-        initial={false}
-        animate={isMobile ? { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', opacity: 1, filter: 'none', zIndex: 1 } : {
-          clipPath: hoveredPanel === 'citizen'
-            ? 'polygon(45% 0%, 100% 0%, 100% 100%, 35% 100%)'
-            : hoveredPanel === 'admin'
-            ? 'polygon(65% 0%, 100% 0%, 100% 100%, 55% 100%)'
-            : 'polygon(55% 0%, 100% 0%, 100% 100%, 45% 100%)',
-          opacity: hoveredPanel === 'admin' ? 0.6 : 1,
-          filter: hoveredPanel === 'admin' ? 'blur(4px) brightness(0.5)' : 'blur(0px) brightness(1)',
-          zIndex: hoveredPanel === 'citizen' ? 20 : 10,
-        }}
-        transition={{ type: "spring", stiffness: 200, damping: 30 }}
-        onMouseEnter={() => setHoveredPanel('citizen')}
-        onMouseLeave={() => setHoveredPanel(null)}
-      >
-         {/* Cinematic Background Image with Parallax Hover */}
-         <div className="absolute inset-0 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center opacity-15 group-hover:opacity-40 transition-all duration-1000 group-hover:scale-105 pointer-events-none" />
-         
-         <div className="absolute inset-0 opacity-40 group-hover:opacity-70 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-text-primary/10 via-text-primary/80 to-text-primary pointer-events-none" />
+        {/* Admin Background Layer */}
+        <div 
+          className="absolute inset-0 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center transition-opacity duration-700 ease-in-out"
+          style={{ 
+            opacity: activePortal === 'admin' ? 0.45 : 0,
+            willChange: 'opacity',
+          }}
+        />
+
+        {/* Contrast overlay so form inputs stay readable */}
+        <div className="absolute inset-0 bg-gradient-to-t from-surface/90 via-surface/80 to-surface/70" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent" />
+      </div>
+
+      {/* ========================================================= */}
+      {/* BASE CANVAS (Left: Admin Form, Right: Citizen Form)       */}
+      {/* ========================================================= */}
+      <div className="relative w-full h-full flex flex-col md:block z-10">
         
-         {/* Inner Content Container - aligned to right half */}
-        <motion.div 
-          className="relative md:absolute md:right-0 md:top-0 w-full md:w-[55%] h-full flex flex-col justify-center items-center md:items-end p-8 lg:p-16 z-10 md:pr-20 md:text-right py-24 md:py-8"
-          animate={isMobile ? { scale: 1 } : { scale: hoveredPanel === 'citizen' ? 1.05 : 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 30 }}
+        {/* Mobile Portal Tab Selector (< 768px) */}
+        <div className="md:hidden z-30 pt-24 px-6 flex items-center justify-center gap-3 bg-app-bg/80 backdrop-blur-md pb-4">
+          <button
+            onClick={() => setActivePortal('citizen')}
+            className={`flex-1 py-3 px-4 font-heading font-black text-xs uppercase tracking-widest -skew-x-12 border transition-all ${
+              activePortal === 'citizen'
+                ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/30'
+                : 'bg-surface text-text-secondary border-border-subtle'
+            }`}
+          >
+            <span className="skew-x-12 inline-block">Citizen Portal</span>
+          </button>
+          <button
+            onClick={() => setActivePortal('admin')}
+            className={`flex-1 py-3 px-4 font-heading font-black text-xs uppercase tracking-widest -skew-x-12 border transition-all ${
+              activePortal === 'admin'
+                ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/30'
+                : 'bg-surface text-text-secondary border-border-subtle'
+            }`}
+          >
+            <span className="skew-x-12 inline-block">LGU Command</span>
+          </button>
+        </div>
+
+        {/* --------------------------------------------------------- */}
+        {/* LEFT 50%: LGU Dispatcher Base Section                     */}
+        {/* --------------------------------------------------------- */}
+        <div className={`relative md:absolute md:left-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-8 lg:p-16 z-10 ${activePortal === 'admin' ? 'flex' : 'hidden md:flex'}`}>
+          <div className="relative z-10 w-full max-w-md">
+            <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
+              LGU Officer Sign In
+            </h2>
+            <p className="text-sm text-text-secondary mb-8 font-normal">
+              Sanitation supervisors, dispatch officers, and fleet operators.
+            </p>
+
+            <form onSubmit={handleAdminLogin} className="flex flex-col gap-4" noValidate>
+              <AnimatePresence>
+                {adminError && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="p-3 bg-red-500/10 border border-red-500/40 text-red-500 text-xs font-semibold"
+                  >
+                    {adminError}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <input
+                  type="email"
+                  required
+                  placeholder="Officer Email"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                />
+              </div>
+
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <input
+                  type={showAdminPassword ? 'text' : 'password'}
+                  required
+                  placeholder="Security Password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-10 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 cursor-pointer"
+                >
+                  {showAdminPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isAdminLoading}
+                className="w-full flex items-center justify-center bg-brand-primary text-white py-3.5 font-bold uppercase tracking-widest text-xs hover:shadow-lg hover:shadow-brand-primary/40 transition-all -skew-x-12 border-2 border-brand-primary disabled:opacity-50 cursor-pointer group mt-2"
+              >
+                <div className="skew-x-12 flex items-center gap-2">
+                  {isAdminLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enter Dispatch Portal'}
+                  {!isAdminLoading && <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
+                </div>
+              </button>
+            </form>
+
+            {/* Consistent, Clean Footer */}
+            <div className="mt-8 pt-4 border-t border-border-subtle flex items-center justify-end text-xs text-text-secondary">
+              <button
+                type="button"
+                onClick={() => setActivePortal('citizen')}
+                className="text-brand-primary font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span>Citizen Portal</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* --------------------------------------------------------- */}
+        {/* RIGHT 50%: Citizen Base Section                           */}
+        {/* --------------------------------------------------------- */}
+        <div className={`relative md:absolute md:right-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-8 lg:p-16 z-10 ${activePortal === 'citizen' ? 'flex' : 'hidden md:flex'}`}>
+          <div className="relative z-10 w-full max-w-md">
+            <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
+              {citizenMode === 'login' ? 'Citizen Sign In' : 'Create Account'}
+            </h2>
+            <p className="text-sm text-text-secondary mb-8 font-normal">
+              Submit canal blockages and safeguard neighborhood waterways.
+            </p>
+
+            {showEmailConfirmation ? (
+              <div className="p-6 bg-brand-primary/10 border border-brand-primary/30 text-center space-y-3">
+                <CheckCircle2 className="w-8 h-8 text-brand-primary mx-auto" />
+                <h4 className="font-heading font-bold text-text-primary">Confirmation Link Sent</h4>
+                <p className="text-xs text-text-secondary">
+                  Check <span className="font-bold text-text-primary">{citizenEmail}</span> to complete registration.
+                </p>
+                <button
+                  onClick={() => setShowEmailConfirmation(false)}
+                  className="text-xs font-bold text-brand-primary underline cursor-pointer"
+                >
+                  Back to Login
+                </button>
+              </div>
+            ) : (
+              <>
+                <form onSubmit={handleCitizenAuth} className="flex flex-col gap-3.5" noValidate>
+                  <AnimatePresence>
+                    {citizenError && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="p-3 bg-red-500/10 border border-red-500/40 text-red-500 text-xs font-semibold"
+                      >
+                        {citizenError}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <AnimatePresence>
+                    {citizenMode === 'signup' && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="relative"
+                      >
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                        <input
+                          type="text"
+                          required
+                          placeholder="Full Name"
+                          value={citizenName}
+                          onChange={(e) => setCitizenName(e.target.value)}
+                          className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="Email Address"
+                      value={citizenEmail}
+                      onChange={(e) => setCitizenEmail(e.target.value)}
+                      className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <input
+                      type={showCitizenPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Password"
+                      value={citizenPassword}
+                      onChange={(e) => setCitizenPassword(e.target.value)}
+                      className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-10 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCitizenPassword(!showCitizenPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 cursor-pointer"
+                    >
+                      {showCitizenPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  {/* Password Strength Meter */}
+                  <AnimatePresence>
+                    {citizenMode === 'signup' && citizenPassword.length > 0 && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }} 
+                        animate={{ opacity: 1, height: 'auto' }} 
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-1.5 overflow-hidden"
+                      >
+                        <div className="flex gap-1 h-1.5 w-full">
+                          {[1, 2, 3, 4].map((level) => {
+                            let score = 0;
+                            if (citizenPassword.length > 5) score += 1;
+                            if (citizenPassword.length > 7) score += 1;
+                            if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
+                            if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
+                            const strength = Math.min(score, 4);
+                            
+                            let bgClass = "bg-border-subtle";
+                            if (strength >= level) {
+                              if (strength <= 1) bgClass = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]";
+                              else if (strength === 2) bgClass = "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.4)]";
+                              else if (strength === 3) bgClass = "bg-brand-primary shadow-[0_0_8px_rgba(59,130,246,0.4)]";
+                              else bgClass = "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]";
+                            }
+                            return (
+                              <div key={level} className={`flex-1 rounded-sm transition-all duration-300 ${bgClass}`} />
+                            );
+                          })}
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-text-muted">Min 6 chars</span>
+                          <span className="font-heading font-bold uppercase tracking-wider">
+                            {(() => {
+                              let score = 0;
+                              if (citizenPassword.length > 5) score += 1;
+                              if (citizenPassword.length > 7) score += 1;
+                              if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
+                              if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
+                              const strength = Math.min(score, 4);
+                              if (strength <= 1) return <span className="text-red-500">Weak</span>;
+                              if (strength === 2) return <span className="text-yellow-500">Fair</span>;
+                              if (strength === 3) return <span className="text-brand-primary">Good</span>;
+                              return <span className="text-green-500">Strong</span>;
+                            })()}
+                          </span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <button
+                    type="submit"
+                    disabled={isCitizenLoading}
+                    className="w-full flex items-center justify-center bg-brand-primary text-white py-3 font-bold uppercase tracking-widest text-xs hover:shadow-lg hover:shadow-brand-primary/40 transition-all -skew-x-12 border-2 border-brand-primary disabled:opacity-50 cursor-pointer group mt-1"
+                  >
+                    <div className="skew-x-12 flex items-center gap-2">
+                      {isCitizenLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (citizenMode === 'login' ? 'Login' : 'Create Account')}
+                      {!isCitizenLoading && <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
+                    </div>
+                  </button>
+                </form>
+
+                <div className="relative flex items-center my-3">
+                  <div className="flex-grow border-t border-border-subtle"></div>
+                  <span className="shrink-0 mx-3 text-text-muted text-[10px] font-bold uppercase tracking-widest">or quick report</span>
+                  <div className="flex-grow border-t border-border-subtle"></div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/citizen')}
+                  className="w-full flex items-center justify-center bg-surface-subtle border-2 border-border-subtle text-text-primary py-2.5 text-xs font-bold uppercase tracking-widest hover:border-brand-primary transition-colors -skew-x-12 cursor-pointer group"
+                >
+                  <div className="skew-x-12 flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-brand-primary" />
+                    <span>Continue as Guest (No Account)</span>
+                  </div>
+                </button>
+
+                {/* Consistent, Clean Footer */}
+                <div className="mt-6 pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-text-secondary">
+                  <button
+                    type="button"
+                    onClick={() => setActivePortal('admin')}
+                    className="text-text-secondary hover:text-brand-primary font-semibold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>LGU Staff Access</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCitizenMode(citizenMode === 'login' ? 'signup' : 'login')}
+                    className="text-brand-primary font-bold hover:underline cursor-pointer"
+                  >
+                    {citizenMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ========================================================= */}
+        {/* OPPOSITE-THEME SLIDING PARALLELOGRAM WITH CONTOUR LINES   */}
+        {/* (Pure luxury surface with gently drifting wave contours)  */}
+        {/* ========================================================= */}
+        <motion.div
+          className={`hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden border-x-2 transition-colors duration-500 flex-col justify-center ${
+            isLight
+              ? 'bg-[#081B33] border-brand-primary/50 text-white shadow-[0_12px_60px_rgba(0,0,0,0.5)]'
+              : 'bg-[#F9FBFD] border-border-subtle/90 text-[#0B1E36] shadow-[0_12px_60px_rgba(0,0,0,0.6)]'
+          }`}
+          style={{ width: '60vw' }}
+          initial={false}
+          animate={{
+            x: activePortal === 'citizen' ? '-8vw' : '48vw',
+            skewX: -12,
+          }}
+          transition={{ type: "spring", stiffness: 150, damping: 24 }}
         >
-          <div className="max-w-md flex flex-col items-center md:items-end">
-            <div className="bg-brand-primary/10 p-4 rounded-2xl mb-6 ring-1 ring-brand-primary/20 shadow-[0_0_30px_rgba(var(--brand-primary),0.2)] backdrop-blur-md inline-block">
-              <Sprout className="w-10 h-10 text-brand-primary" />
+          {/* Animated bathymetric & topographic contour lines */}
+          <AnimatedContourLines isLight={isLight} />
+
+          {/* Un-skewed Content Container with Dynamic Responsive Padding */}
+          <div 
+            className="relative z-10 flex flex-col justify-center py-16 transition-all duration-500"
+            style={{ 
+              transform: 'skewX(12deg)',
+              paddingLeft: activePortal === 'citizen' ? '14vw' : '6vw',
+              paddingRight: activePortal === 'citizen' ? '6vw' : '14vw',
+            }}
+          >
+            <div className="max-w-lg">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activePortal}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <h1 className={`text-3xl lg:text-5xl font-heading font-black tracking-tight uppercase leading-[1.08] mb-4 drop-shadow-sm ${
+                    isLight ? 'text-white' : 'text-[#0B1E36]'
+                  }`}>
+                    {activePortal === 'citizen' ? (
+                      <>
+                        Keep our esteros{' '}
+                        <span className="relative inline-block overflow-hidden align-bottom">
+                          <AnimatePresence mode="wait">
+                            <motion.span
+                              key={`citizen-${dynamicWordIndex}`}
+                              initial={{ y: '100%', opacity: 0 }}
+                              animate={{ y: '0%', opacity: 1 }}
+                              exit={{ y: '-100%', opacity: 0 }}
+                              transition={{ duration: 0.28, ease: 'easeOut' }}
+                              className="inline-block text-brand-primary"
+                            >
+                              {citizenWords[dynamicWordIndex]}
+                            </motion.span>
+                          </AnimatePresence>
+                        </span>
+                        <br />
+                        Protect communities from flash floods.
+                      </>
+                    ) : (
+                      <>
+                        Precision triage & <br />
+                        cleanup fleet{' '}
+                        <span className="relative inline-block overflow-hidden align-bottom">
+                          <AnimatePresence mode="wait">
+                            <motion.span
+                              key={`admin-${dynamicWordIndex}`}
+                              initial={{ y: '100%', opacity: 0 }}
+                              animate={{ y: '0%', opacity: 1 }}
+                              exit={{ y: '-100%', opacity: 0 }}
+                              transition={{ duration: 0.28, ease: 'easeOut' }}
+                              className="inline-block text-brand-primary"
+                            >
+                              {adminWords[dynamicWordIndex]}
+                            </motion.span>
+                          </AnimatePresence>
+                        </span>
+                      </>
+                    )}
+                  </h1>
+
+                  <p className={`text-sm lg:text-base leading-relaxed mb-8 font-normal max-w-md ${
+                    isLight ? 'text-slate-300' : 'text-slate-600'
+                  }`}>
+                    {activePortal === 'citizen'
+                      ? 'Submit photos of canal obstructions in seconds. AI and rain forecast models automatically alert municipal cleanup crews.'
+                      : 'Prioritized drainage response for sanitation units. Dynamic hazard ranking and optimized cleanup routing.'}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Minimalist Feature Points */}
+              <div className={`space-y-3 max-w-md text-xs sm:text-sm font-medium ${
+                isLight ? 'text-slate-200' : 'text-slate-700'
+              }`}>
+                {activePortal === 'citizen' ? (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                      }`}>
+                        <Check className="w-2.5 h-2.5 text-brand-primary" />
+                      </div>
+                      <span>Zero registration required to submit canal photos</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                      }`}>
+                        <Check className="w-2.5 h-2.5 text-brand-primary" />
+                      </div>
+                      <span>Automated 48h flood risk & rain analysis</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                      }`}>
+                        <Check className="w-2.5 h-2.5 text-brand-primary" />
+                      </div>
+                      <span>Real-time weather-aware priority queue</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                      }`}>
+                        <Check className="w-2.5 h-2.5 text-brand-primary" />
+                      </div>
+                      <span>A* pathfinding for cleanup fleet routing</span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-            <h1 className="text-4xl md:text-5xl font-heading font-black mb-4 tracking-tighter drop-shadow-sm text-app-bg">Citizen Portal</h1>
-            <p className="text-surface text-lg mb-8 font-medium">Community gateway to report floating waste, view public waterway safety maps, and track local clean-up progress.</p>
-            <div className="space-y-4 mb-10 w-full">
-              <div className="flex items-center justify-center md:justify-end gap-3 p-3 rounded-xl bg-text-primary/60 border border-border-subtle w-full backdrop-blur-md shadow-sm">
-                <Camera className="w-5 h-5 text-brand-primary" />
-                <span className="font-bold text-app-bg">Geo-tagged Blockage Reporting</span>
-              </div>
-              <div className="flex items-center justify-center md:justify-end gap-3 p-3 rounded-xl bg-text-primary/60 border border-border-subtle w-full backdrop-blur-md shadow-sm">
-                <MapPin className="w-5 h-5 text-brand-primary" />
-                <span className="font-bold text-app-bg">Public Estero Status Map</span>
-              </div>
-            </div>
-            <button onClick={() => onOpenModal('citizen')} className="w-full md:w-auto flex items-center justify-center bg-brand-primary text-white px-8 py-4 font-bold hover:shadow-lg hover:shadow-brand-primary/40 transition-all hover:-translate-y-1 cursor-pointer -skew-x-12 border-2 border-brand-primary">
-              <div className="skew-x-12 flex items-center gap-2">
-                Enter Citizen Portal
-                <ArrowRight className="w-5 h-5" />
-              </div>
-            </button>
+
           </div>
         </motion.div>
-      </motion.div>
-      <div 
-        className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-40 hidden md:flex cursor-pointer transition-colors ${theme === 'dark' ? 'text-brand-primary' : 'text-white'}`}
-        onClick={() => scrollTo('features')}
-      >
-        <span className="text-[10px] font-bold uppercase tracking-widest mb-2 drop-shadow-md">Explore esteRoute</span>
-        <ChevronDown className="w-5 h-5 drop-shadow-md" />
+
+      </div>
+
+      {/* Floating Bottom Explore Prompt */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 hidden md:flex">
+        <button 
+          onClick={() => scrollTo('features')}
+          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer group ${
+            activePortal === 'admin'
+              ? 'text-brand-primary hover:text-white'
+              : 'text-white hover:text-brand-primary'
+          }`}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-widest group-hover:tracking-wider transition-all">
+            Explore
+          </span>
+          <ChevronDown className="w-4 h-4 animate-bounce" />
+        </button>
       </div>
     </section>
   );

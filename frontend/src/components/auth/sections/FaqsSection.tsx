@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { ChevronDown, MessageCircleQuestion } from 'lucide-react';
 
@@ -45,29 +45,56 @@ const faqCategories: Record<string, {q: string, a: string}[]> = {
 
 const categoryNames = Object.keys(faqCategories);
 
-const ScrollWriteText = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
-  const ref = React.useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start 85%", "end 50%"]
-  });
-  
-  const clipPath = useTransform(scrollYProgress, [0, 1], ["inset(-100% 100% -100% -100%)", "inset(-100% -100% -100% -100%)"]);
-
-  return (
-    <motion.div
-      ref={ref}
-      style={{ clipPath }}
-      className={`inline-block ${className}`}
-    >
-      {children}
-    </motion.div>
-  );
-};
+// Subtle, eye-friendly traveling perimeter highlight
+const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => (
+  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl md:rounded-none z-10">
+    <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id={`faq-beam-${delay}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#3F72AF" stopOpacity="0" />
+          <stop offset="50%" stopColor={color} stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#3F72AF" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <motion.rect
+        x="1"
+        y="1"
+        width="calc(100% - 2px)"
+        height="calc(100% - 2px)"
+        rx="2"
+        fill="none"
+        stroke={`url(#faq-beam-${delay})`}
+        strokeWidth="2.5"
+        strokeDasharray="120 1000"
+        animate={{
+          strokeDashoffset: [1120, 0],
+        }}
+        transition={{
+          duration: 9,
+          delay,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+        className="opacity-25 group-hover:opacity-90 transition-opacity duration-500"
+      />
+    </svg>
+  </div>
+);
 
 export default function FaqsSection() {
   const [activeCategory, setActiveCategory] = useState<string>(categoryNames[0]);
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  // Dynamic header cycling word (cycles every 3 seconds)
+  const [headerWordIndex, setHeaderWordIndex] = useState(0);
+  const headerWords = ['Platform.', 'Security.', 'Dispatch.'];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeaderWordIndex((prev) => (prev + 1) % 3);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   const activeFaqs = faqCategories[activeCategory];
 
@@ -86,30 +113,55 @@ export default function FaqsSection() {
       ref={ref}
       style={{ y, opacity }}
       id="faqs" 
-      className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-app-bg relative z-10 overflow-hidden"
+      className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-transparent relative z-10 overflow-hidden"
     >
-      <div className="w-full max-w-5xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto">
         
         {/* Header */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          className="text-center mb-16"
+          className="mb-16"
         >
-          <div className="inline-flex items-center justify-center px-4 py-2 bg-brand-primary/10 border-2 border-brand-primary/20 -skew-x-12 mb-6">
+          <div className="inline-flex items-center justify-center px-4 py-2 bg-brand-primary/10 border-2 border-brand-primary/20 -skew-x-12 mb-6 backdrop-blur-sm">
             <MessageCircleQuestion className="w-4 h-4 text-brand-primary skew-x-12 mr-2" />
             <span className="skew-x-12 text-xs font-heading font-black tracking-widest text-brand-primary uppercase">Knowledge Base</span>
           </div>
-          <h2 className="text-4xl lg:text-6xl font-heading font-black text-text-primary mb-4 flex flex-col items-center justify-center uppercase tracking-tighter">
-            <ScrollWriteText>Frequently Asked</ScrollWriteText>
-            <ScrollWriteText className="text-brand-primary mt-2">Questions.</ScrollWriteText>
+          <h2 className="text-4xl lg:text-6xl font-heading font-black text-text-primary mb-4 flex flex-col items-start tracking-tighter uppercase leading-[1.08]">
+            <span>Frequently Asked</span>
+            <span className="text-text-muted mt-2">
+              Questions on{' '}
+              <span className="relative inline-block overflow-hidden align-bottom">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={headerWordIndex}
+                    initial={{ y: '100%', opacity: 0 }}
+                    animate={{ y: '0%', opacity: 1 }}
+                    exit={{ y: '-100%', opacity: 0 }}
+                    transition={{ duration: 0.28, ease: 'easeOut' }}
+                    className="inline-block text-brand-primary"
+                  >
+                    {headerWords[headerWordIndex]}
+                  </motion.span>
+                </AnimatePresence>
+              </span>
+            </span>
           </h2>
-          <p className="text-lg text-text-secondary mt-6 font-medium">Everything you need to know about the esteRoute triage pipeline.</p>
+          <p className="text-base md:text-lg text-text-secondary max-w-2xl mt-6 font-medium leading-relaxed">
+            Everything you need to know about the autonomous esteRoute triage and dispatch&nbsp;pipeline.
+          </p>
+          <motion.div 
+            initial={{ width: 0 }}
+            whileInView={{ width: "5rem" }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+            className="h-1.5 bg-brand-primary mt-6 -skew-x-12" 
+          />
         </motion.div>
 
         {/* Category Tabs */}
-        <div className="flex flex-wrap justify-center gap-4 mb-12">
+        <div className="flex flex-wrap justify-start gap-4 mb-12">
           {categoryNames.map((cat) => {
             const isActive = activeCategory === cat;
             return (
@@ -120,7 +172,9 @@ export default function FaqsSection() {
                   setOpenIndex(0); // auto-open first item on switch
                 }}
                 className={`relative px-4 md:px-8 py-3 md:-skew-x-12 border-2 rounded-xl md:rounded-none transition-all duration-300 cursor-pointer ${
-                  isActive ? 'border-brand-primary bg-brand-primary text-app-bg' : 'border-border-subtle text-text-secondary hover:text-text-primary hover:border-text-primary bg-surface'
+                  isActive 
+                    ? 'border-brand-primary bg-brand-primary text-app-bg shadow-md' 
+                    : 'border-border-subtle text-text-secondary hover:text-text-primary hover:border-brand-primary bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl'
                 }`}
               >
                 <span className="relative z-10 md:skew-x-12 block font-heading font-black uppercase tracking-widest text-xs md:text-sm">{cat}</span>
@@ -145,19 +199,24 @@ export default function FaqsSection() {
                 return (
                   <motion.div 
                     key={i}
-                    className={`border-2 rounded-xl md:rounded-none transition-colors duration-300 md:-skew-x-12 ${
-                      isOpen ? 'bg-brand-primary/5 border-brand-primary' : 'bg-surface border-border-subtle hover:border-brand-primary/50'
+                    className={`group relative border-2 rounded-xl md:rounded-none transition-all duration-500 md:-skew-x-12 overflow-hidden ${
+                      isOpen 
+                        ? 'bg-surface/85 backdrop-blur-xl border-brand-primary shadow-lg' 
+                        : 'bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-border-subtle hover:border-brand-primary shadow-sm hover:shadow-xl'
                     }`}
                   >
-                    <div className="md:skew-x-12">
+                    {/* Perimeter running light */}
+                    <BorderBeam delay={(i % 4) * 1.5} color={isOpen ? "#60A5FA" : "#3F72AF"} />
+
+                    <div className="md:skew-x-12 relative z-10">
                       <button
                         onClick={() => setOpenIndex(isOpen ? null : i)}
-                        className="w-full px-6 py-5 flex items-center justify-between text-left focus:outline-none cursor-pointer group"
+                        className="w-full px-6 py-5 flex items-center justify-between text-left focus:outline-none cursor-pointer"
                       >
                         <span className={`font-heading font-black text-base md:text-lg pr-8 uppercase tracking-wide transition-colors ${isOpen ? 'text-brand-primary' : 'text-text-primary group-hover:text-brand-primary'}`}>
                           {faq.q}
                         </span>
-                        <div className={`w-8 h-8 flex items-center justify-center border-2 transition-all duration-300 ${isOpen ? 'border-brand-primary bg-brand-primary text-brand-white' : 'border-border-subtle text-text-secondary group-hover:border-brand-primary/50'}`}>
+                        <div className={`w-8 h-8 flex items-center justify-center border-2 transition-all duration-300 ${isOpen ? 'border-brand-primary bg-brand-primary text-brand-white' : 'border-border-subtle text-text-secondary group-hover:border-brand-primary group-hover:text-brand-primary'}`}>
                           <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                         </div>
                       </button>

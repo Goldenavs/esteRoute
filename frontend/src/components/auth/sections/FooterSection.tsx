@@ -47,7 +47,7 @@ export default function FooterSection() {
   }, [activeDoc]);
 
   return (
-    <footer id="footer" className="relative z-20 bg-surface-subtle py-8 border-t-2 border-border-subtle overflow-hidden">
+    <footer id="footer" className="relative z-20 bg-surface-subtle pt-12 pb-8 border-t-2 border-border-subtle overflow-visible">
       <div className="w-full max-w-7xl mx-auto px-6 lg:px-16 flex flex-col md:flex-row items-center justify-between gap-8">
 
         {/* Brand & Text (Left) */}
@@ -84,7 +84,7 @@ export default function FooterSection() {
             <div className="skew-x-12">
               <UserIcon className="w-5 h-5" />
             </div>
-            <span className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1 bg-surface border-2 border-border-subtle text-[10px] font-heading font-black tracking-widest uppercase text-text-primary opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl skew-x-12">
+            <span className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1 bg-surface border-2 border-border-subtle text-[10px] font-heading font-black tracking-widest uppercase text-text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap pointer-events-none shadow-2xl skew-x-12 z-30 group-hover:-translate-y-1">
               Meet the Dev
             </span>
           </a>
@@ -96,12 +96,15 @@ export default function FooterSection() {
             href="https://github.com/Goldenavs"
             target="_blank"
             rel="noopener noreferrer"
-            className="p-3 bg-surface border-2 border-border-subtle text-text-secondary hover:text-text-primary hover:border-text-primary hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer -skew-x-12"
+            className="p-3 bg-surface border-2 border-border-subtle text-text-secondary hover:text-text-primary hover:border-text-primary hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer -skew-x-12 relative group"
             aria-label="GitHub"
           >
             <div className="skew-x-12">
               <GithubIcon className="w-5 h-5" />
             </div>
+            <span className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1 bg-surface border-2 border-border-subtle text-[10px] font-heading font-black tracking-widest uppercase text-text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap pointer-events-none shadow-2xl skew-x-12 z-30 group-hover:-translate-y-1">
+              GitHub
+            </span>
           </a>
         </div>
       </div>
@@ -156,22 +159,30 @@ export default function FooterSection() {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-2xl bg-surface border-2 border-border-subtle shadow-2xl overflow-hidden flex flex-col max-h-[80vh] -skew-x-3"
+                className="relative w-full max-w-2xl z-10"
               >
-                <div className="skew-x-3 h-full flex flex-col">
+                {/* Skewed Parallelogram Modal Container */}
+                <div className="w-full bg-surface border-2 border-border-subtle shadow-2xl overflow-hidden flex flex-col max-h-[80vh] md:-skew-x-6 rounded-2xl md:rounded-none">
+                  {/* Header Banner: Flush with the container's -skew-x-6 parallelogram */}
                   <div className="p-6 border-b-2 border-border-subtle flex items-center justify-between bg-surface-subtle">
-                    <h3 className="text-xl font-heading font-black uppercase tracking-widest text-text-primary">{activeDoc}</h3>
+                    <h3 className="text-xl font-heading font-black uppercase tracking-widest text-text-primary md:skew-x-6">
+                      {activeDoc}
+                    </h3>
                     <button
                       onClick={() => setActiveDoc(null)}
-                      className="p-2 text-text-secondary hover:text-brand-primary transition-colors bg-surface border-2 border-border-subtle hover:border-brand-primary cursor-pointer -skew-x-12"
+                      className="p-2 text-text-secondary hover:text-brand-primary transition-colors bg-surface border-2 border-border-subtle hover:border-brand-primary cursor-pointer"
+                      aria-label="Close modal"
                     >
-                      <div className="skew-x-12">
+                      <div className="md:skew-x-6">
                         <CloseIcon className="w-5 h-5" />
                       </div>
                     </button>
                   </div>
-                  <div className="p-8 text-base text-text-secondary leading-loose overflow-y-auto font-medium">
-                    <p>{legalContent[activeDoc]}</p>
+                  {/* Body Content: Counter-skewed so text lines are completely upright */}
+                  <div className="p-8 md:px-12 text-base text-text-secondary leading-loose overflow-y-auto font-medium">
+                    <div className="md:skew-x-6">
+                      <p>{legalContent[activeDoc]}</p>
+                    </div>
                   </div>
                 </div>
               </motion.div>
