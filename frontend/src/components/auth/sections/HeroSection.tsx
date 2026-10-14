@@ -417,30 +417,35 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         {/* PARALLELOGRAM SKEWED SLIDING OVERLAY CONTAINER (Desktop)  */}
         {/* ========================================================= */}
         <motion.div
-          className="hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden bg-brand-dark text-white border-x-2 border-brand-primary/50 shadow-[0_0_60px_rgba(0,0,0,0.7)] flex-col justify-between -skew-x-12"
+          className="hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden backdrop-blur-3xl bg-surface/85 text-text-primary border-x-2 border-brand-primary/40 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex-col justify-between"
           style={{ width: '60vw' }}
           initial={false}
           animate={{
             x: activePortal === 'citizen' ? '-8vw' : '48vw',
+            skewX: -12,
           }}
           transition={{ type: "spring", stiffness: 150, damping: 24 }}
         >
-          {/* Background Images matching active state */}
+          {/* Background Images shining subtly through frosted glass */}
           <div 
-            className={`absolute inset-0 bg-cover bg-center transition-all duration-1000 opacity-25 pointer-events-none scale-110 ${
+            className={`absolute inset-0 bg-cover bg-center transition-all duration-1000 opacity-20 pointer-events-none scale-110 ${
               activePortal === 'citizen' ? "bg-[url('/Auth/AdminAuth.jpg')]" : "bg-[url('/Auth/CitizenAuth.jpg')]"
             }`} 
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-brand-dark/95 via-brand-dark/90 to-brand-dark/95 pointer-events-none" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/20 via-transparent to-transparent pointer-events-none" />
+          {/* Frosted Glass Theme-adaptive gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-surface/75 via-surface/45 to-surface/80 pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/15 via-transparent to-transparent pointer-events-none" />
 
-          {/* Un-skewed Content Container */}
-          <div className="relative z-10 h-full flex flex-col justify-between p-12 lg:p-20 skew-x-12">
+          {/* Un-skewed Content Container: counteracts the -12deg skew of the parent */}
+          <div 
+            className="relative z-10 h-full flex flex-col justify-between p-12 lg:p-20"
+            style={{ transform: 'skewX(12deg)' }}
+          >
             
             {/* Top Brand & Civic Tag */}
             <div className="max-w-lg">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-sm bg-brand-primary/20 border border-brand-primary/40 text-brand-light mb-6">
-                <span className="text-[11px] font-heading font-black tracking-widest uppercase text-brand-light flex items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-sm bg-brand-primary/10 border border-brand-primary/30 text-brand-primary mb-6">
+                <span className="text-[11px] font-heading font-black tracking-widest uppercase text-brand-primary flex items-center gap-2">
                   {activePortal === 'citizen' ? (
                     <>
                       <Sparkles className="w-3.5 h-3.5 text-brand-primary" />
@@ -463,7 +468,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <h1 className="text-3xl lg:text-5xl font-heading font-black tracking-tight uppercase leading-[1.08] mb-4 drop-shadow">
+                  <h1 className="text-3xl lg:text-5xl font-heading font-black tracking-tight uppercase leading-[1.08] mb-4 text-text-primary drop-shadow-sm">
                     {activePortal === 'citizen' ? (
                       <>
                         Keep our <span className="text-brand-primary">esteros</span> clean. <br />
@@ -477,7 +482,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                     )}
                   </h1>
 
-                  <p className="text-brand-light/80 text-sm lg:text-base leading-relaxed mb-6 font-normal max-w-md">
+                  <p className="text-text-secondary text-sm lg:text-base leading-relaxed mb-6 font-normal max-w-md">
                     {activePortal === 'citizen'
                       ? 'Submit photos of canal obstructions in seconds. Gemini 1.5 multimodal AI and Open-Meteo precipitation models automatically compute flood risk and alert municipal responders.'
                       : 'Transform unranked citizen reports into a prioritized, weather-aware dispatch queue. Coordinate drone surveys, route sanitation crews via A* pathfinding, and log resolved waterways.'}
@@ -489,30 +494,30 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
               <div className="space-y-3 mt-6 max-w-md">
                 {activePortal === 'citizen' ? (
                   <>
-                    <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-sm">
+                    <div className="flex items-center gap-3 p-3 bg-surface-subtle/70 border border-border-subtle rounded-sm backdrop-blur-sm">
                       <Camera className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span className="text-xs font-medium text-brand-light">
+                      <span className="text-xs font-medium text-text-primary">
                         Zero Friction: No registration required to submit canal photos
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-sm">
+                    <div className="flex items-center gap-3 p-3 bg-surface-subtle/70 border border-border-subtle rounded-sm backdrop-blur-sm">
                       <CloudRain className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span className="text-xs font-medium text-brand-light">
+                      <span className="text-xs font-medium text-text-primary">
                         48h Rain Forecast Risk Analysis via Open-Meteo
                       </span>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-sm">
+                    <div className="flex items-center gap-3 p-3 bg-surface-subtle/70 border border-border-subtle rounded-sm backdrop-blur-sm">
                       <Navigation className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span className="text-xs font-medium text-brand-light">
+                      <span className="text-xs font-medium text-text-primary">
                         A* Algorithmic Optimization for Fleet Cleaning Routes
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-sm">
+                    <div className="flex items-center gap-3 p-3 bg-surface-subtle/70 border border-border-subtle rounded-sm backdrop-blur-sm">
                       <ShieldAlert className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span className="text-xs font-medium text-brand-light">
+                      <span className="text-xs font-medium text-text-primary">
                         Dynamic Severity Prioritization & Live Map Tracking
                       </span>
                     </div>
@@ -522,13 +527,13 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
             </div>
 
             {/* Bottom Door Actions */}
-            <div className="pt-6 border-t border-white/10 flex flex-col gap-3 max-w-lg">
+            <div className="pt-6 border-t border-border-subtle flex flex-col gap-3 max-w-lg">
               {activePortal === 'citizen' ? (
                 <div className="flex items-center justify-between">
                   <button
                     type="button"
                     onClick={() => navigate('/citizen/public-map')}
-                    className="inline-flex items-center gap-2 text-xs font-bold text-brand-light hover:text-white transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
                   >
                     <MapPin className="w-4 h-4 text-brand-primary" />
                     <span>View Public Estero Map →</span>
@@ -557,7 +562,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   <button
                     type="button"
                     onClick={() => navigate('/citizen')}
-                    className="inline-flex items-center gap-2 text-xs font-bold text-brand-light hover:text-white transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
                   >
                     <span>Submit Citizen Report →</span>
                   </button>
