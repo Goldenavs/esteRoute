@@ -118,26 +118,15 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
   const [isCitizenLoading, setIsCitizenLoading] = useState(false);
   const [showCitizenPassword, setShowCitizenPassword] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  // Rotating live ticker messages (cycles every 3 seconds)
-  const [tickerIndex, setTickerIndex] = useState(0);
+  // Dynamic headline cycling word (cycles every 3 seconds in a 3-word loop)
+  const [dynamicWordIndex, setDynamicWordIndex] = useState(0);
 
-  const citizenTicker = [
-    'Gemini 1.5 multimodal vision triage in under 5 seconds',
-    'Open-Meteo 48-hour local precipitation risk modeling',
-    'Automated barangay canal blockage severity ranking',
-    'Direct coordination with municipal sanitation response units'
-  ];
-
-  const adminTicker = [
-    'A* algorithmic cleanup fleet pathfinding & optimization',
-    'Real-time drone telemetry & incident photo queue ingestion',
-    'Priority score synthesis: rainfall probability + occlusion severity',
-    'Dynamic status transitions from pending triage to resolved'
-  ];
+  const citizenWords = ['clean.', 'safe.', 'flowing.'];
+  const adminWords = ['dispatch.', 'routing.', 'response.'];
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTickerIndex((prev) => (prev + 1) % 4);
+      setDynamicWordIndex((prev) => (prev + 1) % 3);
     }, 3000);
     return () => clearInterval(timer);
   }, []);
@@ -591,34 +580,6 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
             }}
           >
             <div className="max-w-lg">
-              {/* Dynamic Live Telemetry Ticker (Changes every 3 seconds) */}
-              <div className="mb-6 flex items-center">
-                <div className={`inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full border text-xs font-semibold backdrop-blur-md transition-all duration-300 ${
-                  isLight 
-                    ? 'bg-white/10 border-white/15 text-slate-200' 
-                    : 'bg-brand-primary/10 border-brand-primary/20 text-[#112D4E]'
-                }`}>
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-primary"></span>
-                  </span>
-                  <div className="overflow-hidden h-4 flex items-center">
-                    <AnimatePresence mode="wait">
-                      <motion.span
-                        key={`${activePortal}-${tickerIndex}`}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.3 }}
-                        className="inline-block truncate max-w-sm sm:max-w-md font-data text-[11px] tracking-wide"
-                      >
-                        {activePortal === 'citizen' ? citizenTicker[tickerIndex] : adminTicker[tickerIndex]}
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activePortal}
@@ -632,13 +593,42 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   }`}>
                     {activePortal === 'citizen' ? (
                       <>
-                        Keep our <span className="text-brand-primary">esteros</span> clean. <br />
+                        Keep our esteros{' '}
+                        <span className="relative inline-block overflow-hidden align-bottom">
+                          <AnimatePresence mode="wait">
+                            <motion.span
+                              key={`citizen-${dynamicWordIndex}`}
+                              initial={{ y: '100%', opacity: 0 }}
+                              animate={{ y: '0%', opacity: 1 }}
+                              exit={{ y: '-100%', opacity: 0 }}
+                              transition={{ duration: 0.28, ease: 'easeOut' }}
+                              className="inline-block text-brand-primary"
+                            >
+                              {citizenWords[dynamicWordIndex]}
+                            </motion.span>
+                          </AnimatePresence>
+                        </span>
+                        <br />
                         Protect communities from flash floods.
                       </>
                     ) : (
                       <>
-                        Precision <span className="text-brand-primary">triage</span> & <br />
-                        cleanup fleet dispatch.
+                        Precision triage & <br />
+                        cleanup fleet{' '}
+                        <span className="relative inline-block overflow-hidden align-bottom">
+                          <AnimatePresence mode="wait">
+                            <motion.span
+                              key={`admin-${dynamicWordIndex}`}
+                              initial={{ y: '100%', opacity: 0 }}
+                              animate={{ y: '0%', opacity: 1 }}
+                              exit={{ y: '-100%', opacity: 0 }}
+                              transition={{ duration: 0.28, ease: 'easeOut' }}
+                              className="inline-block text-brand-primary"
+                            >
+                              {adminWords[dynamicWordIndex]}
+                            </motion.span>
+                          </AnimatePresence>
+                        </span>
                       </>
                     )}
                   </h1>
