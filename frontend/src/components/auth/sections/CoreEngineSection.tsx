@@ -452,10 +452,7 @@ export default function CoreEngineSection() {
               <BorderBeam delay={1.5} color="#60A5FA" />
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
               <div className="md:skew-x-12 h-full flex flex-col justify-center">
-                <div className="w-12 h-12 bg-brand-primary/10 border-2 border-brand-primary/20 flex items-center justify-center mb-6">
-                  <Sparkles className="w-5 h-5 text-brand-primary" />
-                </div>
-                <h3 className="text-xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">Multimodal Vision</h3>
+                <h3 className="text-xl md:text-2xl font-heading font-black text-text-primary uppercase tracking-tight mb-3">Multimodal Vision</h3>
                 <p className="text-text-secondary leading-relaxed text-sm md:text-base">
                   Uses Google Gemini 1.5 Flash to automatically classify blockage severity and identify specific waste types (plastics, silt) directly from photos without human review.
                 </p>
@@ -476,10 +473,7 @@ export default function CoreEngineSection() {
               <BorderBeam delay={3} color="#38BDF8" />
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
               <div className="md:skew-x-12 h-full flex flex-col justify-center">
-                <div className="w-12 h-12 bg-[#38bdf8]/10 border-2 border-[#38bdf8]/20 flex items-center justify-center mb-6">
-                  <CloudRain className="w-5 h-5 text-[#38bdf8]" />
-                </div>
-                <h3 className="text-xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">Weather Synthesis</h3>
+                <h3 className="text-xl md:text-2xl font-heading font-black text-text-primary uppercase tracking-tight mb-3">Weather Synthesis</h3>
                 <p className="text-text-secondary leading-relaxed text-sm md:text-base">
                   Cross-references Open-Meteo's 48-hour precipitation data. The Synthesis Engine calculates a 60/40 weighted Priority Score combining physical severity and imminent rain risk.
                 </p>
