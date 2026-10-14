@@ -9,13 +9,14 @@ import AuthModals from '../../components/auth/modals/AuthModals';
 
 export default function UniversalLogin() {
   const [activeSection, setActiveSection] = useState('hero');
+  const [activePortal, setActivePortal] = useState<'citizen' | 'admin'>('citizen');
   const [activeModal, setActiveModal] = useState<'admin' | 'citizen' | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const isScrollingRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      // Elevate navbar when scrolled
+      // Elevate navbar when scrolled past top offset
       setIsScrolled(window.scrollY > 20);
 
       if (isScrollingRef.current) return;
@@ -59,8 +60,18 @@ export default function UniversalLogin() {
 
   return (
     <div className="min-h-screen bg-app-bg text-text-primary w-full overflow-x-hidden">
-      <AuthNavbar activeSection={activeSection} isScrolled={isScrolled} scrollTo={scrollTo} onOpenModal={setActiveModal} />
-      <HeroSection scrollTo={scrollTo} onOpenModal={setActiveModal} />
+      <AuthNavbar 
+        activeSection={activeSection} 
+        isScrolled={isScrolled} 
+        scrollTo={scrollTo} 
+        activePortal={activePortal}
+        onSelectPortal={setActivePortal}
+      />
+      <HeroSection 
+        activePortal={activePortal}
+        setActivePortal={setActivePortal}
+        scrollTo={scrollTo} 
+      />
       <FeaturesSection />
       <CoreEngineSection />
       <FaqsSection />
