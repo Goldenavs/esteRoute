@@ -24,6 +24,79 @@ interface HeroSectionProps {
   scrollTo: (id: string) => void;
 }
 
+// Subtle, slowly moving topographic / bathymetric contour lines
+const AnimatedContourLines = ({ isLight }: { isLight: boolean }) => {
+  const strokeColor = isLight ? '#3F72AF' : '#112D4E';
+  
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+      <svg 
+        className="w-full h-full min-w-[800px] min-h-[700px] opacity-25" 
+        viewBox="0 0 1200 900" 
+        preserveAspectRatio="none"
+        fill="none"
+      >
+        {/* Layer 1: Primary organic topographic curves */}
+        <motion.g
+          animate={{
+            x: [0, 35, -20, 0],
+            y: [0, -20, 15, 0],
+          }}
+          transition={{
+            duration: 24,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          stroke={strokeColor}
+          strokeWidth="1.5"
+          opacity="0.85"
+        >
+          <path d="M-200,80 C150,20 380,180 720,100 S1100,20 1500,140" />
+          <path d="M-200,220 C100,150 420,320 760,230 S1150,150 1500,280" />
+          <path d="M-200,360 C180,280 340,450 720,370 S1200,290 1500,410" />
+          <path d="M-200,500 C120,420 440,590 800,500 S1120,410 1500,550" />
+          <path d="M-200,640 C200,550 360,710 740,630 S1180,540 1500,680" />
+          <path d="M-200,780 C140,690 460,840 820,760 S1140,660 1500,810" />
+          <path d="M-200,920 C220,830 380,970 760,890 S1210,790 1500,940" />
+        </motion.g>
+
+        {/* Layer 2: Secondary intermediate dashed elevation lines */}
+        <motion.g
+          animate={{
+            x: [0, -30, 25, 0],
+            y: [0, 25, -20, 0],
+          }}
+          transition={{
+            duration: 32,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          stroke={strokeColor}
+          strokeWidth="1.2"
+          strokeDasharray="4 8"
+          opacity="0.5"
+        >
+          <path d="M-200,150 C120,85 400,250 740,165 S1125,85 1500,210" />
+          <path d="M-200,290 C140,215 380,385 740,300 S1175,220 1500,345" />
+          <path d="M-200,430 C150,350 410,520 760,435 S1160,350 1500,480" />
+          <path d="M-200,570 C160,485 400,650 770,565 S1150,475 1500,615" />
+          <path d="M-200,710 C170,620 410,775 780,695 S1160,600 1500,745" />
+          <path d="M-200,850 C180,760 420,905 790,825 S1175,725 1500,875" />
+        </motion.g>
+      </svg>
+
+      {/* Subtle atmospheric sheen */}
+      <div 
+        className={`absolute inset-0 pointer-events-none ${
+          isLight 
+            ? 'bg-gradient-to-tr from-brand-primary/10 via-transparent to-brand-primary/5' 
+            : 'bg-gradient-to-tr from-brand-primary/5 via-transparent to-transparent'
+        }`} 
+      />
+    </div>
+  );
+};
+
 export default function HeroSection({ activePortal, setActivePortal, scrollTo }: HeroSectionProps) {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -128,7 +201,6 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
     >
       {/* ========================================================= */}
       {/* SEAMLESS FULL-VIEWPORT BACKGROUND WITH SMOOTH CROSSFADE   */}
-      {/* (Completely eliminates the split-seam artifact)           */}
       {/* ========================================================= */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div 
@@ -137,7 +209,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
           }`}
           style={{ opacity: 0.45 }}
         />
-        {/* Balanced Vignette & Contrast Overlay so form inputs stay crisp */}
+        {/* Contrast overlay so form inputs stay readable */}
         <div className="absolute inset-0 bg-gradient-to-t from-surface/90 via-surface/80 to-surface/70" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent" />
       </div>
@@ -410,14 +482,14 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         </div>
 
         {/* ========================================================= */}
-        {/* OPPOSITE-THEME FROSTED GLASS SLIDING PARALLELOGRAM        */}
-        {/* (Contrasts vividly against the base background)           */}
+        {/* OPPOSITE-THEME SLIDING PARALLELOGRAM WITH CONTOUR LINES   */}
+        {/* (Pure luxury surface with gently drifting wave contours)  */}
         {/* ========================================================= */}
         <motion.div
-          className={`hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden backdrop-blur-3xl border-x transition-colors duration-500 flex-col justify-center ${
+          className={`hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden border-x-2 transition-colors duration-500 flex-col justify-center ${
             isLight
-              ? 'bg-[#0B1E36]/80 border-brand-primary/40 text-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]'
-              : 'bg-white/85 border-white/60 text-[#112D4E] shadow-[0_12px_40px_rgba(0,0,0,0.5)]'
+              ? 'bg-[#081B33] border-brand-primary/50 text-white shadow-[0_12px_60px_rgba(0,0,0,0.5)]'
+              : 'bg-[#F9FBFD] border-border-subtle/90 text-[#0B1E36] shadow-[0_12px_60px_rgba(0,0,0,0.6)]'
           }`}
           style={{ width: '60vw' }}
           initial={false}
@@ -427,14 +499,8 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
           }}
           transition={{ type: "spring", stiffness: 150, damping: 24 }}
         >
-          {/* Subtle Opposite-Theme Frosted Glass Shimmer Overlay */}
-          <div 
-            className={`absolute inset-0 pointer-events-none ${
-              isLight 
-                ? 'bg-gradient-to-b from-white/10 via-transparent to-black/30' 
-                : 'bg-gradient-to-b from-white/50 via-transparent to-black/5'
-            }`} 
-          />
+          {/* Animated bathymetric & topographic contour lines */}
+          <AnimatedContourLines isLight={isLight} />
 
           {/* Un-skewed Content Container with Dynamic Responsive Padding */}
           <div 
@@ -455,7 +521,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   transition={{ duration: 0.25 }}
                 >
                   <h1 className={`text-3xl lg:text-5xl font-heading font-black tracking-tight uppercase leading-[1.08] mb-4 drop-shadow-sm ${
-                    isLight ? 'text-white' : 'text-[#112D4E]'
+                    isLight ? 'text-white' : 'text-[#0B1E36]'
                   }`}>
                     {activePortal === 'citizen' ? (
                       <>

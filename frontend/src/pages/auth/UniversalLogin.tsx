@@ -16,8 +16,13 @@ export default function UniversalLogin() {
 
   useEffect(() => {
     const handleScroll = () => {
-      // Show navbar ONLY when scrolled past the hero section (into features section)
-      setIsScrolled(window.scrollY > window.innerHeight - 150);
+      // Show navbar ONLY when the hero is completely off-screen (features section fully on screen)
+      const heroEl = document.getElementById('hero');
+      if (heroEl) {
+        setIsScrolled(heroEl.getBoundingClientRect().bottom <= 10);
+      } else {
+        setIsScrolled(window.scrollY >= window.innerHeight);
+      }
 
       if (isScrollingRef.current) return;
       
@@ -45,8 +50,8 @@ export default function UniversalLogin() {
     
     const element = document.getElementById(id);
     if (element) {
-      const offset = 100; // Account for the floating navbar
-      const top = element.getBoundingClientRect().top + window.scrollY - offset;
+      // Scroll flush so target section occupies the full screen
+      const top = element.getBoundingClientRect().top + window.scrollY;
       
       window.scrollTo({ top, behavior: 'smooth' });
       
