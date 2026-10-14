@@ -34,6 +34,42 @@ const SharpNode = ({ icon, label, sublabel, borderColor, iconColor, bgColor = "b
   </motion.div>
 );
 
+// Subtle, eye-friendly traveling perimeter highlight
+const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => (
+  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl md:rounded-none z-10">
+    <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id={`engine-beam-${delay}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#3F72AF" stopOpacity="0" />
+          <stop offset="50%" stopColor={color} stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#3F72AF" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <motion.rect
+        x="1"
+        y="1"
+        width="calc(100% - 2px)"
+        height="calc(100% - 2px)"
+        rx="2"
+        fill="none"
+        stroke={`url(#engine-beam-${delay})`}
+        strokeWidth="2.5"
+        strokeDasharray="160 1400"
+        animate={{
+          strokeDashoffset: [1560, 0],
+        }}
+        transition={{
+          duration: 9,
+          delay,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+        className="opacity-30 group-hover:opacity-90 transition-opacity duration-500"
+      />
+    </svg>
+  </div>
+);
+
 export default function CoreEngineSection() {
   const ref = useRef<HTMLElement>(null);
   
@@ -110,8 +146,8 @@ export default function CoreEngineSection() {
             </span>
           </h2>
 
-          <p className="text-base md:text-lg text-text-secondary max-w-2xl mt-6 font-medium leading-relaxed">
-            A standalone three-tier architecture that intercepts citizen reports, routes them through specialized AI agents, and synthesizes a quantifiable Priority Score.
+          <p className="text-base md:text-lg text-text-secondary max-w-3xl mt-6 font-medium leading-relaxed">
+            A standalone three-tier architecture that intercepts citizen reports, routes them through specialized AI agents, and synthesizes a quantifiable Priority&nbsp;Score.
           </p>
 
           <motion.div 
@@ -131,13 +167,12 @@ export default function CoreEngineSection() {
           transition={{ duration: 0.8 }}
           className="w-full relative mt-8 mb-20"
         >
-          {/* Outer parallelogram container (Translucent Glass) */}
+          {/* Outer parallelogram container (Translucent Glass with Hover Blur & Edge Light) */}
           <div 
-            className="w-full h-[520px] md:h-[540px] border-2 border-border-subtle md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-2xl md:rounded-none"
-            style={{
-              backgroundColor: 'color-mix(in srgb, var(--theme-surface) 15%, transparent)',
-            }}
+            className="group w-full h-[520px] md:h-[540px] border-2 border-border-subtle hover:border-brand-primary md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-2xl md:rounded-none bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl transition-all duration-500"
           >
+            {/* Edge perimeter running light */}
+            <BorderBeam delay={0} color="#60A5FA" />
             {/* Subtle grid background inside the parallelogram */}
             <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none md:skew-x-12 scale-150" />
             
@@ -411,11 +446,10 @@ export default function CoreEngineSection() {
             viewport={{ once: true }}
           >
             <div 
-              className="group border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none shadow-sm hover:shadow-xl"
-              style={{
-                backgroundColor: 'color-mix(in srgb, var(--theme-surface) 15%, transparent)',
-              }}
+              className="group border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none shadow-sm hover:shadow-2xl bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl"
             >
+              {/* Edge perimeter running light */}
+              <BorderBeam delay={1.5} color="#60A5FA" />
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
               <div className="md:skew-x-12 h-full flex flex-col justify-center">
                 <div className="w-12 h-12 bg-brand-primary/10 border-2 border-brand-primary/20 flex items-center justify-center mb-6">
@@ -436,11 +470,10 @@ export default function CoreEngineSection() {
             transition={{ delay: 0.2 }}
           >
             <div 
-              className="group border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-300 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none shadow-sm hover:shadow-xl"
-              style={{
-                backgroundColor: 'color-mix(in srgb, var(--theme-surface) 15%, transparent)',
-              }}
+              className="group border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-500 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none shadow-sm hover:shadow-2xl bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl"
             >
+              {/* Edge perimeter running light */}
+              <BorderBeam delay={3} color="#38BDF8" />
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
               <div className="md:skew-x-12 h-full flex flex-col justify-center">
                 <div className="w-12 h-12 bg-[#38bdf8]/10 border-2 border-[#38bdf8]/20 flex items-center justify-center mb-6">

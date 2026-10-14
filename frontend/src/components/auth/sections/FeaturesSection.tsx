@@ -112,6 +112,10 @@ export default function FeaturesSection() {
             </span>
           </h2>
 
+          <p className="text-base md:text-lg text-text-secondary max-w-3xl mt-6 font-medium leading-relaxed">
+            An end-to-end urban drainage intelligence platform connecting real-time citizen reports with automated multimodal triage and priority dispatch.
+          </p>
+
           <motion.div 
             initial={{ width: 0 }}
             whileInView={{ width: "5rem" }}
