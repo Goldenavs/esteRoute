@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Droplets, MapPin, Map, Activity, User, LogOut } from 'lucide-react';
+import { MapPin, Map, Activity, User, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -74,12 +74,13 @@ export default function CitizenLayout() {
           <div className="w-full max-w-[95%] xl:max-w-7xl relative pointer-events-none">
             <div className="w-full flex items-center justify-between pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12">
               
-              {/* Left: Logo */}
+              {/* Left: Brand Logo (Non-clickable, matching landing page hover effect & styling) */}
               <div className="flex-1 flex justify-start skew-x-12">
-                <Link to="/citizen" className="flex items-center gap-2 text-brand-primary font-heading font-black tracking-tighter text-lg uppercase cursor-pointer transition-transform hover:scale-105">
-                  <Droplets className="w-6 h-6" />
-                  <span>este<span className="text-text-primary">Route</span></span>
-                </Link>
+                <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default">
+                  <span className="text-text-primary group-hover:text-brand-primary transition-colors">
+                    este<span className="text-brand-primary">Route</span>
+                  </span>
+                </div>
               </div>
               
               {/* Center: Navigation Links */}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X, Shield, Sun, Moon } from 'lucide-react';
+import { Menu, X, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -120,14 +120,13 @@ export default function AuthNavbar({
               <button 
                 type="button" 
                 onClick={() => handlePortalSwitch('admin')} 
-                className={`flex items-center gap-1.5 text-xs xl:text-sm font-bold uppercase tracking-widest cursor-pointer transition-colors ${
+                className={`text-xs xl:text-sm font-bold uppercase tracking-widest cursor-pointer transition-colors ${
                   activePortal === 'admin' && activeSection === 'hero' 
                     ? 'text-brand-primary underline decoration-2 underline-offset-4' 
                     : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
-                <Shield className="w-3.5 h-3.5" />
-                <span>LGU Portal</span>
+                LGU Portal
               </button>
 
               <div className="w-px h-4 bg-border-strong" />
