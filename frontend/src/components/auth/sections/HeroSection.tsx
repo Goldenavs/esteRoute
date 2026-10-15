@@ -243,292 +243,309 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
       {/* BASE CANVAS (Left: Admin Form, Right: Citizen Form)       */}
       {/* ========================================================= */}
       <div className="relative w-full flex-1 flex flex-col justify-center items-center md:block z-10">
-        
-        {/* --------------------------------------------------------- */}
-        {/* LEFT 50%: LGU Dispatcher Base Section                     */}
-        {/* --------------------------------------------------------- */}
-        <div className={`relative md:absolute md:left-0 md:top-0 w-full md:w-1/2 flex-1 md:flex-initial md:h-full flex flex-col items-center justify-center p-6 md:p-8 lg:p-16 z-10 py-12 md:py-0 ${activePortal === 'admin' ? 'flex' : 'hidden md:flex'}`}>
-          <div className="relative z-10 w-full max-w-md my-auto">
-            <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
-              LGU Officer Sign In
-            </h2>
-            <p className="text-sm text-text-secondary mb-8 font-normal">
-              Sanitation supervisors, dispatch officers, and fleet operators.
-            </p>
-
-            <form onSubmit={handleAdminLogin} className="flex flex-col gap-4" noValidate>
-              <AnimatePresence>
-                {adminError && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="p-3 bg-red-500/10 border border-red-500/40 text-red-500 text-xs font-semibold"
-                  >
-                    {adminError}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                <span className="absolute left-8 top-2 text-red-500 font-bold pointer-events-none select-none">*</span>
-                <input
-                  type="email"
-                  required
-                  placeholder="Officer Email"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                  className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
-                />
-              </div>
-
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                <span className="absolute left-8 top-2 text-red-500 font-bold pointer-events-none select-none">*</span>
-                <input
-                  type={showAdminPassword ? 'text' : 'password'}
-                  required
-                  placeholder="Security Password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-10 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowAdminPassword(!showAdminPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 cursor-pointer"
-                >
-                  {showAdminPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isAdminLoading}
-                className="w-full flex items-center justify-center bg-brand-primary text-white py-3.5 font-bold uppercase tracking-widest text-xs hover:shadow-lg hover:shadow-brand-primary/40 transition-all -skew-x-12 border-2 border-brand-primary disabled:opacity-50 cursor-pointer group mt-2"
-              >
-                <div className="skew-x-12 flex items-center gap-2">
-                  {isAdminLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enter Dispatch Portal'}
-                  {!isAdminLoading && <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
-                </div>
-              </button>
-            </form>
-
-            {/* Consistent, Clean Footer */}
-            <div className="mt-8 pt-4 border-t border-border-subtle flex items-center justify-end text-xs text-text-secondary">
-              <button
-                type="button"
-                onClick={() => setActivePortal('citizen')}
-                className="text-brand-primary font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"
-              >
-                <span>Citizen Portal</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* --------------------------------------------------------- */}
-        {/* RIGHT 50%: Citizen Base Section                           */}
-        {/* --------------------------------------------------------- */}
-        <div className={`relative md:absolute md:right-0 md:top-0 w-full md:w-1/2 flex-1 md:flex-initial md:h-full flex flex-col items-center justify-center p-6 md:p-8 lg:p-16 z-10 py-12 md:py-0 ${activePortal === 'citizen' ? 'flex' : 'hidden md:flex'}`}>
-          <div className="relative z-10 w-full max-w-md my-auto">
-            <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
-              {citizenMode === 'login' ? 'Citizen Sign In' : 'Create Account'}
-            </h2>
-            <p className="text-sm text-text-secondary mb-8 font-normal">
-              Submit canal blockages and safeguard neighborhood waterways.
-            </p>
-
-            {showEmailConfirmation ? (
-              <div className="p-6 bg-brand-primary/10 border border-brand-primary/30 text-center space-y-3">
-                <CheckCircle2 className="w-8 h-8 text-brand-primary mx-auto" />
-                <h4 className="font-heading font-bold text-text-primary">Confirmation Link Sent</h4>
-                <p className="text-xs text-text-secondary">
-                  Check <span className="font-bold text-text-primary">{citizenEmail}</span> to complete registration.
+        <AnimatePresence mode="wait">
+          {activePortal === 'admin' ? (
+            /* --------------------------------------------------------- */
+            /* LEFT 50%: LGU Dispatcher Base Section                     */
+            /* --------------------------------------------------------- */
+            <motion.div
+              key="admin-portal"
+              initial={{ opacity: 0, x: -20, scale: 0.98, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, x: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, x: -20, scale: 0.98, filter: 'blur(4px)' }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="relative md:absolute md:left-0 md:top-0 w-full md:w-1/2 flex-1 md:flex-initial md:h-full flex flex-col items-center justify-center p-6 md:p-8 lg:p-16 z-10 py-12 md:py-0"
+            >
+              <div className="relative z-10 w-full max-w-md my-auto">
+                <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
+                  LGU Officer Sign In
+                </h2>
+                <p className="text-sm text-text-secondary mb-8 font-normal">
+                  Sanitation supervisors, dispatch officers, and fleet operators.
                 </p>
-                <button
-                  onClick={() => setShowEmailConfirmation(false)}
-                  className="text-xs font-bold text-brand-primary underline cursor-pointer"
-                >
-                  Back to Login
-                </button>
-              </div>
-            ) : (
-              <>
-                <form onSubmit={handleCitizenAuth} className="flex flex-col gap-3.5" noValidate>
+
+                <form onSubmit={handleAdminLogin} className="flex flex-col gap-4" noValidate>
                   <AnimatePresence>
-                    {citizenError && (
+                    {adminError && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         className="p-3 bg-red-500/10 border border-red-500/40 text-red-500 text-xs font-semibold"
                       >
-                        {citizenError}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <AnimatePresence>
-                    {citizenMode === 'signup' && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="relative"
-                      >
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                        <span className="absolute left-8 top-1.5 text-red-500 font-bold pointer-events-none select-none">*</span>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Full Name"
-                          value={citizenName}
-                          onChange={(e) => setCitizenName(e.target.value)}
-                          className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
-                        />
+                        {adminError}
                       </motion.div>
                     )}
                   </AnimatePresence>
 
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                    <span className="absolute left-8 top-1.5 text-red-500 font-bold pointer-events-none select-none">*</span>
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <span className="absolute left-8 top-2 text-red-500 font-bold pointer-events-none select-none">*</span>
                     <input
                       type="email"
                       required
-                      placeholder="Email Address"
-                      value={citizenEmail}
-                      onChange={(e) => setCitizenEmail(e.target.value)}
-                      className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                      placeholder="Officer Email"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                     />
                   </div>
 
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                    <span className="absolute left-8 top-1.5 text-red-500 font-bold pointer-events-none select-none">*</span>
+                    <span className="absolute left-8 top-2 text-red-500 font-bold pointer-events-none select-none">*</span>
                     <input
-                      type={showCitizenPassword ? 'text' : 'password'}
+                      type={showAdminPassword ? 'text' : 'password'}
                       required
-                      placeholder="Password"
-                      value={citizenPassword}
-                      onChange={(e) => setCitizenPassword(e.target.value)}
-                      className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-10 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                      placeholder="Security Password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-10 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowCitizenPassword(!showCitizenPassword)}
+                      onClick={() => setShowAdminPassword(!showAdminPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 cursor-pointer"
                     >
-                      {showCitizenPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      {showAdminPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
                   </div>
 
-                  {/* Password Strength Meter */}
-                  <AnimatePresence>
-                    {citizenMode === 'signup' && citizenPassword.length > 0 && (
-                      <motion.div 
-                        initial={{ opacity: 0, height: 0 }} 
-                        animate={{ opacity: 1, height: 'auto' }} 
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-1.5 overflow-hidden"
-                      >
-                        <div className="flex gap-1 h-1.5 w-full">
-                          {[1, 2, 3, 4].map((level) => {
-                            let score = 0;
-                            if (citizenPassword.length > 5) score += 1;
-                            if (citizenPassword.length > 7) score += 1;
-                            if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
-                            if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
-                            const strength = Math.min(score, 4);
-                            
-                            let bgClass = "bg-border-subtle";
-                            if (strength >= level) {
-                              if (strength <= 1) bgClass = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]";
-                              else if (strength === 2) bgClass = "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.4)]";
-                              else if (strength === 3) bgClass = "bg-brand-primary shadow-[0_0_8px_rgba(59,130,246,0.4)]";
-                              else bgClass = "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]";
-                            }
-                            return (
-                              <div key={level} className={`flex-1 rounded-sm transition-all duration-300 ${bgClass}`} />
-                            );
-                          })}
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-text-muted">Min 6 chars</span>
-                          <span className="font-heading font-bold uppercase tracking-wider">
-                            {(() => {
-                              let score = 0;
-                              if (citizenPassword.length > 5) score += 1;
-                              if (citizenPassword.length > 7) score += 1;
-                              if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
-                              if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
-                              const strength = Math.min(score, 4);
-                              if (strength <= 1) return <span className="text-red-500">Weak</span>;
-                              if (strength === 2) return <span className="text-yellow-500">Fair</span>;
-                              if (strength === 3) return <span className="text-brand-primary">Good</span>;
-                              return <span className="text-green-500">Strong</span>;
-                            })()}
-                          </span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
                   <button
                     type="submit"
-                    disabled={isCitizenLoading}
-                    className="w-full flex items-center justify-center bg-brand-primary text-white py-3 font-bold uppercase tracking-widest text-xs hover:shadow-lg hover:shadow-brand-primary/40 transition-all -skew-x-12 border-2 border-brand-primary disabled:opacity-50 cursor-pointer group mt-1"
+                    disabled={isAdminLoading}
+                    className="w-full flex items-center justify-center bg-brand-primary text-white py-3.5 font-bold uppercase tracking-widest text-xs hover:shadow-lg hover:shadow-brand-primary/40 transition-all -skew-x-12 border-2 border-brand-primary disabled:opacity-50 cursor-pointer group mt-2"
                   >
                     <div className="skew-x-12 flex items-center gap-2">
-                      {isCitizenLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (citizenMode === 'login' ? 'Login' : 'Create Account')}
-                      {!isCitizenLoading && <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
+                      {isAdminLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enter Dispatch Portal'}
+                      {!isAdminLoading && <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
                     </div>
                   </button>
                 </form>
 
-                <div className="relative flex items-center my-3">
-                  <div className="flex-grow border-t border-border-subtle"></div>
-                  <span className="shrink-0 mx-3 text-text-muted text-[10px] font-bold uppercase tracking-widest">or quick report</span>
-                  <div className="flex-grow border-t border-border-subtle"></div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => navigate('/citizen')}
-                  className="w-full flex items-center justify-center bg-surface-subtle border-2 border-border-subtle text-text-primary py-2.5 text-xs font-bold uppercase tracking-widest hover:border-brand-primary transition-colors -skew-x-12 cursor-pointer group"
-                >
-                  <div className="skew-x-12 flex items-center gap-2">
-                    <Camera className="w-4 h-4 text-brand-primary" />
-                    <span>Continue as Guest (No Account)</span>
-                  </div>
-                </button>
-
                 {/* Consistent, Clean Footer */}
-                <div className="mt-6 pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-text-secondary flex-wrap gap-2">
+                <div className="mt-8 pt-4 border-t border-border-subtle flex items-center justify-end text-xs text-text-secondary">
                   <button
                     type="button"
-                    onClick={() => setActivePortal('admin')}
-                    className="text-text-secondary hover:text-brand-primary font-semibold flex items-center gap-1.5 cursor-pointer"
+                    onClick={() => setActivePortal('citizen')}
+                    className="text-brand-primary font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"
                   >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>LGU Staff Access</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setCitizenMode(citizenMode === 'login' ? 'signup' : 'login')}
-                    className="text-brand-primary font-bold hover:underline cursor-pointer"
-                  >
-                    {citizenMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+                    <span>Citizen Portal</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
-              </>
-            )}
-          </div>
-        </div>
+              </div>
+            </motion.div>
+          ) : (
+            /* --------------------------------------------------------- */
+            /* RIGHT 50%: Citizen Base Section                           */
+            /* --------------------------------------------------------- */
+            <motion.div
+              key="citizen-portal"
+              initial={{ opacity: 0, x: 20, scale: 0.98, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, x: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, x: 20, scale: 0.98, filter: 'blur(4px)' }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="relative md:absolute md:right-0 md:top-0 w-full md:w-1/2 flex-1 md:flex-initial md:h-full flex flex-col items-center justify-center p-6 md:p-8 lg:p-16 z-10 py-12 md:py-0"
+            >
+              <div className="relative z-10 w-full max-w-md my-auto">
+                <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
+                  {citizenMode === 'login' ? 'Citizen Sign In' : 'Create Account'}
+                </h2>
+                <p className="text-sm text-text-secondary mb-8 font-normal">
+                  Submit canal blockages and safeguard neighborhood waterways.
+                </p>
+
+                {showEmailConfirmation ? (
+                  <div className="p-6 bg-brand-primary/10 border border-brand-primary/30 text-center space-y-3">
+                    <CheckCircle2 className="w-8 h-8 text-brand-primary mx-auto" />
+                    <h4 className="font-heading font-bold text-text-primary">Confirmation Link Sent</h4>
+                    <p className="text-xs text-text-secondary">
+                      Check <span className="font-bold text-text-primary">{citizenEmail}</span> to complete registration.
+                    </p>
+                    <button
+                      onClick={() => setShowEmailConfirmation(false)}
+                      className="text-xs font-bold text-brand-primary underline cursor-pointer"
+                    >
+                      Back to Login
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <form onSubmit={handleCitizenAuth} className="flex flex-col gap-3.5" noValidate>
+                      <AnimatePresence>
+                        {citizenError && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="p-3 bg-red-500/10 border border-red-500/40 text-red-500 text-xs font-semibold"
+                          >
+                            {citizenError}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <AnimatePresence>
+                        {citizenMode === 'signup' && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="relative"
+                          >
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                            <span className="absolute left-8 top-1.5 text-red-500 font-bold pointer-events-none select-none">*</span>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Full Name"
+                              value={citizenName}
+                              onChange={(e) => setCitizenName(e.target.value)}
+                              className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div className="relative">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                        <span className="absolute left-8 top-1.5 text-red-500 font-bold pointer-events-none select-none">*</span>
+                        <input
+                          type="email"
+                          required
+                          placeholder="Email Address"
+                          value={citizenEmail}
+                          onChange={(e) => setCitizenEmail(e.target.value)}
+                          className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                        />
+                      </div>
+
+                      <div className="relative">
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                        <span className="absolute left-8 top-1.5 text-red-500 font-bold pointer-events-none select-none">*</span>
+                        <input
+                          type={showCitizenPassword ? 'text' : 'password'}
+                          required
+                          placeholder="Password"
+                          value={citizenPassword}
+                          onChange={(e) => setCitizenPassword(e.target.value)}
+                          className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-10 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCitizenPassword(!showCitizenPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 cursor-pointer"
+                        >
+                          {showCitizenPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </button>
+                      </div>
+
+                      {/* Password Strength Meter */}
+                      <AnimatePresence>
+                        {citizenMode === 'signup' && citizenPassword.length > 0 && (
+                          <motion.div 
+                            initial={{ opacity: 0, height: 0 }} 
+                            animate={{ opacity: 1, height: 'auto' }} 
+                            exit={{ opacity: 0, height: 0 }}
+                            className="space-y-1.5 overflow-hidden"
+                          >
+                            <div className="flex gap-1 h-1.5 w-full">
+                              {[1, 2, 3, 4].map((level) => {
+                                let score = 0;
+                                if (citizenPassword.length > 5) score += 1;
+                                if (citizenPassword.length > 7) score += 1;
+                                if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
+                                if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
+                                const strength = Math.min(score, 4);
+                                
+                                let bgClass = "bg-border-subtle";
+                                if (strength >= level) {
+                                  if (strength <= 1) bgClass = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]";
+                                  else if (strength === 2) bgClass = "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.4)]";
+                                  else if (strength === 3) bgClass = "bg-brand-primary shadow-[0_0_8px_rgba(59,130,246,0.4)]";
+                                  else bgClass = "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]";
+                                }
+                                return (
+                                  <div key={level} className={`flex-1 rounded-sm transition-all duration-300 ${bgClass}`} />
+                                );
+                              })}
+                            </div>
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-text-muted">Min 6 chars</span>
+                              <span className="font-heading font-bold uppercase tracking-wider">
+                                {(() => {
+                                  let score = 0;
+                                  if (citizenPassword.length > 5) score += 1;
+                                  if (citizenPassword.length > 7) score += 1;
+                                  if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
+                                  if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
+                                  const strength = Math.min(score, 4);
+                                  if (strength <= 1) return <span className="text-red-500">Weak</span>;
+                                  if (strength === 2) return <span className="text-yellow-500">Fair</span>;
+                                  if (strength === 3) return <span className="text-brand-primary">Good</span>;
+                                  return <span className="text-green-500">Strong</span>;
+                                })()}
+                              </span>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <button
+                        type="submit"
+                        disabled={isCitizenLoading}
+                        className="w-full flex items-center justify-center bg-brand-primary text-white py-3 font-bold uppercase tracking-widest text-xs hover:shadow-lg hover:shadow-brand-primary/40 transition-all -skew-x-12 border-2 border-brand-primary disabled:opacity-50 cursor-pointer group mt-1"
+                      >
+                        <div className="skew-x-12 flex items-center gap-2">
+                          {isCitizenLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (citizenMode === 'login' ? 'Login' : 'Create Account')}
+                          {!isCitizenLoading && <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
+                        </div>
+                      </button>
+                    </form>
+
+                    <div className="relative flex items-center my-3">
+                      <div className="flex-grow border-t border-border-subtle"></div>
+                      <span className="shrink-0 mx-3 text-text-muted text-[10px] font-bold uppercase tracking-widest">or quick report</span>
+                      <div className="flex-grow border-t border-border-subtle"></div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate('/citizen')}
+                      className="w-full flex items-center justify-center bg-surface-subtle border-2 border-border-subtle text-text-primary py-2.5 text-xs font-bold uppercase tracking-widest hover:border-brand-primary transition-colors -skew-x-12 cursor-pointer group"
+                    >
+                      <div className="skew-x-12 flex items-center gap-2">
+                        <Camera className="w-4 h-4 text-brand-primary" />
+                        <span>Continue as Guest (No Account)</span>
+                      </div>
+                    </button>
+
+                    {/* Consistent, Clean Footer */}
+                    <div className="mt-6 pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-text-secondary flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActivePortal('admin')}
+                        className="text-text-secondary hover:text-brand-primary font-semibold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>LGU Staff Access</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCitizenMode(citizenMode === 'login' ? 'signup' : 'login')}
+                        className="text-brand-primary font-bold hover:underline cursor-pointer"
+                      >
+                        {citizenMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ========================================================= */}
         {/* OPPOSITE-THEME SLIDING PARALLELOGRAM WITH CONTOUR LINES   */}
