@@ -1,16 +1,52 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Droplets, LayoutDashboard, Archive, BarChart3, LogOut, Terminal } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Archive, BarChart3, Terminal, Sun, Moon, type LucideIcon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { supabase } from '../lib/supabase';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
 import SystemLogsModal from '../components/admin/SystemLogsModal';
+import TacticalBackground from '../components/common/TacticalBackground';
+
+const AnimatedNavLink = ({ 
+  title, 
+  to, 
+  icon: Icon,
+  isActive 
+}: { 
+  title: string; 
+  to: string; 
+  icon: LucideIcon;
+  isActive?: boolean; 
+}) => {
+  return (
+    <Link 
+      to={to}
+      className="font-heading relative overflow-hidden group cursor-pointer text-xs xl:text-sm font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary block shrink-0 transition-colors"
+    >
+      <span className={`flex items-center gap-2 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${isActive ? '-translate-y-full text-brand-primary' : 'group-hover:-translate-y-full text-text-primary'}`}>
+        <Icon className="w-4 h-4 shrink-0 transition-colors" />
+        <span>{title}</span>
+      </span>
+      <span className={`absolute inset-0 flex items-center gap-2 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] text-brand-primary ${isActive ? 'translate-y-0' : 'translate-y-full group-hover:translate-y-0'}`}>
+        <Icon className="w-4 h-4 shrink-0" />
+        <span>{title}</span>
+      </span>
+    </Link>
+  );
+};
 
 export default function AdminLayout() {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [isLogsOpen, setIsLogsOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -53,11 +89,13 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300 relative">
+      {/* Tactical GIS Ambient Background */}
+      <TacticalBackground />
       
       {/* Invisible Hover Zone (Top of Screen) */}
       <div className="fixed top-0 left-0 w-full h-12 z-[999] md:block hidden pointer-events-none" />
 
-      {/* Top Navbar (Desktop Only) - Follows Citizen Style */}
+      {/* Top Navbar (Desktop Only) - Follows AuthNavbar / Citizen Style */}
       <div 
         className={twMerge(
           clsx(
@@ -70,59 +108,57 @@ export default function AdminLayout() {
           <div className="w-full max-w-[95%] xl:max-w-7xl relative pointer-events-none">
             <div className="w-full flex items-center justify-between pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12">
               
-              {/* Left: Logo */}
+              {/* Left: Brand Logo (Non-clickable, matching landing page hover effect & styling) */}
               <div className="flex-1 flex justify-start skew-x-12">
-                <Link to="/admin" className="flex items-center gap-2 text-brand-primary font-heading font-black tracking-tighter text-lg uppercase cursor-pointer transition-transform hover:scale-105">
-                  <Droplets className="w-6 h-6" />
-                  <span>este<span className="text-text-primary">Route</span></span>
-                </Link>
+                <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default">
+                  <span className="text-text-primary group-hover:text-brand-primary transition-colors">
+                    este<span className="text-brand-primary">Route</span>
+                  </span>
+                </div>
               </div>
               
-              {/* Center: Navigation Links */}
-              <nav className="flex-1 flex justify-center items-center gap-8 skew-x-12">
+              {/* Center: Navigation Links (Split-text & icon sliding animation) */}
+              <nav className="flex-1 flex justify-center items-center gap-7 xl:gap-10 skew-x-12">
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path));
                   return (
-                    <Link 
+                    <AnimatedNavLink 
                       key={item.path} 
+                      title={item.name}
                       to={item.path}
-                      className={twMerge(
-                        clsx(
-                          "relative overflow-hidden group cursor-pointer text-xs xl:text-sm font-bold uppercase tracking-widest block shrink-0",
-                          isActive ? "text-brand-primary" : "text-text-muted hover:text-text-primary"
-                        )
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.name}</span>
-                      </div>
-                    </Link>
+                      icon={item.icon}
+                      isActive={isActive}
+                    />
                   );
                 })}
               </nav>
               
               {/* Right: Actions */}
-              <div className="flex-1 flex justify-end items-center gap-4 skew-x-12">
+              <div className="flex-1 flex justify-end items-center gap-4 xl:gap-5 skew-x-12">
                 <button 
                   onClick={() => setIsLogsOpen(true)}
-                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-muted hover:text-brand-primary pointer-events-auto"
+                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-brand-primary pointer-events-auto cursor-pointer"
                   aria-label="System Logs"
+                  title="System Logs"
                 >
-                  <Terminal className="w-4 h-4" />
+                  <Terminal size={16} />
                 </button>
                 <button 
                   onClick={toggleTheme} 
-                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-muted hover:text-text-primary pointer-events-auto"
+                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-text-primary pointer-events-auto cursor-pointer"
                   aria-label="Toggle Theme"
+                  title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
                 >
-                  {theme === 'light' ? '🌙' : '☀️'}
+                  {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
                 </button>
                 <div className="w-px h-4 bg-border-strong"></div>
-                <Link to="/" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto">
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
-                </Link>
+                <button 
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-xs xl:text-sm font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto cursor-pointer"
+                >
+                  Logout
+                </button>
               </div>
 
             </div>
@@ -131,13 +167,14 @@ export default function AdminLayout() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 bg-app-bg overflow-x-hidden relative flex flex-col pb-24 md:pb-0">
+      {/* pb-24 ensures content isn't hidden behind the mobile bottom tab bar */}
+      <main className="flex-1 bg-transparent overflow-x-hidden relative flex flex-col pb-24 md:pb-0 z-10">
         <div className={twMerge(
           clsx(
-            "flex-1 flex flex-col w-full animate-fade-in transition-all duration-700 ease-[cubic-bezier(0.76,0,0.24,1)]",
+            "flex-1 flex flex-col w-full animate-fade-in",
             location.pathname === '/admin' 
               ? "p-0 max-w-none" 
-              : clsx("p-4 md:p-6 lg:p-8 max-w-7xl mx-auto", isNavVisible ? "md:pt-28 lg:pt-32" : "md:pt-6 lg:pt-8")
+              : "p-4 md:p-6 lg:p-8 pt-4 md:pt-28 lg:pt-32 max-w-7xl mx-auto"
           )
         )}>
           <Outlet />

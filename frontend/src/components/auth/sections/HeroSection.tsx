@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -131,6 +131,54 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
     return () => clearInterval(timer);
   }, []);
 
+  // Clear all form inputs and errors when switching between Citizen and LGU portals
+  const isFirstPortalMount = useRef(true);
+  useEffect(() => {
+    if (isFirstPortalMount.current) {
+      isFirstPortalMount.current = false;
+      return;
+    }
+    setAdminEmail('');
+    setAdminPassword('');
+    setAdminError('');
+    setShowAdminPassword(false);
+    setCitizenName('');
+    setCitizenEmail('');
+    setCitizenPassword('');
+    setCitizenError('');
+    setShowCitizenPassword(false);
+    setShowEmailConfirmation(false);
+    setCitizenMode('login');
+  }, [activePortal]);
+
+  // Cleanly toggle between Citizen Login and Register with fresh state
+  const handleToggleCitizenMode = () => {
+    setCitizenMode((prev) => (prev === 'login' ? 'signup' : 'login'));
+    setCitizenName('');
+    setCitizenEmail('');
+    setCitizenPassword('');
+    setCitizenError('');
+    setShowCitizenPassword(false);
+    setShowEmailConfirmation(false);
+  };
+
+  // Auto-dismiss errors after 5 seconds
+  useEffect(() => {
+    if (!adminError) return;
+    const timer = setTimeout(() => {
+      setAdminError('');
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [adminError]);
+
+  useEffect(() => {
+    if (!citizenError) return;
+    const timer = setTimeout(() => {
+      setCitizenError('');
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [citizenError]);
+
   // Admin Login Handler
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,12 +244,27 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         navigate('/citizen');
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: citizenEmail,
         password: citizenPassword,
       });
-      if (error) setCitizenError(error.message);
-      else navigate('/citizen');
+      if (error) {
+        setCitizenError(error.message);
+      } else if (data.user) {
+        // Enforce that officers/dispatchers cannot log into the Citizen portal
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError || !profile || profile.role !== 'citizen') {
+          await supabase.auth.signOut();
+          setCitizenError('Access denied. LGU personnel must sign in via the LGU Dispatch Portal.');
+        } else {
+          navigate('/citizen');
+        }
+      }
     }
     setIsCitizenLoading(false);
   };
@@ -286,7 +349,10 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                       required
                       placeholder="Officer Email"
                       value={adminEmail}
-                      onChange={(e) => setAdminEmail(e.target.value)}
+                      onChange={(e) => {
+                        setAdminEmail(e.target.value);
+                        if (adminError) setAdminError('');
+                      }}
                       className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                     />
                   </div>
@@ -299,7 +365,10 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                       required
                       placeholder="Security Password"
                       value={adminPassword}
-                      onChange={(e) => setAdminPassword(e.target.value)}
+                      onChange={(e) => {
+                        setAdminPassword(e.target.value);
+                        if (adminError) setAdminError('');
+                      }}
                       className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-10 py-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                     />
                     <button
@@ -401,7 +470,10 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                               required
                               placeholder="Full Name"
                               value={citizenName}
-                              onChange={(e) => setCitizenName(e.target.value)}
+                              onChange={(e) => {
+                                setCitizenName(e.target.value);
+                                if (citizenError) setCitizenError('');
+                              }}
                               className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                             />
                           </motion.div>
@@ -416,7 +488,10 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                           required
                           placeholder="Email Address"
                           value={citizenEmail}
-                          onChange={(e) => setCitizenEmail(e.target.value)}
+                          onChange={(e) => {
+                            setCitizenEmail(e.target.value);
+                            if (citizenError) setCitizenError('');
+                          }}
                           className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                         />
                       </div>
@@ -429,7 +504,10 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                           required
                           placeholder="Password"
                           value={citizenPassword}
-                          onChange={(e) => setCitizenPassword(e.target.value)}
+                          onChange={(e) => {
+                            setCitizenPassword(e.target.value);
+                            if (citizenError) setCitizenError('');
+                          }}
                           className="w-full bg-surface-subtle/90 border-2 border-border-subtle pl-10 pr-10 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                         />
                         <button
@@ -534,7 +612,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
 
                       <button
                         type="button"
-                        onClick={() => setCitizenMode(citizenMode === 'login' ? 'signup' : 'login')}
+                        onClick={handleToggleCitizenMode}
                         className="text-brand-primary font-bold hover:underline cursor-pointer"
                       >
                         {citizenMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
