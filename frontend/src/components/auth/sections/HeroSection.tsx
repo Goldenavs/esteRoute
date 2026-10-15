@@ -242,13 +242,13 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
       {/* ========================================================= */}
       {/* BASE CANVAS (Left: Admin Form, Right: Citizen Form)       */}
       {/* ========================================================= */}
-      <div className="relative w-full h-full flex-1 flex flex-col md:block z-10">
+      <div className="relative w-full flex-1 flex flex-col justify-center items-center md:block z-10">
         
         {/* --------------------------------------------------------- */}
         {/* LEFT 50%: LGU Dispatcher Base Section                     */}
         {/* --------------------------------------------------------- */}
-        <div className={`relative md:absolute md:left-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-6 md:p-8 lg:p-16 z-10 ${activePortal === 'admin' ? 'flex' : 'hidden md:flex'}`}>
-          <div className="relative z-10 w-full max-w-md">
+        <div className={`relative md:absolute md:left-0 md:top-0 w-full md:w-1/2 flex-1 md:flex-initial md:h-full flex flex-col items-center justify-center p-6 md:p-8 lg:p-16 z-10 py-12 md:py-0 ${activePortal === 'admin' ? 'flex' : 'hidden md:flex'}`}>
+          <div className="relative z-10 w-full max-w-md my-auto">
             <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
               LGU Officer Sign In
             </h2>
@@ -272,6 +272,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
 
               <div className="relative">
                 <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <span className="absolute left-8 top-2 text-red-500 font-bold pointer-events-none select-none">*</span>
                 <input
                   type="email"
                   required
@@ -284,6 +285,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
 
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <span className="absolute left-8 top-2 text-red-500 font-bold pointer-events-none select-none">*</span>
                 <input
                   type={showAdminPassword ? 'text' : 'password'}
                   required
@@ -330,8 +332,8 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         {/* --------------------------------------------------------- */}
         {/* RIGHT 50%: Citizen Base Section                           */}
         {/* --------------------------------------------------------- */}
-        <div className={`relative md:absolute md:right-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-6 md:p-8 lg:p-16 z-10 ${activePortal === 'citizen' ? 'flex' : 'hidden md:flex'}`}>
-          <div className="relative z-10 w-full max-w-md">
+        <div className={`relative md:absolute md:right-0 md:top-0 w-full md:w-1/2 flex-1 md:flex-initial md:h-full flex flex-col items-center justify-center p-6 md:p-8 lg:p-16 z-10 py-12 md:py-0 ${activePortal === 'citizen' ? 'flex' : 'hidden md:flex'}`}>
+          <div className="relative z-10 w-full max-w-md my-auto">
             <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
               {citizenMode === 'login' ? 'Citizen Sign In' : 'Create Account'}
             </h2>
@@ -378,6 +380,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                         className="relative"
                       >
                         <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                        <span className="absolute left-8 top-1.5 text-red-500 font-bold pointer-events-none select-none">*</span>
                         <input
                           type="text"
                           required
@@ -392,6 +395,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
 
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <span className="absolute left-8 top-1.5 text-red-500 font-bold pointer-events-none select-none">*</span>
                     <input
                       type="email"
                       required
@@ -404,6 +408,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
 
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <span className="absolute left-8 top-1.5 text-red-500 font-bold pointer-events-none select-none">*</span>
                     <input
                       type={showCitizenPassword ? 'text' : 'password'}
                       required
