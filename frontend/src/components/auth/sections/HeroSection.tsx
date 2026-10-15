@@ -209,7 +209,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
   return (
     <section 
       id="hero" 
-      className="relative w-full h-screen min-h-[700px] overflow-hidden bg-app-bg flex flex-col justify-between"
+      className="relative w-full min-h-[100dvh] md:h-screen md:min-h-[700px] overflow-hidden bg-app-bg flex flex-col justify-between"
     >
       {/* ========================================================= */}
       {/* SEAMLESS DUAL BACKGROUND LAYERS WITH OPACITY CROSSFADE    */}
@@ -242,36 +242,12 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
       {/* ========================================================= */}
       {/* BASE CANVAS (Left: Admin Form, Right: Citizen Form)       */}
       {/* ========================================================= */}
-      <div className="relative w-full h-full flex flex-col md:block z-10">
+      <div className="relative w-full h-full flex-1 flex flex-col md:block z-10">
         
-        {/* Mobile Portal Tab Selector (< 768px) */}
-        <div className="md:hidden z-30 pt-24 px-6 flex items-center justify-center gap-3 bg-app-bg/80 backdrop-blur-md pb-4">
-          <button
-            onClick={() => setActivePortal('citizen')}
-            className={`flex-1 py-3 px-4 font-heading font-black text-xs uppercase tracking-widest -skew-x-12 border transition-all ${
-              activePortal === 'citizen'
-                ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/30'
-                : 'bg-surface text-text-secondary border-border-subtle'
-            }`}
-          >
-            <span className="skew-x-12 inline-block">Citizen Portal</span>
-          </button>
-          <button
-            onClick={() => setActivePortal('admin')}
-            className={`flex-1 py-3 px-4 font-heading font-black text-xs uppercase tracking-widest -skew-x-12 border transition-all ${
-              activePortal === 'admin'
-                ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/30'
-                : 'bg-surface text-text-secondary border-border-subtle'
-            }`}
-          >
-            <span className="skew-x-12 inline-block">LGU Command</span>
-          </button>
-        </div>
-
         {/* --------------------------------------------------------- */}
         {/* LEFT 50%: LGU Dispatcher Base Section                     */}
         {/* --------------------------------------------------------- */}
-        <div className={`relative md:absolute md:left-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-8 lg:p-16 z-10 ${activePortal === 'admin' ? 'flex' : 'hidden md:flex'}`}>
+        <div className={`relative md:absolute md:left-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-6 md:p-8 lg:p-16 z-10 ${activePortal === 'admin' ? 'flex' : 'hidden md:flex'}`}>
           <div className="relative z-10 w-full max-w-md">
             <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
               LGU Officer Sign In
@@ -354,7 +330,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         {/* --------------------------------------------------------- */}
         {/* RIGHT 50%: Citizen Base Section                           */}
         {/* --------------------------------------------------------- */}
-        <div className={`relative md:absolute md:right-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-8 lg:p-16 z-10 ${activePortal === 'citizen' ? 'flex' : 'hidden md:flex'}`}>
+        <div className={`relative md:absolute md:right-0 md:top-0 w-full md:w-1/2 h-full overflow-hidden flex items-center justify-center p-6 md:p-8 lg:p-16 z-10 ${activePortal === 'citizen' ? 'flex' : 'hidden md:flex'}`}>
           <div className="relative z-10 w-full max-w-md">
             <h2 className="text-3xl lg:text-4xl font-heading font-black text-text-primary uppercase tracking-tight mb-2">
               {citizenMode === 'login' ? 'Citizen Sign In' : 'Create Account'}
@@ -526,7 +502,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                 </button>
 
                 {/* Consistent, Clean Footer */}
-                <div className="mt-6 pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-text-secondary">
+                <div className="mt-6 pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-text-secondary flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => setActivePortal('admin')}
