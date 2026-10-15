@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Sparkles, CloudRain, BrainCircuit, Database, MonitorDot } from 'lucide-react';
 
 interface SharpNodeProps {
@@ -71,8 +71,6 @@ const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: 
 );
 
 export default function CoreEngineSection() {
-  const ref = useRef<HTMLElement>(null);
-  
   // Dynamic header cycling word (cycles every 3 seconds)
   const [headerWordIndex, setHeaderWordIndex] = useState(0);
   const headerWords = ['Orchestration.', 'Synthesis.', 'Execution.'];
@@ -84,20 +82,12 @@ export default function CoreEngineSection() {
     return () => clearInterval(timer);
   }, []);
 
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["end end", "end start"]
-  });
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
-  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0.3]);
-
   const PATH_UPPER = "M 50,220 C 150,220 180,105 280,105 L 290,105 C 390,105 415,220 505,220 L 725,220 L 970,220";
   const PATH_LOWER = "M 50,220 C 150,220 180,335 280,335 L 290,335 C 390,335 415,220 505,220 L 725,220 L 970,220";
 
   return (
     <section 
       id="core-engine" 
-      ref={ref}
       className="relative z-20 flex flex-col items-center overflow-hidden border-y border-brand-primary/30 shadow-2xl"
       style={{
         backgroundColor: 'color-mix(in srgb, var(--color-brand-primary) 10%, transparent)',
@@ -109,7 +99,7 @@ export default function CoreEngineSection() {
         minHeight: '100vh'
       }}
     >
-      <motion.div style={{ y, opacity }} className="w-full max-w-7xl mx-auto px-6 lg:px-16 flex flex-col relative z-0">
+      <div className="w-full max-w-7xl mx-auto px-6 lg:px-16 flex flex-col relative z-0">
         
         {/* Header */}
         <motion.div
@@ -482,7 +472,7 @@ export default function CoreEngineSection() {
           </motion.div>
         </div>
 
-      </motion.div>
+      </div>
     </section>
   );
 }
