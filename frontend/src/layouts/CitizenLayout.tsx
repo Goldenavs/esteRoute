@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
+import TacticalBackground from '../components/common/TacticalBackground';
 
 export default function CitizenLayout() {
   const { theme, toggleTheme } = useTheme();
@@ -54,6 +55,8 @@ export default function CitizenLayout() {
 
   return (
     <div className="min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300 relative">
+      {/* Tactical GIS Ambient Background */}
+      <TacticalBackground />
       
       {/* Invisible Hover Zone (Top of Screen) to catch rapid mouse movements if needed */}
       <div className="fixed top-0 left-0 w-full h-12 z-[999] md:block hidden pointer-events-none" />
@@ -107,7 +110,7 @@ export default function CitizenLayout() {
               <div className="flex-1 flex justify-end items-center gap-4 skew-x-12">
                 <button 
                   onClick={toggleTheme} 
-                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-muted hover:text-text-primary pointer-events-auto"
+                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-muted hover:text-text-primary pointer-events-auto cursor-pointer"
                   aria-label="Toggle Theme"
                 >
                   {theme === 'light' ? '🌙' : '☀️'}
@@ -126,7 +129,7 @@ export default function CitizenLayout() {
 
       {/* Main Content Area */}
       {/* pb-24 ensures content isn't hidden behind the mobile bottom tab bar */}
-      <main className="flex-1 bg-app-bg overflow-x-hidden relative flex flex-col pb-24 md:pb-0">
+      <main className="flex-1 bg-transparent overflow-x-hidden relative flex flex-col pb-24 md:pb-0 z-10">
         <div className={twMerge(
           clsx(
             "flex-1 flex flex-col p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in transition-all duration-700 ease-[cubic-bezier(0.76,0,0.24,1)]",
