@@ -159,12 +159,7 @@ export default function CitizenLayout() {
       {/* Main Content Area */}
       {/* pb-24 ensures content isn't hidden behind the mobile bottom tab bar */}
       <main className="flex-1 bg-transparent overflow-x-hidden relative flex flex-col pb-24 md:pb-0 z-10">
-        <div className={twMerge(
-          clsx(
-            "flex-1 flex flex-col p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in transition-all duration-700 ease-[cubic-bezier(0.76,0,0.24,1)]",
-            isNavVisible ? "md:pt-28 lg:pt-32" : "md:pt-6 lg:pt-8"
-          )
-        )}>
+        <div className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 pt-4 md:pt-28 lg:pt-32 max-w-7xl mx-auto w-full animate-fade-in">
           <Outlet />
         </div>
       </main>
