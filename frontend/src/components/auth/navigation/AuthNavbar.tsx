@@ -195,16 +195,13 @@ export default function AuthNavbar({
                     </button>
                     <button 
                       onClick={() => handlePortalSwitch('admin')} 
-                      className={`w-full py-3 text-sm font-bold uppercase tracking-widest text-center rounded-sm border cursor-pointer transition-colors -skew-x-12 flex items-center justify-center gap-2 ${
+                      className={`w-full py-3 text-sm font-bold uppercase tracking-widest text-center rounded-sm border cursor-pointer transition-colors -skew-x-12 ${
                         activePortal === 'admin'
                           ? 'bg-brand-primary text-white border-brand-primary'
                           : 'bg-surface text-text-primary border-border-subtle'
                       }`}
                     >
-                      <div className="skew-x-12 flex items-center gap-2">
-                        <Shield className="w-4 h-4" />
-                        <span>LGU Dispatch Portal</span>
-                      </div>
+                      <span className="skew-x-12 inline-block">LGU Dispatch Portal</span>
                     </button>
                   </div>
                 </div>
