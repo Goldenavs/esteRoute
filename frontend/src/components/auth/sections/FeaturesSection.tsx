@@ -13,7 +13,7 @@ const cardVariants: Variants = {
 
 // Subtle, eye-friendly traveling perimeter highlight (staggered across cards)
 const BorderBeam = ({ delay = 0 }: { delay?: number }) => (
-  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl md:rounded-none z-10">
+  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-none z-10">
     <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id={`beam-grad-${delay}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -137,11 +137,11 @@ export default function FeaturesSection() {
           {/* FEATURE 1: Frictionless Citizen Reporting (2 cols)        */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
               {/* Eye-friendly perimeter traveling light */}
               <BorderBeam delay={0} />
 
-              <div className="md:skew-x-12 h-full flex flex-col justify-between">
+              <div className="skew-x-3 md:skew-x-12 h-full flex flex-col justify-between">
                 <div className="pl-2 md:pl-6 pr-2">
                   <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Frictionless Citizen Reporting
@@ -169,10 +169,10 @@ export default function FeaturesSection() {
           {/* FEATURE 2: Meteorological Agent (1 col)                   */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
               <BorderBeam delay={2.25} />
 
-              <div className="md:skew-x-12 h-full flex flex-col justify-between">
+              <div className="skew-x-3 md:skew-x-12 h-full flex flex-col justify-between">
                 <div className="pl-2 md:pl-5 pr-2">
                   <h3 className="font-heading font-black text-2xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Meteorological Agent
@@ -201,10 +201,10 @@ export default function FeaturesSection() {
           {/* FEATURE 3: Vision Triage Agent (1 col)                   */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
               <BorderBeam delay={4.5} />
 
-              <div className="md:skew-x-12 h-full flex flex-col justify-between">
+              <div className="skew-x-3 md:skew-x-12 h-full flex flex-col justify-between">
                 <div className="pl-2 md:pl-5 pr-2">
                   <h3 className="font-heading font-black text-2xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Vision Triage Agent
@@ -233,10 +233,10 @@ export default function FeaturesSection() {
           {/* FEATURE 4: LGU Dispatcher Dashboard (2 cols)             */}
           {/* ========================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 md:-skew-x-12 p-6 md:p-8 h-full rounded-xl md:rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
               <BorderBeam delay={6.75} />
 
-              <div className="md:skew-x-12 h-full flex flex-col justify-between">
+              <div className="skew-x-3 md:skew-x-12 h-full flex flex-col justify-between">
                 <div className="pl-2 md:pl-6 pr-2">
                   <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     LGU Dispatcher Dashboard

@@ -162,10 +162,10 @@ export default function FooterSection() {
                 className="relative w-full max-w-2xl z-10"
               >
                 {/* Skewed Parallelogram Modal Container */}
-                <div className="w-full bg-surface border-2 border-border-subtle shadow-2xl overflow-hidden flex flex-col max-h-[80vh] md:-skew-x-6 rounded-2xl md:rounded-none">
-                  {/* Header Banner: Flush with the container's -skew-x-6 parallelogram */}
+                <div className="w-full bg-surface border-2 border-border-subtle shadow-2xl overflow-hidden flex flex-col max-h-[80vh] -skew-x-3 md:-skew-x-6 rounded-none">
+                  {/* Header Banner: Flush with the container's parallelogram */}
                   <div className="p-6 border-b-2 border-border-subtle flex items-center justify-between bg-surface-subtle">
-                    <h3 className="text-xl font-heading font-black uppercase tracking-widest text-text-primary md:skew-x-6">
+                    <h3 className="text-xl font-heading font-black uppercase tracking-widest text-text-primary skew-x-3 md:skew-x-6">
                       {activeDoc}
                     </h3>
                     <button
@@ -173,14 +173,14 @@ export default function FooterSection() {
                       className="p-2 text-text-secondary hover:text-brand-primary transition-colors bg-surface border-2 border-border-subtle hover:border-brand-primary cursor-pointer"
                       aria-label="Close modal"
                     >
-                      <div className="md:skew-x-6">
+                      <div className="skew-x-3 md:skew-x-6">
                         <CloseIcon className="w-5 h-5" />
                       </div>
                     </button>
                   </div>
                   {/* Body Content: Counter-skewed so text lines are completely upright */}
                   <div className="p-8 md:px-12 text-base text-text-secondary leading-loose overflow-y-auto font-medium">
-                    <div className="md:skew-x-6">
+                    <div className="skew-x-3 md:skew-x-6">
                       <p>{legalContent[activeDoc]}</p>
                     </div>
                   </div>
