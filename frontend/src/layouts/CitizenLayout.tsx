@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Map, Activity, User, Sun, Moon } from 'lucide-react';
+import { MapPin, Map, Activity, User, Sun, Moon, type LucideIcon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { clsx } from 'clsx';
@@ -10,10 +10,12 @@ import TacticalBackground from '../components/common/TacticalBackground';
 const AnimatedNavLink = ({ 
   title, 
   to, 
+  icon: Icon,
   isActive 
 }: { 
   title: string; 
   to: string; 
+  icon: LucideIcon;
   isActive?: boolean; 
 }) => {
   return (
@@ -21,11 +23,13 @@ const AnimatedNavLink = ({
       to={to}
       className="font-heading relative overflow-hidden group cursor-pointer text-xs xl:text-sm font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary block shrink-0 transition-colors"
     >
-      <span className={`block transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${isActive ? '-translate-y-full text-brand-primary' : 'group-hover:-translate-y-full text-text-primary'}`}>
-        {title}
+      <span className={`flex items-center gap-2 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${isActive ? '-translate-y-full text-brand-primary' : 'group-hover:-translate-y-full text-text-primary'}`}>
+        <Icon className="w-4 h-4 shrink-0 transition-colors" />
+        <span>{title}</span>
       </span>
-      <span className={`absolute inset-0 block transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] text-brand-primary ${isActive ? 'translate-y-0' : 'translate-y-full group-hover:translate-y-0'}`}>
-        {title}
+      <span className={`absolute inset-0 flex items-center gap-2 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] text-brand-primary ${isActive ? 'translate-y-0' : 'translate-y-full group-hover:translate-y-0'}`}>
+        <Icon className="w-4 h-4 shrink-0" />
+        <span>{title}</span>
       </span>
     </Link>
   );
@@ -114,8 +118,8 @@ export default function CitizenLayout() {
                 </div>
               </div>
               
-              {/* Center: Navigation Links (Split-text sliding animation, matching landing page) */}
-              <nav className="flex-1 flex justify-center items-center gap-10 xl:gap-14 skew-x-12">
+              {/* Center: Navigation Links (Split-text & icon sliding animation) */}
+              <nav className="flex-1 flex justify-center items-center gap-7 xl:gap-10 skew-x-12">
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
                   return (
@@ -123,6 +127,7 @@ export default function CitizenLayout() {
                       key={item.path}
                       title={item.name}
                       to={item.path}
+                      icon={item.icon}
                       isActive={isActive}
                     />
                   );
