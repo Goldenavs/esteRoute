@@ -36,7 +36,7 @@ const SharpNode = ({ icon, label, sublabel, borderColor, iconColor, bgColor = "b
 
 // Subtle, eye-friendly traveling perimeter highlight
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => (
-  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl md:rounded-none z-10">
+  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-none z-10">
     <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id={`engine-beam-${delay}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -169,15 +169,15 @@ export default function CoreEngineSection() {
         >
           {/* Outer parallelogram container (Translucent Glass with Hover Blur & Edge Light) */}
           <div 
-            className="group w-full h-[520px] md:h-[540px] border-2 border-border-subtle hover:border-brand-primary md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-2xl md:rounded-none bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl transition-all duration-500"
+            className="group w-full h-[520px] md:h-[540px] border-2 border-border-subtle hover:border-brand-primary -skew-x-3 md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-none bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl transition-all duration-500"
           >
             {/* Edge perimeter running light */}
             <BorderBeam delay={0} color="#60A5FA" />
             {/* Subtle grid background inside the parallelogram */}
-            <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none md:skew-x-12 scale-150" />
+            <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none skew-x-3 md:skew-x-12 scale-150" />
             
             {/* Dynamic Moving Circuit Data Lines */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-25 md:skew-x-12">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-25 skew-x-3 md:skew-x-12">
               <svg className="w-full h-full min-w-[900px]" xmlns="http://www.w3.org/2000/svg">
                 <motion.line 
                   x1="0%" y1="18%" x2="100%" y2="18%" 
@@ -202,11 +202,11 @@ export default function CoreEngineSection() {
             </div>
 
             {/* Ambient Glows */}
-            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-brand-primary/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none md:skew-x-12" />
-            <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-[#10b981]/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none md:skew-x-12" />
+            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-brand-primary/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none skew-x-3 md:skew-x-12" />
+            <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-[#10b981]/10 rounded-full blur-[100px] -translate-y-1/2 pointer-events-none skew-x-3 md:skew-x-12" />
             
             {/* Unskewed content wrapper with horizontal scrolling for smaller screens */}
-            <div className="md:skew-x-12 w-full h-full flex items-center overflow-x-auto overflow-y-visible px-4 md:px-16 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="skew-x-3 md:skew-x-12 w-full h-full flex items-center overflow-x-auto overflow-y-visible px-4 md:px-16 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <div className="min-w-[920px] w-full h-[440px] flex items-center justify-between relative py-6">
                 
                 {/* ========================================================= */}
@@ -446,12 +446,12 @@ export default function CoreEngineSection() {
             viewport={{ once: true }}
           >
             <div 
-              className="group border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none shadow-sm hover:shadow-2xl bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl"
+              className="group border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 -skew-x-3 md:-skew-x-12 relative overflow-hidden h-full rounded-none shadow-sm hover:shadow-2xl bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl"
             >
               {/* Edge perimeter running light */}
               <BorderBeam delay={1.5} color="#60A5FA" />
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
-              <div className="md:skew-x-12 h-full flex flex-col justify-center">
+              <div className="skew-x-3 md:skew-x-12 h-full flex flex-col justify-center">
                 <h3 className="text-xl md:text-2xl font-heading font-black text-text-primary uppercase tracking-tight mb-3">Multimodal Vision</h3>
                 <p className="text-text-secondary leading-relaxed text-sm md:text-base">
                   Uses Google Gemini 1.5 Flash to automatically classify blockage severity and identify specific waste types (plastics, silt) directly from photos without human review.
@@ -467,12 +467,12 @@ export default function CoreEngineSection() {
             transition={{ delay: 0.2 }}
           >
             <div 
-              className="group border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-500 p-6 md:p-8 md:-skew-x-12 relative overflow-hidden h-full rounded-2xl md:rounded-none shadow-sm hover:shadow-2xl bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl"
+              className="group border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-500 p-6 md:p-8 -skew-x-3 md:-skew-x-12 relative overflow-hidden h-full rounded-none shadow-sm hover:shadow-2xl bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl"
             >
               {/* Edge perimeter running light */}
               <BorderBeam delay={3} color="#38BDF8" />
               <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none scale-150" />
-              <div className="md:skew-x-12 h-full flex flex-col justify-center">
+              <div className="skew-x-3 md:skew-x-12 h-full flex flex-col justify-center">
                 <h3 className="text-xl md:text-2xl font-heading font-black text-text-primary uppercase tracking-tight mb-3">Weather Synthesis</h3>
                 <p className="text-text-secondary leading-relaxed text-sm md:text-base">
                   Cross-references Open-Meteo's 48-hour precipitation data. The Synthesis Engine calculates a 60/40 weighted Priority Score combining physical severity and imminent rain risk.

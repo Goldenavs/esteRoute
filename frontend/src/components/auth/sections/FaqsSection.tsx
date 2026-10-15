@@ -47,7 +47,7 @@ const categoryNames = Object.keys(faqCategories);
 
 // Subtle, eye-friendly traveling perimeter highlight
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => (
-  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl md:rounded-none z-10">
+  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-none z-10">
     <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id={`faq-beam-${delay}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -171,13 +171,13 @@ export default function FaqsSection() {
                   setActiveCategory(cat);
                   setOpenIndex(0); // auto-open first item on switch
                 }}
-                className={`relative px-4 md:px-8 py-3 md:-skew-x-12 border-2 rounded-xl md:rounded-none transition-all duration-300 cursor-pointer ${
+                className={`relative px-4 md:px-8 py-3 -skew-x-3 md:-skew-x-12 border-2 rounded-none transition-all duration-300 cursor-pointer ${
                   isActive 
                     ? 'border-brand-primary bg-brand-primary text-app-bg shadow-md' 
                     : 'border-border-subtle text-text-secondary hover:text-text-primary hover:border-brand-primary bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl'
                 }`}
               >
-                <span className="relative z-10 md:skew-x-12 block font-heading font-black uppercase tracking-widest text-xs md:text-sm">{cat}</span>
+                <span className="relative z-10 skew-x-3 md:skew-x-12 block font-heading font-black uppercase tracking-widest text-xs md:text-sm">{cat}</span>
               </button>
             );
           })}
@@ -199,7 +199,7 @@ export default function FaqsSection() {
                 return (
                   <motion.div 
                     key={i}
-                    className={`group relative border-2 rounded-xl md:rounded-none transition-all duration-500 md:-skew-x-12 overflow-hidden ${
+                    className={`group relative border-2 rounded-none transition-all duration-500 -skew-x-3 md:-skew-x-12 overflow-hidden ${
                       isOpen 
                         ? 'bg-surface/85 backdrop-blur-xl border-brand-primary shadow-lg' 
                         : 'bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-border-subtle hover:border-brand-primary shadow-sm hover:shadow-xl'
@@ -208,7 +208,7 @@ export default function FaqsSection() {
                     {/* Perimeter running light */}
                     <BorderBeam delay={(i % 4) * 1.5} color={isOpen ? "#60A5FA" : "#3F72AF"} />
 
-                    <div className="md:skew-x-12 relative z-10">
+                    <div className="skew-x-3 md:skew-x-12 relative z-10">
                       <button
                         onClick={() => setOpenIndex(isOpen ? null : i)}
                         className="w-full px-6 py-5 flex items-center justify-between text-left focus:outline-none cursor-pointer"
