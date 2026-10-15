@@ -65,22 +65,44 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
   const [citizenError, setCitizenError] = useState('');
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
 
-  // Clear state when modal closes
+  // Auto-dismiss errors after 5 seconds
+  useEffect(() => {
+    if (!adminError) return;
+    const timer = setTimeout(() => setAdminError(''), 5000);
+    return () => clearTimeout(timer);
+  }, [adminError]);
+
+  useEffect(() => {
+    if (!citizenError) return;
+    const timer = setTimeout(() => setCitizenError(''), 5000);
+    return () => clearTimeout(timer);
+  }, [citizenError]);
+
+  // Cleanly toggle between Citizen Login and Register with fresh state
+  const handleToggleCitizenMode = () => {
+    setCitizenMode((prev) => (prev === 'login' ? 'signup' : 'login'));
+    setCitizenName('');
+    setCitizenEmail('');
+    setCitizenPassword('');
+    setCitizenError('');
+    setShowPassword(false);
+    setShowEmailConfirmation(false);
+  };
+
+  // Clear state when modal closes or switches
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (!activeModal) {
-      setCitizenMode('login');
-      setAdminEmail('');
-      setAdminPassword('');
-      setAdminError('');
-      setCitizenName('');
-      setCitizenEmail('');
-      setCitizenPassword('');
-      setCitizenError('');
-      setShowEmailConfirmation(false);
-      setShowPassword(false);
-      setIsLoading(false);
-    }
+    setCitizenMode('login');
+    setAdminEmail('');
+    setAdminPassword('');
+    setAdminError('');
+    setCitizenName('');
+    setCitizenEmail('');
+    setCitizenPassword('');
+    setCitizenError('');
+    setShowEmailConfirmation(false);
+    setShowPassword(false);
+    setIsLoading(false);
   }, [activeModal]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -110,12 +132,27 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
         navigate('/citizen');
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: citizenEmail,
         password: citizenPassword,
       });
-      if (error) setCitizenError(error.message);
-      else navigate('/citizen');
+      if (error) {
+        setCitizenError(error.message);
+      } else if (data.user) {
+        // Enforce that officers/dispatchers cannot log into the Citizen portal
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError || !profile || profile.role !== 'citizen') {
+          await supabase.auth.signOut();
+          setCitizenError('Access denied. LGU personnel must sign in via the LGU Dispatch Portal.');
+        } else {
+          navigate('/citizen');
+        }
+      }
     }
     setIsLoading(false);
   };
@@ -191,7 +228,10 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                         required
                         placeholder="Admin Email"
                         value={adminEmail}
-                        onChange={(e) => setAdminEmail(e.target.value)}
+                        onChange={(e) => {
+                          setAdminEmail(e.target.value);
+                          if (adminError) setAdminError('');
+                        }}
                         className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-3 text-text-primary focus:outline-none focus:border-brand-dark transition-colors"
                       />
                     </div>
@@ -203,7 +243,10 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                         required
                         placeholder="Password"
                         value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
+                        onChange={(e) => {
+                          setAdminPassword(e.target.value);
+                          if (adminError) setAdminError('');
+                        }}
                         className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-12 py-3 text-text-primary focus:outline-none focus:border-brand-dark transition-colors"
                       />
                       <button
@@ -296,7 +339,10 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                         required
                         placeholder="Email Address"
                         value={citizenEmail}
-                        onChange={(e) => setCitizenEmail(e.target.value)}
+                        onChange={(e) => {
+                          setCitizenEmail(e.target.value);
+                          if (citizenError) setCitizenError('');
+                        }}
                         className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-4 py-3 text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                       />
                     </div>
@@ -308,7 +354,10 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                         required
                         placeholder="Password"
                         value={citizenPassword}
-                        onChange={(e) => setCitizenPassword(e.target.value)}
+                        onChange={(e) => {
+                          setCitizenPassword(e.target.value);
+                          if (citizenError) setCitizenError('');
+                        }}
                         className="w-full bg-surface-subtle border-2 border-border-subtle pl-10 pr-12 py-3 text-text-primary focus:outline-none focus:border-brand-primary transition-colors"
                       />
                       <button
@@ -401,7 +450,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
                     <p className="text-sm text-text-secondary">
                       {citizenMode === 'login' ? "Don't have an account? " : "Already have an account? "}
                       <button
-                        onClick={() => setCitizenMode(citizenMode === 'login' ? 'signup' : 'login')}
+                        onClick={handleToggleCitizenMode}
                         className="text-brand-primary font-bold hover:underline"
                       >
                         {citizenMode === 'login' ? 'Sign up' : 'Login'}
