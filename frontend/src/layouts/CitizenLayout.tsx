@@ -1,15 +1,46 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { MapPin, Map, Activity, User, LogOut } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { MapPin, Map, Activity, User, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { supabase } from '../lib/supabase';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
 import TacticalBackground from '../components/common/TacticalBackground';
 
+const AnimatedNavLink = ({ 
+  title, 
+  to, 
+  isActive 
+}: { 
+  title: string; 
+  to: string; 
+  isActive?: boolean; 
+}) => {
+  return (
+    <Link 
+      to={to}
+      className="font-heading relative overflow-hidden group cursor-pointer text-xs xl:text-sm font-bold uppercase tracking-widest text-text-secondary hover:text-text-primary block shrink-0 transition-colors"
+    >
+      <span className={`block transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${isActive ? '-translate-y-full text-brand-primary' : 'group-hover:-translate-y-full text-text-primary'}`}>
+        {title}
+      </span>
+      <span className={`absolute inset-0 block transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] text-brand-primary ${isActive ? 'translate-y-0' : 'translate-y-full group-hover:translate-y-0'}`}>
+        {title}
+      </span>
+    </Link>
+  );
+};
+
 export default function CitizenLayout() {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isNavVisible, setIsNavVisible] = useState(true);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -83,44 +114,41 @@ export default function CitizenLayout() {
                 </div>
               </div>
               
-              {/* Center: Navigation Links */}
-              <nav className="flex-1 flex justify-center items-center gap-8 skew-x-12">
+              {/* Center: Navigation Links (Split-text sliding animation, matching landing page) */}
+              <nav className="flex-1 flex justify-center items-center gap-10 xl:gap-14 skew-x-12">
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
                   return (
-                    <Link 
-                      key={item.path} 
+                    <AnimatedNavLink
+                      key={item.path}
+                      title={item.name}
                       to={item.path}
-                      className={twMerge(
-                        clsx(
-                          "relative overflow-hidden group cursor-pointer text-xs xl:text-sm font-bold uppercase tracking-widest block shrink-0",
-                          isActive ? "text-brand-primary" : "text-text-muted hover:text-text-primary"
-                        )
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.name}</span>
-                      </div>
-                    </Link>
+                      isActive={isActive}
+                    />
                   );
                 })}
               </nav>
               
-              {/* Right: Actions */}
-              <div className="flex-1 flex justify-end items-center gap-4 skew-x-12">
+              {/* Right: Actions (Theme selector on the left, Logout on the right) */}
+              <div className="flex-1 flex justify-end items-center gap-5 skew-x-12">
                 <button 
                   onClick={toggleTheme} 
-                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-muted hover:text-text-primary pointer-events-auto cursor-pointer"
+                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-text-primary pointer-events-auto cursor-pointer"
                   aria-label="Toggle Theme"
+                  title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
                 >
-                  {theme === 'light' ? '🌙' : '☀️'}
+                  {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
                 </button>
-                <div className="w-px h-4 bg-border-strong"></div>
-                <Link to="/" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto">
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
-                </Link>
+
+                <div className="w-px h-4 bg-border-strong" />
+
+                <button 
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-xs xl:text-sm font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto cursor-pointer"
+                >
+                  Logout
+                </button>
               </div>
 
             </div>
