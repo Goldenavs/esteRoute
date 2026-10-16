@@ -835,27 +835,32 @@ export default function BlockageSubmissionForm() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              className="relative z-10 w-full max-w-lg bg-surface/95 backdrop-blur-2xl border border-brand-primary/40 rounded-sm shadow-[0_0_80px_-10px_rgba(var(--brand-primary),0.4)] overflow-hidden -skew-x-[2deg] lg:-skew-x-[4deg] p-8 md:p-10 flex flex-col items-center text-center"
+              className="relative z-10 w-full max-w-md max-h-[92dvh] overflow-y-auto bg-surface/95 backdrop-blur-2xl border border-brand-primary/40 rounded-sm shadow-[0_0_80px_-10px_rgba(var(--brand-primary),0.4)] p-5 sm:p-7 md:p-8 flex flex-col items-center text-center my-auto"
             >
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary" />
 
-              <div className="skew-x-[2deg] lg:skew-x-[4deg] flex flex-col items-center text-center w-full">
-                <div className="w-20 h-20 bg-green-500/15 rounded-full flex items-center justify-center mb-6 shadow-inner border border-green-500/30">
-                  <CheckCircle2 className="w-10 h-10 text-green-500" />
+              <div className="flex flex-col items-center text-center w-full">
+                {/* Success Icon */}
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-500/15 rounded-full flex items-center justify-center mb-3 sm:mb-4 shadow-inner border border-green-500/30 shrink-0">
+                  <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-heading font-black tracking-tight text-text-primary mb-2 uppercase">
+                {/* Title & Description */}
+                <h2 className="text-xl sm:text-2xl font-heading font-black tracking-tight text-text-primary mb-1.5 uppercase">
                   Report Submitted
                 </h2>
-                <p className="text-text-muted mb-8 text-sm md:text-base">
+                <p className="text-text-muted mb-4 sm:mb-6 text-xs sm:text-sm max-w-xs sm:max-w-sm leading-relaxed">
                   Thank you for keeping our community safe. Guest submissions cannot be tracked later unless you save this reference number.
                 </p>
 
-                <div className="w-full mb-8 flex flex-col gap-3">
-                  <div className="bg-app-bg w-full p-4 rounded-sm border border-border-subtle flex items-center justify-between gap-4 -skew-x-[3deg] lg:-skew-x-6 relative shadow-inner">
-                    <div className="skew-x-[3deg] lg:skew-x-6 flex flex-col items-start gap-1">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Tracking Reference</span>
-                      <span className="text-xl md:text-2xl font-mono font-black text-brand-primary select-all">
+                {/* Tracking Reference Card (Skewed Container, Straight Text) */}
+                <div className="w-full mb-4 sm:mb-6 flex flex-col gap-2">
+                  <div className="bg-app-bg w-full p-3 sm:p-3.5 rounded-sm border border-border-subtle flex items-center justify-between gap-3 -skew-x-3 sm:-skew-x-6 relative shadow-inner">
+                    <div className="skew-x-3 sm:skew-x-6 flex flex-col items-start gap-0.5 text-left">
+                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                        Tracking Reference
+                      </span>
+                      <span className="text-lg sm:text-xl font-mono font-black text-brand-primary select-all tracking-wider">
                         {trackingRef || "ER-2026-000000"}
                       </span>
                     </div>
@@ -863,36 +868,37 @@ export default function BlockageSubmissionForm() {
                       type="button"
                       onClick={handleCopy}
                       className={twMerge(
-                        "skew-x-[3deg] lg:skew-x-6 p-3 rounded-sm transition-all duration-300 flex-shrink-0 border cursor-pointer active:scale-95",
+                        "skew-x-3 sm:skew-x-6 p-2 sm:p-2.5 rounded-sm transition-all duration-300 flex-shrink-0 border cursor-pointer active:scale-95 flex items-center justify-center",
                         hasCopied
                           ? "bg-green-500/20 text-green-500 border-green-500/30"
                           : "bg-surface text-text-primary hover:bg-brand-primary hover:text-white border-border-subtle shadow-sm"
                       )}
                       title="Copy Tracking Number"
                     >
-                      {hasCopied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                      {hasCopied ? <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" /> : <Copy className="w-4 h-4 sm:w-5 sm:h-5" />}
                     </button>
                   </div>
 
                   {!hasCopied ? (
-                    <div className="flex items-center justify-center gap-2 text-semantic-warning text-xs font-bold uppercase tracking-widest animate-pulse">
-                      <AlertCircle className="w-4 h-4" />
+                    <div className="flex items-center justify-center gap-1.5 text-semantic-warning text-[10px] sm:text-xs font-bold uppercase tracking-wider animate-pulse pt-0.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span>Please copy your reference number</span>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center gap-2 text-green-500 text-xs font-bold uppercase tracking-widest">
-                      <Check className="w-4 h-4" />
+                    <div className="flex items-center justify-center gap-1.5 text-green-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider pt-0.5">
+                      <Check className="w-3.5 h-3.5 shrink-0" />
                       <span>Reference number copied to clipboard!</span>
                     </div>
                   )}
                 </div>
 
+                {/* Close Button (Skewed Container, Straight Text) */}
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="w-full font-bold py-4 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 group -skew-x-[3deg] lg:-skew-x-12 border-2 bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary hover:text-black cursor-pointer active:scale-[0.99] shadow-lg shadow-brand-primary/20"
+                  className="w-full font-bold py-3 sm:py-3.5 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 group -skew-x-3 sm:-skew-x-6 border-2 bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary hover:text-black cursor-pointer active:scale-[0.99] shadow-lg shadow-brand-primary/20 shrink-0"
                 >
-                  <span className="skew-x-[3deg] lg:skew-x-12 uppercase tracking-widest">
+                  <span className="skew-x-3 sm:skew-x-6 uppercase tracking-widest text-xs sm:text-sm font-black">
                     Close & Submit Another
                   </span>
                 </button>
