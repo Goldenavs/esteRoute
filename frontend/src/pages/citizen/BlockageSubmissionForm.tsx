@@ -1,7 +1,11 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, ChevronLeft, X, AlertCircle, RefreshCw, Zap, ZapOff, Layers, Plus, Minus, Copy, Check, Sun, Moon } from 'lucide-react';
+import {
+  Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, ChevronLeft,
+  X, AlertCircle, RefreshCw, Zap, ZapOff, Layers, Plus, Minus,
+  Copy, Check, Sun, Moon, Crosshair, Maximize2, Minimize2, Navigation
+} from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
@@ -44,21 +48,122 @@ function MapResizeHandler({ active }: { active: boolean }) {
 
 export type MapType = 'detailed' | 'simple';
 
-export const getMapTileUrl = (type: MapType, isDark: boolean) => {
+// 100% Free OpenStreetMap tile servers with NO API key required
+export const getMapTileUrl = (type: MapType) => {
   if (type === 'detailed') {
+    // Humanitarian OpenStreetMap - rich detail for canals, waterways, buildings & streets
     return 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
   }
-  return isDark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  // Standard OpenStreetMap - clean, reliable, no API key required
+  return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 };
 
-export const getMapTileAttribution = (type: MapType) => {
-  if (type === 'detailed') {
-    return '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by Humanitarian OpenStreetMap Team';
-  }
-  return '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>';
-};
+// Off-screen indicator that dynamically points toward the pin when scrolled out of view
+function OffscreenPinTracker({ position }: { position: L.LatLng }) {
+  const map = useMap();
+  const [isOffscreen, setIsOffscreen] = useState(false);
+  const [indicator, setIndicator] = useState<{ x: number; y: number; angle: number; distanceM: number } | null>(null);
+
+  useEffect(() => {
+    const updateTracker = () => {
+      const bounds = map.getBounds();
+      if (!bounds.contains(position)) {
+        setIsOffscreen(true);
+
+        const containerSize = map.getSize();
+        const centerLatLng = map.getCenter();
+        const centerPoint = map.latLngToContainerPoint(centerLatLng);
+        const pinPoint = map.latLngToContainerPoint(position);
+
+        const dx = pinPoint.x - centerPoint.x;
+        const dy = pinPoint.y - centerPoint.y;
+        const angleRad = Math.atan2(dy, dx);
+        const angleDeg = (angleRad * 180) / Math.PI;
+
+        // Distance in meters between map center and pin
+        const distanceM = Math.round(centerLatLng.distanceTo(position));
+
+        // Clamping margin from container edges
+        const padX = 48;
+        const padY = 48;
+        const halfW = containerSize.x / 2 - padX;
+        const halfH = containerSize.y / 2 - padY;
+
+        let edgeX = 0;
+        let edgeY = 0;
+
+        if (Math.abs(dx) * halfH > Math.abs(dy) * halfW) {
+          // Intersects with left or right vertical border
+          edgeX = dx > 0 ? halfW : -halfW;
+          edgeY = edgeX * Math.tan(angleRad);
+        } else {
+          // Intersects with top or bottom horizontal border
+          edgeY = dy > 0 ? halfH : -halfH;
+          edgeX = edgeY / Math.tan(angleRad);
+        }
+
+        const screenX = centerPoint.x + edgeX;
+        const screenY = centerPoint.y + edgeY;
+
+        setIndicator({
+          x: screenX,
+          y: screenY,
+          angle: angleDeg,
+          distanceM,
+        });
+      } else {
+        setIsOffscreen(false);
+        setIndicator(null);
+      }
+    };
+
+    updateTracker();
+    map.on('move', updateTracker);
+    map.on('zoom', updateTracker);
+    map.on('resize', updateTracker);
+
+    return () => {
+      map.off('move', updateTracker);
+      map.off('zoom', updateTracker);
+      map.off('resize', updateTracker);
+    };
+  }, [map, position]);
+
+  if (!isOffscreen || !indicator) return null;
+
+  const formattedDistance = indicator.distanceM >= 1000
+    ? `${(indicator.distanceM / 1000).toFixed(1)}km`
+    : `${indicator.distanceM}m`;
+
+  return (
+    <div
+      style={{
+        left: `${indicator.x}px`,
+        top: `${indicator.y}px`,
+        transform: 'translate(-50%, -50%)',
+      }}
+      className="absolute z-[450] pointer-events-auto transition-transform duration-75 select-none"
+    >
+      <button
+        type="button"
+        onClick={() => map.flyTo(position, Math.max(map.getZoom(), 15), { animate: true, duration: 0.8 })}
+        className="group flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-sm shadow-2xl border border-white/40 -skew-x-6 cursor-pointer active:scale-95 transition-all shadow-black/40"
+        title="Pin is off-screen. Click to re-center on pin."
+      >
+        <div
+          className="w-4 h-4 flex items-center justify-center shrink-0 transition-transform"
+          style={{ transform: `rotate(${indicator.angle - 45}deg)` }}
+        >
+          <Navigation className="w-3.5 h-3.5 fill-current" />
+        </div>
+        <div className="skew-x-6 flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider">
+          <span>Pin</span>
+          <span className="opacity-75 text-[9px]">({formattedDistance})</span>
+        </div>
+      </button>
+    </div>
+  );
+}
 
 // Component to render custom stylized controls inside the map
 function CustomMapControls({
@@ -66,11 +171,17 @@ function CustomMapControls({
   setIsMapDark,
   mapType,
   setMapType,
+  handleLocateMe,
+  toggleFullScreen,
+  isFullscreen,
 }: {
   isMapDark: boolean;
   setIsMapDark: React.Dispatch<React.SetStateAction<boolean>>;
   mapType: MapType;
   setMapType: React.Dispatch<React.SetStateAction<MapType>>;
+  handleLocateMe: () => void;
+  toggleFullScreen: () => void;
+  isFullscreen: boolean;
 }) {
   const map = useMap();
 
@@ -98,7 +209,31 @@ function CustomMapControls({
         <Minus className="w-4 h-4 skew-x-6" />
       </button>
 
-      <div className="w-full h-px bg-border-subtle my-0.5 sm:my-1" />
+      <div className="w-full h-px bg-border-subtle my-0.5" />
+
+      {/* Locate Me (Always available, even in Fullscreen mode!) */}
+      <button
+        type="button"
+        onClick={handleLocateMe}
+        className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+        title="Locate Me (GPS)"
+        aria-label="Locate Me"
+      >
+        <Crosshair className="w-4 h-4 skew-x-6" />
+      </button>
+
+      {/* Fullscreen Toggle Button */}
+      <button
+        type="button"
+        onClick={toggleFullScreen}
+        className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+        title={isFullscreen ? "Exit Fullscreen" : "Fullscreen Map"}
+        aria-label="Toggle Fullscreen"
+      >
+        {isFullscreen ? <Minimize2 className="w-4 h-4 skew-x-6" /> : <Maximize2 className="w-4 h-4 skew-x-6" />}
+      </button>
+
+      <div className="w-full h-px bg-border-subtle my-0.5" />
 
       {/* Dedicated Map Theme Toggle (Sun / Moon) */}
       <button
@@ -116,7 +251,7 @@ function CustomMapControls({
         {isMapDark ? <Sun className="w-4 h-4 skew-x-6" /> : <Moon className="w-4 h-4 skew-x-6" />}
       </button>
 
-      {/* Map Style Cycle: Detailed (Humanitarian) vs Simple (Minimal Carto) */}
+      {/* Map Style Cycle: Detailed (Humanitarian) vs Simple (Standard OSM) */}
       <button
         type="button"
         onClick={() => setMapType(prev => prev === 'detailed' ? 'simple' : 'detailed')}
@@ -126,7 +261,7 @@ function CustomMapControls({
             ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/30"
             : "bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-secondary hover:text-black"
         )}
-        title={mapType === 'detailed' ? "Map: Detailed (Humanitarian OSM) - Click for Simple" : "Map: Simple (Minimal Carto) - Click for Detailed"}
+        title={mapType === 'detailed' ? "Map: Detailed (Humanitarian OSM) - Click for Simple" : "Map: Simple (Standard OSM) - Click for Detailed"}
         aria-label="Cycle Map Style (Detailed / Simple)"
       >
         <Layers className="w-4 h-4 skew-x-6" />
@@ -160,6 +295,15 @@ export default function BlockageSubmissionForm() {
   const [hasCopied, setHasCopied] = useState(false);
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement !== null);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
 
   // Geolocation State (Defaults to Cebu City Center)
   const defaultPosition = useMemo(() => new L.LatLng(10.3157, 123.8854), []);
@@ -1317,7 +1461,7 @@ export default function BlockageSubmissionForm() {
                   onClick={toggleFullScreen}
                   className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-surface-subtle text-text-secondary hover:text-text-primary px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-sm transition-all -skew-x-3 lg:-skew-x-12 border border-border-subtle"
                 >
-                  <span className="skew-x-3 lg:skew-x-12 block">Full Screen</span>
+                  <span className="skew-x-3 lg:skew-x-12 block">{isFullscreen ? "Exit Full Screen" : "Full Screen"}</span>
                 </button>
               </div>
             </div>
@@ -1326,7 +1470,7 @@ export default function BlockageSubmissionForm() {
               ref={mapContainerRef}
               className={twMerge(
                 "w-full flex-1 min-h-0 bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0 lg:min-h-[420px]",
-                isMapDark && mapType === 'detailed' && "dark-map"
+                isMapDark && "dark-map"
               )}
             >
               <MapContainer
@@ -1334,12 +1478,13 @@ export default function BlockageSubmissionForm() {
                 zoom={15}
                 scrollWheelZoom={true}
                 zoomControl={false}
+                attributionControl={false}
                 className="w-full h-full z-0"
               >
                 <TileLayer
                   key={`${mapType}-${isMapDark ? 'dark' : 'light'}`}
-                  attribution={getMapTileAttribution(mapType)}
-                  url={getMapTileUrl(mapType, isMapDark)}
+                  attribution=""
+                  url={getMapTileUrl(mapType)}
                 />
                 <Marker
                   position={position}
@@ -1350,35 +1495,27 @@ export default function BlockageSubmissionForm() {
                 />
                 <MapFlyTo position={position} defaultPosition={defaultPosition} />
                 <MapResizeHandler active={mobileStep === 2} />
+                <OffscreenPinTracker position={position} />
                 <CustomMapControls
                   isMapDark={isMapDark}
                   setIsMapDark={setIsMapDark}
                   mapType={mapType}
                   setMapType={setMapType}
+                  handleLocateMe={handleLocateMe}
+                  toggleFullScreen={toggleFullScreen}
+                  isFullscreen={isFullscreen}
                 />
               </MapContainer>
 
-              {/* Map Style & Mode Indicator (Bottom Left) */}
+              {/* Map Style & Mode Indicator (Bottom Left, no dot) */}
               <div className="absolute bottom-3 left-3 z-[400] bg-surface/90 backdrop-blur-md border border-border-subtle px-2.5 py-1 rounded-sm shadow-md flex items-center gap-1.5 -skew-x-3 pointer-events-none text-[10px] font-mono font-bold text-text-secondary uppercase tracking-wider">
                 <span className="skew-x-3 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
                   <span>{mapType === 'detailed' ? 'Detailed' : 'Simple'}</span>
                   <span className="text-text-muted opacity-40">|</span>
                   <span className={isMapDark ? "text-amber-400" : "text-brand-primary"}>
                     {isMapDark ? 'Dark' : 'Light'}
                   </span>
                 </span>
-              </div>
-
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[400] bg-surface border border-border-subtle px-3.5 py-1 rounded-sm shadow-xl flex items-center gap-2 -skew-x-[3deg] lg:-skew-x-12 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 left-0 w-1 h-full bg-brand-primary"></div>
-                <div className="skew-x-[3deg] lg:skew-x-12 flex items-center gap-2">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-primary"></span>
-                  </span>
-                  <span className="text-[10px] font-bold text-text-primary uppercase tracking-widest">Live Location</span>
-                </div>
               </div>
             </div>
 
