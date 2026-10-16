@@ -374,7 +374,6 @@ export default function BlockageSubmissionForm() {
 
   const [hasCopied, setHasCopied] = useState(false);
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
-  const [showReviewModal, setShowReviewModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -691,7 +690,6 @@ export default function BlockageSubmissionForm() {
 
       const data = await response.json();
       setTrackingRef(data.tracking_reference);
-      setShowReviewModal(false);
       setIsSubmitted(true);
     } catch (error) {
       console.error("Submission error:", error);
@@ -708,18 +706,11 @@ export default function BlockageSubmissionForm() {
       return;
     }
 
-    // On mobile, step 3 is already a review step so submit directly
-    if (window.innerWidth < 1024) {
-      executeSubmit();
-    } else {
-      // On web/desktop, open the Report Summary confirmation modal
-      setShowReviewModal(true);
-    }
+    executeSubmit();
   };
 
   const resetForm = () => {
     setIsSubmitted(false);
-    setShowReviewModal(false);
     setHasCopied(false);
     removePhoto();
     setNotes('');
@@ -827,211 +818,87 @@ export default function BlockageSubmissionForm() {
 
       {/* Submission Success Modal */}
       <AnimatePresence>
-        {isSubmitted && createPortal(
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[500] flex items-center justify-center p-4"
-          >
-            <div className="absolute inset-0 bg-app-bg/80 backdrop-blur-md" />
+        {isSubmitted && (
+          <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
 
+            {/* Modal Card */}
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              className="relative w-full max-w-lg bg-surface/90 backdrop-blur-2xl border border-brand-primary/30 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.3)] overflow-hidden -skew-x-[2deg] lg:-skew-x-[4deg] p-8 md:p-10 flex flex-col items-center text-center"
+              className="relative z-10 w-full max-w-lg bg-surface/95 backdrop-blur-2xl border border-brand-primary/40 rounded-sm shadow-[0_0_80px_-10px_rgba(var(--brand-primary),0.4)] overflow-hidden -skew-x-[2deg] lg:-skew-x-[4deg] p-8 md:p-10 flex flex-col items-center text-center"
             >
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary"></div>
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary" />
 
               <div className="skew-x-[2deg] lg:skew-x-[4deg] flex flex-col items-center text-center w-full">
-                <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <div className="w-20 h-20 bg-green-500/15 rounded-full flex items-center justify-center mb-6 shadow-inner border border-green-500/30">
                   <CheckCircle2 className="w-10 h-10 text-green-500" />
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-heading font-black tracking-tight text-text-primary mb-2">Report Submitted</h2>
-                <p className="text-text-muted mb-8 text-sm md:text-base">Thank you for keeping our community safe. Guest submissions cannot be tracked later unless you save this reference number.</p>
+                <h2 className="text-2xl md:text-3xl font-heading font-black tracking-tight text-text-primary mb-2 uppercase">
+                  Report Submitted
+                </h2>
+                <p className="text-text-muted mb-8 text-sm md:text-base">
+                  Thank you for keeping our community safe. Guest submissions cannot be tracked later unless you save this reference number.
+                </p>
 
                 <div className="w-full mb-8 flex flex-col gap-3">
                   <div className="bg-app-bg w-full p-4 rounded-sm border border-border-subtle flex items-center justify-between gap-4 -skew-x-[3deg] lg:-skew-x-6 relative shadow-inner">
                     <div className="skew-x-[3deg] lg:skew-x-6 flex flex-col items-start gap-1">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Tracking Reference</span>
-                      <span className="text-xl md:text-2xl font-mono font-black text-brand-primary">{trackingRef || "ER-2026-000000"}</span>
+                      <span className="text-xl md:text-2xl font-mono font-black text-brand-primary select-all">
+                        {trackingRef || "ER-2026-000000"}
+                      </span>
                     </div>
                     <button
+                      type="button"
                       onClick={handleCopy}
                       className={twMerge(
-                        "skew-x-[3deg] lg:skew-x-6 p-3 rounded-sm transition-all duration-300 flex-shrink-0 border",
+                        "skew-x-[3deg] lg:skew-x-6 p-3 rounded-sm transition-all duration-300 flex-shrink-0 border cursor-pointer active:scale-95",
                         hasCopied
                           ? "bg-green-500/20 text-green-500 border-green-500/30"
-                          : "bg-surface text-text-primary hover:bg-brand-primary hover:text-white border-border-subtle"
+                          : "bg-surface text-text-primary hover:bg-brand-primary hover:text-white border-border-subtle shadow-sm"
                       )}
                       title="Copy Tracking Number"
                     >
-                      {hasCopied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                      {hasCopied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
                     </button>
                   </div>
 
-                  {!hasCopied && (
+                  {!hasCopied ? (
                     <div className="flex items-center justify-center gap-2 text-semantic-warning text-xs font-bold uppercase tracking-widest animate-pulse">
                       <AlertCircle className="w-4 h-4" />
                       <span>Please copy your reference number</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 text-green-500 text-xs font-bold uppercase tracking-widest">
+                      <Check className="w-4 h-4" />
+                      <span>Reference number copied to clipboard!</span>
                     </div>
                   )}
                 </div>
 
                 <button
+                  type="button"
                   onClick={resetForm}
-                  disabled={!hasCopied}
-                  className={twMerge(
-                    "w-full font-bold py-4 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 group -skew-x-[3deg] lg:-skew-x-12 border-2",
-                    hasCopied
-                      ? "bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary cursor-pointer active:scale-[0.99]"
-                      : "bg-surface border-border-strong text-text-muted cursor-not-allowed opacity-50"
-                  )}
+                  className="w-full font-bold py-4 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 group -skew-x-[3deg] lg:-skew-x-12 border-2 bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary hover:text-black cursor-pointer active:scale-[0.99] shadow-lg shadow-brand-primary/20"
                 >
                   <span className="skew-x-[3deg] lg:skew-x-12 uppercase tracking-widest">
-                    {hasCopied ? "Close & Submit Another" : "Acknowledge & Close"}
+                    Close & Submit Another
                   </span>
                 </button>
               </div>
             </motion.div>
-          </motion.div>,
-          document.body
-        )}
-      </AnimatePresence>
-
-      {/* Desktop Review & Confirmation Modal */}
-      <AnimatePresence>
-        {showReviewModal && createPortal(
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[500] flex items-center justify-center p-4"
-          >
-            {/* Backdrop */}
-            <div
-              className="absolute inset-0 bg-app-bg/80 backdrop-blur-md"
-              onClick={() => !isSubmitting && setShowReviewModal(false)}
-            />
-
-            {/* Modal Card */}
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              className="relative w-full max-w-xl bg-surface/95 backdrop-blur-2xl border border-brand-primary/30 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.35)] overflow-hidden -skew-x-[2deg] lg:-skew-x-[3deg] p-6 sm:p-8 flex flex-col"
-            >
-              {/* Top gradient stripe */}
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary" />
-
-              <div className="skew-x-[2deg] lg:skew-x-[3deg] flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-border-subtle">
-                  <div>
-                    <span className="text-[10px] font-mono font-bold text-brand-primary uppercase tracking-widest block mb-0.5">Final Review</span>
-                    <h2 className="text-xl sm:text-2xl font-heading font-black tracking-tight text-text-primary uppercase">
-                      Confirm Report Submission
-                    </h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowReviewModal(false)}
-                    disabled={isSubmitting}
-                    className="p-2 -skew-x-6 rounded-sm bg-surface hover:bg-surface-subtle text-text-muted hover:text-text-primary border border-border-subtle transition-all cursor-pointer"
-                  >
-                    <X className="w-4 h-4 skew-x-6" />
-                  </button>
-                </div>
-
-                {/* Details Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 mb-6">
-                  {/* Photo Preview Thumbnail */}
-                  <div className="sm:col-span-5 relative rounded-sm overflow-hidden border border-border-subtle bg-black min-h-[140px] sm:h-full">
-                    {photoPreview && (
-                      <img
-                        src={photoPreview}
-                        alt="Blockage preview"
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded-sm text-[10px] font-mono text-white/90 uppercase tracking-widest border border-white/20">
-                      Evidence Photo
-                    </div>
-                  </div>
-
-                  {/* Metadata: Coordinates & Notes */}
-                  <div className="sm:col-span-7 flex flex-col gap-3 justify-between">
-                    {/* Location Card */}
-                    <div className="bg-app-bg/70 p-3 rounded-sm border border-border-subtle -skew-x-[2deg]">
-                      <div className="skew-x-[2deg] flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-brand-secondary uppercase tracking-wider">
-                          <MapPin className="w-3.5 h-3.5" />
-                          <span>Pinned Location</span>
-                        </div>
-                        <span className="font-mono text-xs sm:text-sm text-text-primary font-bold">
-                          {position.lat.toFixed(5)}°, {position.lng.toFixed(5)}°
-                        </span>
-                        <span className="text-[11px] text-text-muted">
-                          Coordinates captured on map
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Notes Card */}
-                    <div className="bg-app-bg/70 p-3 rounded-sm border border-border-subtle -skew-x-[2deg] flex-1">
-                      <div className="skew-x-[2deg] flex flex-col gap-1 h-full">
-                        <div className="flex items-center justify-between text-xs font-bold text-text-secondary uppercase tracking-wider">
-                          <span>Citizen Notes</span>
-                          <span className="text-[10px] font-mono text-text-muted">
-                            {notes.length}/280
-                          </span>
-                        </div>
-                        <p className="text-xs text-text-primary line-clamp-3 italic">
-                          {notes.trim() ? `"${notes.trim()}"` : <span className="text-text-muted not-italic">No additional notes provided.</span>}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowReviewModal(false)}
-                    disabled={isSubmitting}
-                    className="flex-1 py-3.5 px-4 bg-surface border border-border-subtle hover:border-text-primary text-text-primary rounded-sm font-bold text-sm tracking-wider uppercase transition-colors -skew-x-3 lg:-skew-x-6 cursor-pointer"
-                  >
-                    <span className="skew-x-3 lg:skew-x-6">Back to Edit</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={executeSubmit}
-                    disabled={isSubmitting}
-                    className={twMerge(
-                      "flex-1 py-3.5 px-5 rounded-sm font-black text-sm tracking-widest uppercase transition-all -skew-x-3 lg:-skew-x-6 shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2",
-                      isSubmitting
-                        ? "bg-surface border border-border-strong text-text-muted cursor-wait"
-                        : "bg-brand-primary hover:bg-brand-secondary text-white cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
-                    )}
-                  >
-                    <span className="skew-x-3 lg:skew-x-6 flex items-center gap-2">
-                      <span>{isSubmitting ? "Dispatching..." : "Confirm & Dispatch"}</span>
-                      {!isSubmitting && <ChevronRight className="w-4 h-4" />}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>,
-          document.body
+          </div>
         )}
       </AnimatePresence>
 
