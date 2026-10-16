@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, ChevronLeft, X, AlertCircle, RefreshCw, Zap, ZapOff, Maximize2, Minimize2, Layers, Plus, Minus, Copy, Check } from 'lucide-react';
+import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, ChevronLeft, X, AlertCircle, RefreshCw, Zap, ZapOff, Layers, Plus, Minus, Copy, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
@@ -356,79 +356,155 @@ export default function BlockageSubmissionForm() {
     }
   };
 
-  const renderCameraControls = () => (
-    <>
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        className={twMerge("w-full h-full object-cover", facingMode === 'user' && "scale-x-[-1]")}
+  const renderCameraModal = () => (
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-3 sm:p-5 md:p-8">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300"
+        onClick={stopCamera}
       />
 
-      <div className="absolute top-4 left-4 z-10">
-        <button
-          type="button"
-          onClick={() => setIsCameraExpanded(!isCameraExpanded)}
-          className="p-2.5 bg-black/60 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
-          title={isCameraExpanded ? "Minimize" : "Maximize"}
-        >
-          {isCameraExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-        </button>
-      </div>
+      {/* 80-85% Screen Tactical Camera Container */}
+      <div className="relative w-[94vw] sm:w-[86vw] max-w-5xl h-[86vh] sm:h-[82vh] bg-surface/95 backdrop-blur-2xl border-2 border-brand-primary/40 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.4)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 p-3 sm:p-5 gap-3 z-10 -skew-x-[1deg] sm:-skew-x-[2deg]">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary" />
 
-      {/* Camera Controls Overlay */}
-      <div className="absolute top-4 right-4 flex flex-col gap-3 z-10">
-        <button
-          type="button"
-          onClick={stopCamera}
-          className="p-2.5 bg-black/60 hover:bg-semantic-urgent backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
-          title="Close Camera"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="skew-x-[1deg] sm:skew-x-[2deg] flex flex-col h-full w-full gap-3">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between px-1 shrink-0">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-brand-primary/20 rounded-sm text-brand-primary -skew-x-3 sm:-skew-x-6">
+                <Camera className="w-4 h-4 sm:w-5 sm:h-5 skew-x-3 sm:skew-x-6" />
+              </div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg md:text-xl font-bold text-text-primary uppercase tracking-wider">
+                  Live Viewfinder
+                </h2>
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-red-500/10 border border-red-500/30 text-[10px] font-mono font-bold text-red-500 uppercase tracking-widest">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                  Live
+                </span>
+              </div>
+            </div>
 
-        {cameraCount > 1 && (
-          <button
-            type="button"
-            onClick={toggleCamera}
-            className="p-2.5 bg-black/60 hover:bg-brand-primary backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg"
-            title="Flip Camera"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </button>
-        )}
+            {/* Quick Action Buttons (Torch, Flip, Close) */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTorch}
+                className={twMerge(
+                  "p-2 sm:p-2.5 backdrop-blur-md rounded-sm transition-all duration-300 shadow-md border -skew-x-3 sm:-skew-x-6",
+                  isTorchOn
+                    ? "bg-brand-secondary text-black border-brand-secondary"
+                    : "bg-surface border-border-subtle text-text-secondary hover:text-text-primary hover:border-brand-primary"
+                )}
+                title="Toggle Flashlight"
+              >
+                <div className="skew-x-3 sm:skew-x-6">
+                  {isTorchOn ? <Zap className="w-4 h-4 sm:w-5 sm:h-5" /> : <ZapOff className="w-4 h-4 sm:w-5 sm:h-5" />}
+                </div>
+              </button>
 
-        <button
-          type="button"
-          onClick={toggleTorch}
-          className={twMerge(
-            "p-2.5 backdrop-blur-md rounded-full text-white transition-colors duration-300 shadow-lg",
-            isTorchOn ? "bg-brand-secondary text-black" : "bg-black/60 hover:bg-brand-secondary/50"
-          )}
-          title="Toggle Flashlight"
-        >
-          {isTorchOn ? <Zap className="w-5 h-5" /> : <ZapOff className="w-5 h-5" />}
-        </button>
-      </div>
+              {cameraCount > 1 && (
+                <button
+                  type="button"
+                  onClick={toggleCamera}
+                  className="p-2 sm:p-2.5 bg-surface border border-border-subtle hover:border-brand-primary hover:text-brand-primary text-text-secondary rounded-sm transition-all duration-300 shadow-md -skew-x-3 sm:-skew-x-6"
+                  title="Flip Camera"
+                >
+                  <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 skew-x-3 sm:skew-x-6" />
+                </button>
+              )}
 
-      <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10">
-        <div className="p-1.5 border-4 border-white/50 rounded-full">
-          <button
-            type="button"
-            onClick={capturePhoto}
-            className={twMerge(
-              "bg-white rounded-full hover:bg-gray-300 active:scale-95 transition-all duration-300 shadow-2xl",
-              isCameraExpanded ? "w-20 h-20" : "w-16 h-16"
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="p-2 sm:p-2.5 bg-surface border border-border-subtle hover:bg-semantic-urgent hover:text-white hover:border-semantic-urgent text-text-secondary rounded-sm transition-all duration-300 shadow-md -skew-x-3 sm:-skew-x-6"
+                title="Close Viewfinder"
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 skew-x-3 sm:skew-x-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Viewfinder Main Video Area */}
+          <div className="relative w-full flex-1 min-h-0 bg-black rounded-sm overflow-hidden border border-border-subtle shadow-inner flex items-center justify-center group">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className={twMerge("w-full h-full object-cover", facingMode === 'user' && "scale-x-[-1]")}
+            />
+
+            {/* Tactical HUD Reticle & Corner Brackets (Pointer-events-none) */}
+            <div className="pointer-events-none absolute inset-0 p-4 sm:p-6 flex flex-col justify-between">
+              {/* Top Corners */}
+              <div className="flex justify-between w-full">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 border-t-2 border-l-2 border-brand-primary/80 drop-shadow-[0_0_8px_rgba(var(--brand-primary),0.8)]" />
+                <div className="w-6 h-6 sm:w-8 sm:h-8 border-t-2 border-r-2 border-brand-primary/80 drop-shadow-[0_0_8px_rgba(var(--brand-primary),0.8)]" />
+              </div>
+
+              {/* Center Aiming Guide */}
+              <div className="self-center flex flex-col items-center gap-2">
+                <div className="w-24 h-24 sm:w-36 sm:h-36 border border-dashed border-white/40 rounded-sm flex items-center justify-center relative">
+                  <div className="w-2 h-2 rounded-full bg-brand-primary shadow-[0_0_10px_rgba(var(--brand-primary),1)]" />
+                  <div className="absolute w-6 h-[1px] bg-white/50" />
+                  <div className="absolute h-6 w-[1px] bg-white/50" />
+                </div>
+                <span className="text-[10px] sm:text-xs font-mono font-bold tracking-widest uppercase bg-black/60 backdrop-blur-md px-3 py-1 rounded-sm text-white/90 border border-white/10">
+                  Align Blockage in Center
+                </span>
+              </div>
+
+              {/* Bottom Corners */}
+              <div className="flex justify-between w-full">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 border-b-2 border-l-2 border-brand-primary/80 drop-shadow-[0_0_8px_rgba(var(--brand-primary),0.8)]" />
+                <div className="w-6 h-6 sm:w-8 sm:h-8 border-b-2 border-r-2 border-brand-primary/80 drop-shadow-[0_0_8px_rgba(var(--brand-primary),0.8)]" />
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Shutter & Quick Controls Bar */}
+          <div className="shrink-0 flex items-center justify-between px-2 pt-1 pb-1">
+            <button
+              type="button"
+              onClick={stopCamera}
+              className="px-3 sm:px-4 py-2 bg-surface border border-border-subtle hover:border-text-primary text-text-muted hover:text-text-primary rounded-sm text-xs font-bold uppercase tracking-wider transition-colors -skew-x-3 sm:-skew-x-6"
+            >
+              <span className="skew-x-3 sm:skew-x-6 block">Cancel</span>
+            </button>
+
+            {/* Shutter Button */}
+            <div className="p-1 sm:p-1.5 border-4 border-white/60 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-transform">
+              <button
+                type="button"
+                onClick={capturePhoto}
+                className="w-16 h-16 sm:w-20 sm:h-20 bg-white hover:bg-gray-200 rounded-full active:scale-90 transition-all shadow-[0_0_25px_rgba(255,255,255,0.4)] flex items-center justify-center group"
+                aria-label="Capture Photo"
+              >
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-black/20 group-hover:scale-95 transition-transform" />
+              </button>
+            </div>
+
+            {cameraCount > 1 ? (
+              <button
+                type="button"
+                onClick={toggleCamera}
+                className="px-3 sm:px-4 py-2 bg-brand-primary/10 border border-brand-primary/30 text-brand-primary hover:bg-brand-primary hover:text-white rounded-sm text-xs font-bold uppercase tracking-wider transition-colors -skew-x-3 sm:-skew-x-6 flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3.5 h-3.5 skew-x-3 sm:skew-x-6" />
+                <span className="skew-x-3 sm:skew-x-6 hidden sm:inline">Flip</span>
+              </button>
+            ) : (
+              <div className="w-16" />
             )}
-            aria-label="Take Photo"
-          />
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 
   return (
-    <div className="w-full h-full flex-1 min-h-0 relative md:h-auto md:min-h-0 pb-4 md:pb-12 flex flex-col overflow-hidden md:overflow-visible">
+    <div className="w-full h-full flex-1 min-h-0 relative md:h-auto md:min-h-0 pb-4 md:pb-0 flex flex-col overflow-hidden md:overflow-visible">
 
       {/* Submission Success Modal */}
       <AnimatePresence>
@@ -715,7 +791,7 @@ export default function BlockageSubmissionForm() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
           className={twMerge(
-            "lg:col-span-5 lg:flex lg:flex-col lg:gap-8 lg:h-full lg:justify-start",
+            "lg:col-span-5 lg:flex lg:flex-col lg:gap-8 lg:h-full lg:justify-between",
             mobileStep === 1 || mobileStep === 3 ? "flex flex-1 min-h-0 flex-col justify-between" : "hidden"
           )}
         >
@@ -752,39 +828,23 @@ export default function BlockageSubmissionForm() {
             {!photoPreview ? (
               isCameraActive ? (
                 <>
-                  {isCameraExpanded ? createPortal(
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-8 lg:p-12">
-                      <div className="absolute inset-0 bg-black/70 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setIsCameraExpanded(false)} />
-
-                      <div className="relative w-full h-full max-w-6xl bg-surface/90 backdrop-blur-2xl border border-brand-primary/30 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.3)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 p-3 md:p-6 gap-4">
-                        <div className="flex items-center justify-between px-2 shrink-0">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-brand-primary/20 rounded-sm text-brand-primary -skew-x-[3deg] lg:-skew-x-6">
-                              <Camera className="w-5 h-5 skew-x-[3deg] lg:skew-x-6" />
-                            </div>
-                            <h2 className="text-xl font-bold text-text-primary uppercase tracking-wider">Photo Capture</h2>
-                          </div>
-                        </div>
-                        <div className="relative w-full flex-1 bg-black rounded-sm overflow-hidden border border-border-subtle shadow-inner flex flex-col group">
-                          {renderCameraControls()}
-                        </div>
-                      </div>
-                    </div>,
-                    document.body
-                  ) : (
-                    <div className="relative w-full flex-1 min-h-[160px] lg:flex-none lg:h-72 border border-border-subtle rounded-sm bg-black overflow-hidden flex flex-col group">
-                      {renderCameraControls()}
+                  {createPortal(renderCameraModal(), document.body)}
+                  <div className="w-full flex-1 min-h-[160px] lg:flex-none lg:h-72 border-2 border-dashed border-brand-primary/50 rounded-sm flex flex-col items-center justify-center gap-3 bg-brand-primary/5 p-4 text-center">
+                    <div className="p-3 bg-brand-primary/20 rounded-full text-brand-primary animate-pulse">
+                      <Camera className="w-6 h-6 lg:w-8 lg:h-8" />
                     </div>
-                  )}
-
-                  {isCameraExpanded && (
-                    <div className="relative w-full flex-1 min-h-[160px] lg:flex-none lg:h-72 border-2 border-dashed border-border-subtle rounded-sm flex items-center justify-center bg-black/5">
-                      <span className="text-text-muted font-bold flex items-center gap-2 animate-pulse">
-                        <Camera className="w-5 h-5" />
-                        Camera Expanded
-                      </span>
+                    <div>
+                      <p className="font-bold text-text-primary text-sm lg:text-base">Camera Viewfinder Active</p>
+                      <p className="text-xs text-text-muted mt-0.5">Aiming in ~80% full-screen mode</p>
                     </div>
-                  )}
+                    <button
+                      type="button"
+                      onClick={stopCamera}
+                      className="text-xs font-bold uppercase tracking-wider text-semantic-urgent hover:underline mt-1 cursor-pointer"
+                    >
+                      Cancel Camera
+                    </button>
+                  </div>
                 </>
               ) : (
                 <div className="w-full flex-1 min-h-[160px] lg:flex-none lg:h-72 border-2 border-dashed border-border-strong rounded-sm flex flex-col items-center justify-center gap-3 lg:gap-5 bg-app-bg/50 p-3 lg:p-6">
@@ -1000,11 +1060,11 @@ export default function BlockageSubmissionForm() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
           className={twMerge(
-            "lg:col-span-7 lg:flex lg:flex-col lg:gap-8 lg:h-full lg:justify-start",
+            "lg:col-span-7 lg:flex lg:flex-col lg:gap-8 lg:h-full lg:justify-between",
             mobileStep === 2 ? "flex flex-1 min-h-0 flex-col justify-between" : "hidden"
           )}
         >
-          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-lg shadow-black/5 flex-1 min-h-0 flex flex-col min-h-[350px] lg:min-h-[420px]">
+          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-lg shadow-black/5 flex-1 min-h-0 flex flex-col min-h-[350px] lg:min-h-[520px]">
             <div className="flex items-center justify-between mb-2 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 sm:p-2 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-3 lg:-skew-x-6">
@@ -1034,7 +1094,7 @@ export default function BlockageSubmissionForm() {
             <div
               ref={mapContainerRef}
               className={twMerge(
-                "w-full flex-1 min-h-0 bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0 lg:min-h-[300px]",
+                "w-full flex-1 min-h-0 bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0 lg:min-h-[420px]",
                 mapStyle === 'dark' && "dark-map"
               )}
             >
