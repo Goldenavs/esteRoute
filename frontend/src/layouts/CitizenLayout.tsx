@@ -162,9 +162,9 @@ export default function CitizenLayout() {
       </div>
 
       {/* Main Content Area */}
-      {/* pb-24 ensures content isn't hidden behind the mobile bottom tab bar */}
-      <main className="flex-1 bg-transparent overflow-x-hidden relative flex flex-col pb-24 md:pb-0 z-10">
-        <div className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 pt-4 md:pt-28 lg:pt-32 max-w-7xl mx-auto w-full animate-fade-in">
+      {/* pb-20 on mobile ensures content fits above the bottom tab bar without pushing extra blank space */}
+      <main className="flex-1 bg-transparent overflow-x-hidden relative flex flex-col pb-20 md:pb-0 z-10">
+        <div className="flex-1 flex flex-col p-2.5 sm:p-4 md:p-6 lg:p-8 pt-2 sm:pt-4 md:pt-28 lg:pt-32 max-w-7xl mx-auto w-full animate-fade-in">
           <Outlet />
         </div>
       </main>
