@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, ChevronLeft,
   X, AlertCircle, RefreshCw, Zap, ZapOff, Layers, Plus, Minus,
-  Copy, Check, Sun, Moon, Crosshair, Maximize2, Minimize2, Navigation
+  Copy, Check, Sun, Moon, Crosshair, Maximize2, Minimize2, ArrowRight
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -21,12 +21,26 @@ const customMarkerIcon = new L.Icon({
   iconAnchor: [12, 41],
 });
 
-// Component to dynamically re-center map if geolocation successfully fetches
+// Component to dynamically re-center map if geolocation successfully fetches on mount
 function MapFlyTo({ position, defaultPosition }: { position: L.LatLng; defaultPosition: L.LatLng }) {
   const map = useMap();
+  const hasInitiallyFlown = useRef(false);
+
   useEffect(() => {
+    if (hasInitiallyFlown.current) return;
+    if (!position || typeof position.lat !== 'number' || isNaN(position.lat) || typeof position.lng !== 'number' || isNaN(position.lng)) return;
+    if (!defaultPosition || typeof defaultPosition.lat !== 'number' || isNaN(defaultPosition.lat)) return;
+
     if (position.lat !== defaultPosition.lat || position.lng !== defaultPosition.lng) {
-      map.flyTo(position, 17, { animate: true, duration: 1.5 });
+      const container = map.getContainer();
+      if (!container || container.clientWidth === 0 || container.clientHeight === 0) return;
+
+      try {
+        map.flyTo(position, 16, { animate: true, duration: 1.2 });
+        hasInitiallyFlown.current = true;
+      } catch (err) {
+        console.warn("MapFlyTo skipped:", err);
+      }
     }
   }, [map, position, defaultPosition]);
   return null;
@@ -66,48 +80,82 @@ function OffscreenPinTracker({ position }: { position: L.LatLng }) {
 
   useEffect(() => {
     const updateTracker = () => {
+      if (!position || typeof position.lat !== 'number' || isNaN(position.lat) || typeof position.lng !== 'number' || isNaN(position.lng)) {
+        setIsOffscreen(false);
+        setIndicator(null);
+        return;
+      }
+
       const bounds = map.getBounds();
       if (!bounds.contains(position)) {
-        setIsOffscreen(true);
+        const container = map.getContainer();
+        const width = container.clientWidth;
+        const height = container.clientHeight;
 
-        const containerSize = map.getSize();
+        if (width === 0 || height === 0) {
+          setIsOffscreen(false);
+          setIndicator(null);
+          return;
+        }
+
         const centerLatLng = map.getCenter();
-        const centerPoint = map.latLngToContainerPoint(centerLatLng);
         const pinPoint = map.latLngToContainerPoint(position);
 
-        const dx = pinPoint.x - centerPoint.x;
-        const dy = pinPoint.y - centerPoint.y;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        const dx = pinPoint.x - centerX;
+        const dy = pinPoint.y - centerY;
+
+        // Angle in degrees from center to pin (0° = East, 90° = South, 180° = West, -90° = North)
         const angleRad = Math.atan2(dy, dx);
         const angleDeg = (angleRad * 180) / Math.PI;
 
-        // Distance in meters between map center and pin
-        const distanceM = Math.round(centerLatLng.distanceTo(position));
-
-        // Clamping margin from container edges
-        const padX = 48;
-        const padY = 48;
-        const halfW = containerSize.x / 2 - padX;
-        const halfH = containerSize.y / 2 - padY;
-
-        let edgeX = 0;
-        let edgeY = 0;
-
-        if (Math.abs(dx) * halfH > Math.abs(dy) * halfW) {
-          // Intersects with left or right vertical border
-          edgeX = dx > 0 ? halfW : -halfW;
-          edgeY = edgeX * Math.tan(angleRad);
-        } else {
-          // Intersects with top or bottom horizontal border
-          edgeY = dy > 0 ? halfH : -halfH;
-          edgeX = edgeY / Math.tan(angleRad);
+        // Distance in meters
+        let distanceM = 0;
+        try {
+          distanceM = Math.round(centerLatLng.distanceTo(position));
+        } catch {
+          distanceM = 0;
         }
 
-        const screenX = centerPoint.x + edgeX;
-        const screenY = centerPoint.y + edgeY;
+        // Margin from container edges
+        const padX = 56;
+        const padY = 56;
 
+        const minX = padX;
+        const maxX = width - padX;
+        const minY = padY;
+        const maxY = height - padY;
+
+        // Ray-box intersection: find t where ray (centerX + t * dx, centerY + t * dy) hits the padding boundary
+        let t = Infinity;
+
+        if (dx > 0) {
+          t = Math.min(t, (maxX - centerX) / dx);
+        } else if (dx < 0) {
+          t = Math.min(t, (minX - centerX) / dx);
+        }
+
+        if (dy > 0) {
+          t = Math.min(t, (maxY - centerY) / dy);
+        } else if (dy < 0) {
+          t = Math.min(t, (minY - centerY) / dy);
+        }
+
+        if (!isFinite(t) || t <= 0) {
+          setIsOffscreen(false);
+          setIndicator(null);
+          return;
+        }
+
+        const screenX = centerX + t * dx;
+        const screenY = centerY + t * dy;
+
+        setIsOffscreen(true);
         setIndicator({
-          x: screenX,
-          y: screenY,
+          x: Math.max(minX, Math.min(maxX, screenX)),
+          y: Math.max(minY, Math.min(maxY, screenY)),
           angle: angleDeg,
           distanceM,
         });
@@ -146,15 +194,20 @@ function OffscreenPinTracker({ position }: { position: L.LatLng }) {
     >
       <button
         type="button"
-        onClick={() => map.flyTo(position, Math.max(map.getZoom(), 15), { animate: true, duration: 0.8 })}
-        className="group flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-sm shadow-2xl border border-white/40 -skew-x-6 cursor-pointer active:scale-95 transition-all shadow-black/40"
+        onClick={() => {
+          try {
+            map.flyTo(position, Math.max(map.getZoom(), 15), { animate: true, duration: 0.8 });
+          } catch {}
+        }}
+        className="group flex items-center gap-2 px-3 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-sm shadow-2xl border border-white/40 cursor-pointer active:scale-95 transition-all shadow-black/50 -skew-x-6"
         title="Pin is off-screen. Click to re-center on pin."
       >
+        {/* Directional Arrow: ArrowRight natively points right (0°), rotating by indicator.angle points straight at pin */}
         <div
-          className="w-4 h-4 flex items-center justify-center shrink-0 transition-transform"
-          style={{ transform: `rotate(${indicator.angle - 45}deg)` }}
+          className="w-4 h-4 flex items-center justify-center shrink-0 transition-transform skew-x-6"
+          style={{ transform: `rotate(${indicator.angle}deg)` }}
         >
-          <Navigation className="w-3.5 h-3.5 fill-current" />
+          <ArrowRight className="w-4 h-4 stroke-[2.5]" />
         </div>
         <div className="skew-x-6 flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider">
           <span>Pin</span>
@@ -171,7 +224,7 @@ function CustomMapControls({
   setIsMapDark,
   mapType,
   setMapType,
-  handleLocateMe,
+  setPosition,
   toggleFullScreen,
   isFullscreen,
 }: {
@@ -179,7 +232,7 @@ function CustomMapControls({
   setIsMapDark: React.Dispatch<React.SetStateAction<boolean>>;
   mapType: MapType;
   setMapType: React.Dispatch<React.SetStateAction<MapType>>;
-  handleLocateMe: () => void;
+  setPosition: React.Dispatch<React.SetStateAction<L.LatLng>>;
   toggleFullScreen: () => void;
   isFullscreen: boolean;
 }) {
@@ -214,7 +267,33 @@ function CustomMapControls({
       {/* Locate Me (Always available, even in Fullscreen mode!) */}
       <button
         type="button"
-        onClick={handleLocateMe}
+        onClick={() => {
+          if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                if (
+                  pos?.coords &&
+                  typeof pos.coords.latitude === 'number' &&
+                  !isNaN(pos.coords.latitude) &&
+                  typeof pos.coords.longitude === 'number' &&
+                  !isNaN(pos.coords.longitude)
+                ) {
+                  const newPos = new L.LatLng(pos.coords.latitude, pos.coords.longitude);
+                  setPosition(newPos);
+                  try {
+                    map.flyTo(newPos, 16, { animate: true, duration: 1.2 });
+                  } catch (err) {
+                    console.warn("LocateMe flyTo error:", err);
+                  }
+                }
+              },
+              () => {
+                alert("Could not access your location. Please check your browser permissions.");
+              },
+              { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+          }
+        }}
         className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
         title="Locate Me (GPS)"
         aria-label="Locate Me"
@@ -251,20 +330,21 @@ function CustomMapControls({
         {isMapDark ? <Sun className="w-4 h-4 skew-x-6" /> : <Moon className="w-4 h-4 skew-x-6" />}
       </button>
 
-      {/* Map Style Cycle: Detailed (Humanitarian) vs Simple (Standard OSM) */}
+      {/* Map Style Cycle: 1 vs 2 */}
       <button
         type="button"
         onClick={() => setMapType(prev => prev === 'detailed' ? 'simple' : 'detailed')}
         className={twMerge(
-          "p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center",
+          "p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center gap-1",
           mapType === 'detailed'
             ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/30"
             : "bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-secondary hover:text-black"
         )}
-        title={mapType === 'detailed' ? "Map: Detailed (Humanitarian OSM) - Click for Simple" : "Map: Simple (Standard OSM) - Click for Detailed"}
-        aria-label="Cycle Map Style (Detailed / Simple)"
+        title={mapType === 'detailed' ? "Map Style 1 (Click for Map Style 2)" : "Map Style 2 (Click for Map Style 1)"}
+        aria-label="Cycle Map Style (1 / 2)"
       >
-        <Layers className="w-4 h-4 skew-x-6" />
+        <Layers className="w-3.5 h-3.5 skew-x-6" />
+        <span className="font-mono text-[10px] font-bold skew-x-6">{mapType === 'detailed' ? '1' : '2'}</span>
       </button>
     </div>
   );
@@ -386,7 +466,15 @@ export default function BlockageSubmissionForm() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setPosition(new L.LatLng(pos.coords.latitude, pos.coords.longitude));
+          if (
+            pos?.coords &&
+            typeof pos.coords.latitude === 'number' &&
+            !isNaN(pos.coords.latitude) &&
+            typeof pos.coords.longitude === 'number' &&
+            !isNaN(pos.coords.longitude)
+          ) {
+            setPosition(new L.LatLng(pos.coords.latitude, pos.coords.longitude));
+          }
         },
         (err) => {
           console.warn("Geolocation access denied or failed. Defaulting to center.", err);
@@ -402,28 +490,21 @@ export default function BlockageSubmissionForm() {
       dragend() {
         const marker = markerRef.current;
         if (marker != null) {
-          setPosition(marker.getLatLng());
+          const latLng = marker.getLatLng();
+          if (
+            latLng &&
+            typeof latLng.lat === 'number' &&
+            !isNaN(latLng.lat) &&
+            typeof latLng.lng === 'number' &&
+            !isNaN(latLng.lng)
+          ) {
+            setPosition(latLng);
+          }
         }
       },
     }),
     []
   );
-
-
-
-  const handleLocateMe = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setPosition(new L.LatLng(pos.coords.latitude, pos.coords.longitude));
-        },
-        () => {
-          alert("Could not access your location. Please check your browser permissions.");
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-    }
-  };
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const toggleFullScreen = () => {
@@ -1447,23 +1528,6 @@ export default function BlockageSubmissionForm() {
                   <span className="skew-x-[3deg] lg:skew-x-12 block">Required</span>
                 </span>
               </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleLocateMe}
-                  className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-sm transition-all -skew-x-3 lg:-skew-x-12 border border-brand-primary/30"
-                >
-                  <span className="skew-x-3 lg:skew-x-12 block">Locate Me</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={toggleFullScreen}
-                  className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-surface-subtle text-text-secondary hover:text-text-primary px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-sm transition-all -skew-x-3 lg:-skew-x-12 border border-border-subtle"
-                >
-                  <span className="skew-x-3 lg:skew-x-12 block">{isFullscreen ? "Exit Full Screen" : "Full Screen"}</span>
-                </button>
-              </div>
             </div>
 
             <div
@@ -1501,7 +1565,7 @@ export default function BlockageSubmissionForm() {
                   setIsMapDark={setIsMapDark}
                   mapType={mapType}
                   setMapType={setMapType}
-                  handleLocateMe={handleLocateMe}
+                  setPosition={setPosition}
                   toggleFullScreen={toggleFullScreen}
                   isFullscreen={isFullscreen}
                 />
@@ -1510,7 +1574,7 @@ export default function BlockageSubmissionForm() {
               {/* Map Style & Mode Indicator (Bottom Left, no dot) */}
               <div className="absolute bottom-3 left-3 z-[400] bg-surface/90 backdrop-blur-md border border-border-subtle px-2.5 py-1 rounded-sm shadow-md flex items-center gap-1.5 -skew-x-3 pointer-events-none text-[10px] font-mono font-bold text-text-secondary uppercase tracking-wider">
                 <span className="skew-x-3 flex items-center gap-1.5">
-                  <span>{mapType === 'detailed' ? 'Detailed' : 'Simple'}</span>
+                  <span>{mapType === 'detailed' ? 'Map 1' : 'Map 2'}</span>
                   <span className="text-text-muted opacity-40">|</span>
                   <span className={isMapDark ? "text-amber-400" : "text-brand-primary"}>
                     {isMapDark ? 'Dark' : 'Light'}
