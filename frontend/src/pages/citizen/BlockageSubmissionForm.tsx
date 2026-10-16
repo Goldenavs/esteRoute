@@ -94,6 +94,7 @@ export default function BlockageSubmissionForm() {
   const [mapStyle, setMapStyle] = useState<'light' | 'dark'>('dark');
   const [hasCopied, setHasCopied] = useState(false);
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   // Geolocation State (Defaults to Cebu City Center)
   const defaultPosition = useMemo(() => new L.LatLng(10.3157, 123.8854), []);
@@ -374,8 +375,7 @@ export default function BlockageSubmissionForm() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeSubmit = async () => {
     if (!photoFile) return;
 
     setIsSubmitting(true);
@@ -401,6 +401,7 @@ export default function BlockageSubmissionForm() {
 
       const data = await response.json();
       setTrackingRef(data.tracking_reference);
+      setShowReviewModal(false);
       setIsSubmitted(true);
     } catch (error) {
       console.error("Submission error:", error);
@@ -410,8 +411,25 @@ export default function BlockageSubmissionForm() {
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!photoFile) {
+      showToast("Please capture or upload a photo to continue");
+      return;
+    }
+
+    // On mobile, step 3 is already a review step so submit directly
+    if (window.innerWidth < 1024) {
+      executeSubmit();
+    } else {
+      // On web/desktop, open the Report Summary confirmation modal
+      setShowReviewModal(true);
+    }
+  };
+
   const resetForm = () => {
     setIsSubmitted(false);
+    setShowReviewModal(false);
     setHasCopied(false);
     removePhoto();
     setNotes('');
@@ -588,6 +606,138 @@ export default function BlockageSubmissionForm() {
                     {hasCopied ? "Close & Submit Another" : "Acknowledge & Close"}
                   </span>
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>,
+          document.body
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Review & Confirmation Modal */}
+      <AnimatePresence>
+        {showReviewModal && createPortal(
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[500] flex items-center justify-center p-4"
+          >
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-app-bg/80 backdrop-blur-md"
+              onClick={() => !isSubmitting && setShowReviewModal(false)}
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              className="relative w-full max-w-xl bg-surface/95 backdrop-blur-2xl border border-brand-primary/30 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.35)] overflow-hidden -skew-x-[2deg] lg:-skew-x-[3deg] p-6 sm:p-8 flex flex-col"
+            >
+              {/* Top gradient stripe */}
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary" />
+
+              <div className="skew-x-[2deg] lg:skew-x-[3deg] flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-border-subtle">
+                  <div>
+                    <span className="text-[10px] font-mono font-bold text-brand-primary uppercase tracking-widest block mb-0.5">Final Review</span>
+                    <h2 className="text-xl sm:text-2xl font-heading font-black tracking-tight text-text-primary uppercase">
+                      Confirm Report Submission
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewModal(false)}
+                    disabled={isSubmitting}
+                    className="p-2 -skew-x-6 rounded-sm bg-surface hover:bg-surface-subtle text-text-muted hover:text-text-primary border border-border-subtle transition-all cursor-pointer"
+                  >
+                    <X className="w-4 h-4 skew-x-6" />
+                  </button>
+                </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 mb-6">
+                  {/* Photo Preview Thumbnail */}
+                  <div className="sm:col-span-5 relative rounded-sm overflow-hidden border border-border-subtle bg-black min-h-[140px] sm:h-full">
+                    {photoPreview && (
+                      <img
+                        src={photoPreview}
+                        alt="Blockage preview"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded-sm text-[10px] font-mono text-white/90 uppercase tracking-widest border border-white/20">
+                      Evidence Photo
+                    </div>
+                  </div>
+
+                  {/* Metadata: Coordinates & Notes */}
+                  <div className="sm:col-span-7 flex flex-col gap-3 justify-between">
+                    {/* Location Card */}
+                    <div className="bg-app-bg/70 p-3 rounded-sm border border-border-subtle -skew-x-[2deg]">
+                      <div className="skew-x-[2deg] flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-brand-secondary uppercase tracking-wider">
+                          <MapPin className="w-3.5 h-3.5" />
+                          <span>Pinned Location</span>
+                        </div>
+                        <span className="font-mono text-xs sm:text-sm text-text-primary font-bold">
+                          {position.lat.toFixed(5)}°, {position.lng.toFixed(5)}°
+                        </span>
+                        <span className="text-[11px] text-text-muted">
+                          Coordinates captured on map
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Notes Card */}
+                    <div className="bg-app-bg/70 p-3 rounded-sm border border-border-subtle -skew-x-[2deg] flex-1">
+                      <div className="skew-x-[2deg] flex flex-col gap-1 h-full">
+                        <div className="flex items-center justify-between text-xs font-bold text-text-secondary uppercase tracking-wider">
+                          <span>Citizen Notes</span>
+                          <span className="text-[10px] font-mono text-text-muted">
+                            {notes.length}/280
+                          </span>
+                        </div>
+                        <p className="text-xs text-text-primary line-clamp-3 italic">
+                          {notes.trim() ? `"${notes.trim()}"` : <span className="text-text-muted not-italic">No additional notes provided.</span>}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewModal(false)}
+                    disabled={isSubmitting}
+                    className="flex-1 py-3.5 px-4 bg-surface border border-border-subtle hover:border-text-primary text-text-primary rounded-sm font-bold text-sm tracking-wider uppercase transition-colors -skew-x-3 lg:-skew-x-6 cursor-pointer"
+                  >
+                    <span className="skew-x-3 lg:skew-x-6">Back to Edit</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={executeSubmit}
+                    disabled={isSubmitting}
+                    className={twMerge(
+                      "flex-1 py-3.5 px-5 rounded-sm font-black text-sm tracking-widest uppercase transition-all -skew-x-3 lg:-skew-x-6 shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2",
+                      isSubmitting
+                        ? "bg-surface border border-border-strong text-text-muted cursor-wait"
+                        : "bg-brand-primary hover:bg-brand-secondary text-white cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
+                    )}
+                  >
+                    <span className="skew-x-3 lg:skew-x-6 flex items-center gap-2">
+                      <span>{isSubmitting ? "Dispatching..." : "Confirm & Dispatch"}</span>
+                      {!isSubmitting && <ChevronRight className="w-4 h-4" />}
+                    </span>
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>,
@@ -803,7 +953,7 @@ export default function BlockageSubmissionForm() {
           transition={{ duration: 0.35, ease: "easeOut" }}
           className={twMerge(
             "lg:col-span-5 lg:flex lg:flex-col lg:gap-8 lg:h-full lg:justify-between",
-            mobileStep === 1 || mobileStep === 3 ? "flex flex-1 min-h-0 flex-col justify-between" : "hidden"
+            mobileStep === 1 || mobileStep === 3 ? "flex flex-1 min-h-0 flex-col gap-2 sm:gap-3" : "hidden"
           )}
         >
 
@@ -900,9 +1050,11 @@ export default function BlockageSubmissionForm() {
                 <button
                   type="button"
                   onClick={removePhoto}
-                  className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-semantic-urgent backdrop-blur-md rounded-full text-white transition-all duration-300 hover:scale-110 hover:shadow-lg z-10"
+                  className="absolute top-3 right-3 p-2 sm:p-2.5 -skew-x-[3deg] lg:-skew-x-6 rounded-sm bg-semantic-urgent hover:bg-red-600 border border-red-500/50 backdrop-blur-md text-white transition-all duration-300 shadow-lg shadow-red-950/40 hover:scale-105 active:scale-95 z-10 flex items-center justify-center cursor-pointer"
+                  title="Remove photo"
+                  aria-label="Remove photo"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5 skew-x-[3deg] lg:skew-x-6 stroke-[2.5]" />
                 </button>
 
                 <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-white text-xs font-bold bg-green-500/90 backdrop-blur-md px-3 py-1.5 rounded-sm -skew-x-[3deg] lg:-skew-x-12 shadow-lg z-10">
@@ -947,7 +1099,7 @@ export default function BlockageSubmissionForm() {
           {/* Notes Section (Step 3 on mobile, always on desktop) */}
           <section className={twMerge(
             "bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-lg shadow-black/5 flex flex-col",
-            mobileStep === 3 ? "flex shrink-0 sm:flex-1 sm:min-h-0" : "hidden lg:flex lg:flex-1"
+            mobileStep === 3 ? "flex flex-1 min-h-0" : "hidden lg:flex lg:flex-1"
           )}>
             <div className="flex items-center justify-between mb-2 shrink-0">
               <div className="flex items-center gap-2.5">
@@ -966,13 +1118,13 @@ export default function BlockageSubmissionForm() {
               maxLength={280}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Provide details about the blockage..."
-              className="w-full flex-1 min-h-[90px] lg:min-h-[140px] bg-app-bg/80 border border-border-subtle rounded-sm p-3.5 lg:p-4 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all resize-none shadow-inner"
+              className="w-full flex-1 min-h-[100px] lg:min-h-[140px] bg-app-bg/80 border border-border-subtle rounded-sm p-3.5 lg:p-4 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all resize-none shadow-inner"
             />
           </section>
 
           {/* Review Summary Card & Mobile Step 3 Actions */}
           {mobileStep === 3 && (
-            <div className="lg:hidden flex flex-col gap-2 shrink-0 mt-2">
+            <div className="lg:hidden flex flex-col gap-2 shrink-0">
               {/* Review Summary Card with mild skew */}
               <div className="bg-surface/90 backdrop-blur-xl border border-border-subtle rounded-sm p-2.5 sm:p-3 mx-1 flex flex-col gap-2 shadow-md -skew-x-[2deg] lg:-skew-x-[4deg]">
                 <div className="skew-x-[2deg] lg:skew-x-[4deg] flex flex-col gap-2">
@@ -1077,11 +1229,14 @@ export default function BlockageSubmissionForm() {
         >
           <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-lg shadow-black/5 flex-1 min-h-0 flex flex-col min-h-[350px] lg:min-h-[520px]">
             <div className="flex items-center justify-between mb-2 shrink-0">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 sm:gap-2.5">
                 <div className="p-1.5 sm:p-2 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-3 lg:-skew-x-6">
                   <MapPin className="w-4 h-4 skew-x-3 lg:skew-x-6" />
                 </div>
-                <h2 className="text-base sm:text-lg font-bold text-text-primary uppercase tracking-wider">Location</h2>
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-text-primary uppercase tracking-wider">Location</h2>
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-semantic-urgent text-white px-2 py-0.5 sm:py-1 rounded-sm -skew-x-[3deg] lg:-skew-x-12 shadow-sm">
+                  <span className="skew-x-[3deg] lg:skew-x-12 block">Required</span>
+                </span>
               </div>
 
               <div className="flex gap-2">
