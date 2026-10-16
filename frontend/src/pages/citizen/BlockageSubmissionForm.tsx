@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle, RefreshCw, Zap, ZapOff, Maximize2, Minimize2, Layers, Plus, Minus, Copy, Check } from 'lucide-react';
+import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, ChevronLeft, X, AlertCircle, RefreshCw, Zap, ZapOff, Maximize2, Minimize2, Layers, Plus, Minus, Copy, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
@@ -23,6 +23,20 @@ function MapFlyTo({ position, defaultPosition }: { position: L.LatLng; defaultPo
       map.flyTo(position, 17, { animate: true, duration: 1.5 });
     }
   }, [map, position, defaultPosition]);
+  return null;
+}
+
+// Component to trigger Leaflet map invalidateSize when container changes size or becomes visible
+function MapResizeHandler({ active }: { active: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    if (active) {
+      const timer = setTimeout(() => {
+        map.invalidateSize();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [active, map]);
   return null;
 }
 
@@ -78,6 +92,7 @@ export default function BlockageSubmissionForm() {
   const [isCameraExpanded, setIsCameraExpanded] = useState(false);
   const [mapStyle, setMapStyle] = useState<'light' | 'dark'>('dark');
   const [hasCopied, setHasCopied] = useState(false);
+  const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   
   // Geolocation State (Defaults to Cebu City Center)
   const defaultPosition = useMemo(() => new L.LatLng(10.3157, 123.8854), []);
@@ -329,6 +344,7 @@ export default function BlockageSubmissionForm() {
     setHasCopied(false);
     removePhoto();
     setNotes('');
+    setMobileStep(1);
   };
 
   const handleCopy = () => {
@@ -492,13 +508,116 @@ export default function BlockageSubmissionForm() {
         <p className="text-text-muted text-sm md:text-lg pl-5">Help prevent flooding by reporting clogged esteros and canals in your area. Our AI will automatically assess the severity and notify the local government.</p>
       </div>
 
+      {/* Mobile Stepper Header (3-Step Flow) */}
+      <div className="lg:hidden mb-6 bg-surface/80 backdrop-blur-xl border border-border-subtle p-3.5 rounded-sm shadow-md">
+        <div className="flex items-center justify-between relative px-2">
+          {/* Step 1: Photo */}
+          <button
+            type="button"
+            onClick={() => setMobileStep(1)}
+            className="flex-1 flex flex-col items-center gap-1.5 transition-colors relative z-10 group"
+          >
+            <div className={twMerge(
+              "w-9 h-9 rounded-sm -skew-x-6 flex items-center justify-center text-xs font-mono font-bold transition-all border",
+              mobileStep === 1 
+                ? "bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),0.4)] scale-105"
+                : photoPreview 
+                  ? "bg-green-500/15 text-green-500 border-green-500/30" 
+                  : "bg-surface text-text-muted border-border-subtle group-hover:border-text-muted"
+            )}>
+              <span className="skew-x-6">
+                {photoPreview && mobileStep !== 1 ? <Check className="w-4 h-4 stroke-[3]" /> : "01"}
+              </span>
+            </div>
+            <span className={twMerge(
+              "text-[10px] font-bold tracking-wider uppercase transition-colors",
+              mobileStep === 1 ? "text-brand-primary" : "text-text-muted"
+            )}>
+              Photo
+            </span>
+          </button>
+
+          {/* Connector Line 1-2 */}
+          <div className={twMerge(
+            "h-[2px] w-8 sm:w-16 -mt-5 transition-colors duration-300",
+            photoPreview ? "bg-green-500/60" : "bg-border-strong"
+          )} />
+
+          {/* Step 2: Location */}
+          <button
+            type="button"
+            onClick={() => {
+              if (photoPreview) setMobileStep(2);
+              else showToast("Please attach a photo first");
+            }}
+            className="flex-1 flex flex-col items-center gap-1.5 transition-colors relative z-10 group"
+          >
+            <div className={twMerge(
+              "w-9 h-9 rounded-sm -skew-x-6 flex items-center justify-center text-xs font-mono font-bold transition-all border",
+              mobileStep === 2
+                ? "bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),0.4)] scale-105"
+                : mobileStep > 2 
+                  ? "bg-green-500/15 text-green-500 border-green-500/30"
+                  : "bg-surface text-text-muted border-border-subtle group-hover:border-text-muted"
+            )}>
+              <span className="skew-x-6">
+                {mobileStep > 2 ? <Check className="w-4 h-4 stroke-[3]" /> : "02"}
+              </span>
+            </div>
+            <span className={twMerge(
+              "text-[10px] font-bold tracking-wider uppercase transition-colors",
+              mobileStep === 2 ? "text-brand-primary" : "text-text-muted"
+            )}>
+              Location
+            </span>
+          </button>
+
+          {/* Connector Line 2-3 */}
+          <div className={twMerge(
+            "h-[2px] w-8 sm:w-16 -mt-5 transition-colors duration-300",
+            mobileStep === 3 ? "bg-brand-primary/80" : "bg-border-strong"
+          )} />
+
+          {/* Step 3: Review & Submit */}
+          <button
+            type="button"
+            onClick={() => {
+              if (photoPreview) setMobileStep(3);
+              else showToast("Please attach a photo first");
+            }}
+            className="flex-1 flex flex-col items-center gap-1.5 transition-colors relative z-10 group"
+          >
+            <div className={twMerge(
+              "w-9 h-9 rounded-sm -skew-x-6 flex items-center justify-center text-xs font-mono font-bold transition-all border",
+              mobileStep === 3 
+                ? "bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),0.4)] scale-105"
+                : "bg-surface text-text-muted border-border-subtle group-hover:border-text-muted"
+            )}>
+              <span className="skew-x-6">03</span>
+            </div>
+            <span className={twMerge(
+              "text-[10px] font-bold tracking-wider uppercase transition-colors",
+              mobileStep === 3 ? "text-brand-primary" : "text-text-muted"
+            )}>
+              Submit
+            </span>
+          </button>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
         
-        {/* Left Column (Photo & Notes) */}
-        <div className="lg:col-span-5 flex flex-col gap-6 lg:gap-8">
+        {/* Left Column (Photo & Notes on Desktop; Steps 1 & 3 on Mobile) */}
+        <div className={twMerge(
+          "lg:col-span-5 flex flex-col gap-6 lg:gap-8",
+          mobileStep === 1 || mobileStep === 3 ? "flex" : "hidden lg:flex"
+        )}>
           
-          {/* Photo Upload Section */}
-          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex flex-col relative">
+          {/* Photo Upload Section (Step 1 on mobile, always on desktop) */}
+          <section className={twMerge(
+            "bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex flex-col relative",
+            mobileStep === 1 ? "flex" : "hidden lg:flex"
+          )}>
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6">
@@ -618,8 +737,43 @@ export default function BlockageSubmissionForm() {
             )}
           </section>
 
-          {/* Notes Section */}
-          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex flex-col flex-1">
+          {/* Mobile Step 1 Actions */}
+          {mobileStep === 1 && (
+            <div className="lg:hidden flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (photoPreview) {
+                    setMobileStep(2);
+                  } else {
+                    showToast("Please capture or upload a photo to continue");
+                  }
+                }}
+                className={twMerge(
+                  "w-full py-4 px-6 rounded-sm font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-2 transition-all -skew-x-6 shadow-lg",
+                  photoPreview
+                    ? "bg-brand-primary text-white hover:bg-brand-secondary cursor-pointer shadow-brand-primary/20"
+                    : "bg-surface border border-border-strong text-text-muted cursor-not-allowed opacity-60"
+                )}
+              >
+                <span className="skew-x-6 flex items-center gap-2">
+                  Next: Confirm Location
+                  <ChevronRight className="w-4 h-4" />
+                </span>
+              </button>
+              {!photoPreview && (
+                <p className="text-xs text-text-muted text-center mt-1">
+                  Capture or upload a photo to proceed
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Notes Section (Step 3 on mobile, always on desktop) */}
+          <section className={twMerge(
+            "bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex flex-col flex-1",
+            mobileStep === 3 ? "flex" : "hidden lg:flex"
+          )}>
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-gray-500/10 rounded-sm text-text-secondary -skew-x-6">
@@ -641,10 +795,97 @@ export default function BlockageSubmissionForm() {
             />
           </section>
 
+          {/* Review Summary Card & Mobile Step 3 Actions */}
+          {mobileStep === 3 && (
+            <div className="lg:hidden flex flex-col gap-4">
+              {/* Review Summary Card */}
+              <div className="bg-surface/90 backdrop-blur-xl border border-border-subtle rounded-sm p-4 flex flex-col gap-3 shadow-md">
+                <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text-secondary">Report Summary</span>
+                  <span className="text-[10px] font-mono font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-sm border border-green-500/20">
+                    Ready to Submit
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Photo thumbnail */}
+                  <div className="relative w-16 h-16 rounded-sm overflow-hidden border border-border-subtle shrink-0 bg-black">
+                    {photoPreview && (
+                      <img src={photoPreview} alt="Report preview" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+
+                  {/* Location info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-text-primary mb-1">
+                      <MapPin className="w-3.5 h-3.5 text-brand-secondary shrink-0" />
+                      <span className="truncate font-mono">
+                        {position.lat.toFixed(4)}°, {position.lng.toFixed(4)}°
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-text-muted">
+                      Pin placed on map
+                    </p>
+                  </div>
+
+                  {/* Quick edit buttons */}
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setMobileStep(1)}
+                      className="text-[10px] font-bold uppercase tracking-wider text-brand-primary hover:underline text-right"
+                    >
+                      Change Photo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobileStep(2)}
+                      className="text-[10px] font-bold uppercase tracking-wider text-brand-secondary hover:underline text-right"
+                    >
+                      Adjust Pin
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Step 3 Actions (Back & Submit) */}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMobileStep(2)}
+                  className="py-4 px-5 bg-surface border border-border-subtle hover:border-text-primary text-text-primary rounded-sm font-bold text-sm tracking-wider uppercase -skew-x-6 transition-colors flex items-center gap-1.5"
+                >
+                  <ChevronLeft className="w-4 h-4 skew-x-6" />
+                  <span className="skew-x-6">Back</span>
+                </button>
+                <button
+                  type="submit"
+                  disabled={!photoPreview || isSubmitting}
+                  className={twMerge(
+                    clsx(
+                      "flex-1 py-4 px-6 rounded-sm font-black text-base tracking-widest uppercase flex items-center justify-center gap-2 transition-all -skew-x-6 shadow-lg",
+                      photoPreview && !isSubmitting
+                        ? "bg-brand-primary hover:bg-brand-secondary text-white cursor-pointer"
+                        : "bg-surface border-2 border-border-strong text-text-muted cursor-not-allowed opacity-80"
+                    )
+                  )}
+                >
+                  <div className="skew-x-6 flex items-center gap-2">
+                    <span>{isSubmitting ? "Uploading..." : "Submit Report"}</span>
+                    {!isSubmitting && <ChevronRight className="w-5 h-5" />}
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
 
-        {/* Right Column (Map & Submit) */}
-        <div className="lg:col-span-7 flex flex-col gap-6 lg:gap-8 h-full">
+        {/* Right Column (Map & Submit on Desktop; Step 2 on Mobile) */}
+        <div className={twMerge(
+          "lg:col-span-7 flex flex-col gap-6 lg:gap-8 h-full",
+          mobileStep === 2 ? "flex" : "hidden lg:flex"
+        )}>
           <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg shadow-black/5 flex-1 flex flex-col min-h-[400px]">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
@@ -698,6 +939,7 @@ export default function BlockageSubmissionForm() {
                   ref={markerRef}
                 />
                 <MapFlyTo position={position} defaultPosition={defaultPosition} />
+                <MapResizeHandler active={mobileStep === 2} />
                 <CustomMapControls setMapStyle={setMapStyle} />
               </MapContainer>
               
@@ -718,12 +960,36 @@ export default function BlockageSubmissionForm() {
             </p>
           </section>
 
-          {/* Submit Button */}
+          {/* Mobile Step 2 Actions */}
+          {mobileStep === 2 && (
+            <div className="lg:hidden flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMobileStep(1)}
+                className="py-3.5 px-5 bg-surface border border-border-subtle hover:border-text-primary text-text-primary rounded-sm font-bold text-sm tracking-wider uppercase -skew-x-6 transition-colors flex items-center gap-1.5"
+              >
+                <ChevronLeft className="w-4 h-4 skew-x-6" />
+                <span className="skew-x-6">Back</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileStep(3)}
+                className="flex-1 py-3.5 px-6 bg-brand-primary text-white hover:bg-brand-secondary rounded-sm font-bold text-sm tracking-widest uppercase -skew-x-6 transition-all flex items-center justify-center gap-2 shadow-lg"
+              >
+                <span className="skew-x-6 flex items-center gap-2">
+                  Next: Add Details
+                  <ChevronRight className="w-4 h-4" />
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* Submit Button (Desktop Only) */}
           <button 
             type="submit"
             className={twMerge(
               clsx(
-                "w-full py-6 px-6 rounded-sm font-black text-xl tracking-widest uppercase flex items-center justify-center gap-3 transition-all duration-300 -skew-x-12 group shadow-[0px_4px_15px_rgba(0,0,0,0.1)]",
+                "hidden lg:flex w-full py-6 px-6 rounded-sm font-black text-xl tracking-widest uppercase items-center justify-center gap-3 transition-all duration-300 -skew-x-12 group shadow-[0px_4px_15px_rgba(0,0,0,0.1)]",
                 photoPreview && !isSubmitting
                   ? "bg-brand-primary hover:bg-brand-secondary text-white hover:translate-x-1 hover:-translate-y-1 hover:shadow-[12px_12px_0px_rgba(0,0,0,0.2)]" 
                   : "bg-surface border-2 border-border-strong text-text-muted cursor-not-allowed opacity-80"
