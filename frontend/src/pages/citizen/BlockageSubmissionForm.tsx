@@ -357,148 +357,141 @@ export default function BlockageSubmissionForm() {
   };
 
   const renderCameraModal = () => (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-3 sm:p-5 md:p-8">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300"
-        onClick={stopCamera}
-      />
+    <div className="fixed inset-0 z-[500] w-full h-full flex flex-col bg-surface/95 backdrop-blur-2xl overflow-hidden animate-in fade-in duration-300">
+      {/* Top Accent Gradient Line */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary z-20" />
 
-      {/* 80-85% Screen Tactical Camera Container */}
-      <div className="relative w-[94vw] sm:w-[86vw] max-w-5xl h-[86vh] sm:h-[82vh] bg-surface/95 backdrop-blur-2xl border-2 border-brand-primary/40 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.4)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 p-3 sm:p-5 gap-3 z-10 -skew-x-[1deg] sm:-skew-x-[2deg]">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary" />
-
-        <div className="skew-x-[1deg] sm:skew-x-[2deg] flex flex-col h-full w-full gap-3">
-          {/* Header Bar */}
-          <div className="flex items-center justify-between px-1 shrink-0">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-brand-primary/20 rounded-sm text-brand-primary -skew-x-3 sm:-skew-x-6">
-                <Camera className="w-4 h-4 sm:w-5 sm:h-5 skew-x-3 sm:skew-x-6" />
-              </div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg md:text-xl font-bold text-text-primary uppercase tracking-wider">
-                  Live Viewfinder
-                </h2>
-                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-red-500/10 border border-red-500/30 text-[10px] font-mono font-bold text-red-500 uppercase tracking-widest">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                  Live
-                </span>
-              </div>
-            </div>
-
-            {/* Quick Action Buttons (Torch, Flip, Close) */}
+      {/* Top Control Bar (Blue Container Styling) */}
+      <div className="w-full px-4 sm:px-8 py-3 sm:py-4 bg-surface border-b border-border-subtle flex items-center justify-between shrink-0 shadow-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-brand-primary/20 rounded-sm text-brand-primary -skew-x-6">
+            <Camera className="w-5 h-5 skew-x-6" />
+          </div>
+          <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={toggleTorch}
-                className={twMerge(
-                  "p-2 sm:p-2.5 backdrop-blur-md rounded-sm transition-all duration-300 shadow-md border -skew-x-3 sm:-skew-x-6",
-                  isTorchOn
-                    ? "bg-brand-secondary text-black border-brand-secondary"
-                    : "bg-surface border-border-subtle text-text-secondary hover:text-text-primary hover:border-brand-primary"
-                )}
-                title="Toggle Flashlight"
-              >
-                <div className="skew-x-3 sm:skew-x-6">
-                  {isTorchOn ? <Zap className="w-4 h-4 sm:w-5 sm:h-5" /> : <ZapOff className="w-4 h-4 sm:w-5 sm:h-5" />}
-                </div>
-              </button>
-
-              {cameraCount > 1 && (
-                <button
-                  type="button"
-                  onClick={toggleCamera}
-                  className="p-2 sm:p-2.5 bg-surface border border-border-subtle hover:border-brand-primary hover:text-brand-primary text-text-secondary rounded-sm transition-all duration-300 shadow-md -skew-x-3 sm:-skew-x-6"
-                  title="Flip Camera"
-                >
-                  <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 skew-x-3 sm:skew-x-6" />
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={stopCamera}
-                className="p-2 sm:p-2.5 bg-surface border border-border-subtle hover:bg-semantic-urgent hover:text-white hover:border-semantic-urgent text-text-secondary rounded-sm transition-all duration-300 shadow-md -skew-x-3 sm:-skew-x-6"
-                title="Close Viewfinder"
-              >
-                <X className="w-4 h-4 sm:w-5 sm:h-5 skew-x-3 sm:skew-x-6" />
-              </button>
+              <h2 className="text-base sm:text-lg md:text-xl font-heading font-black text-text-primary uppercase tracking-wider">
+                Live Viewfinder
+              </h2>
+              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-red-500/10 border border-red-500/30 text-[10px] font-mono font-bold text-red-500 uppercase tracking-widest">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                Live
+              </span>
             </div>
-          </div>
-
-          {/* Viewfinder Main Video Area */}
-          <div className="relative w-full flex-1 min-h-0 bg-black rounded-sm overflow-hidden border border-border-subtle shadow-inner flex items-center justify-center group">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className={twMerge("w-full h-full object-cover", facingMode === 'user' && "scale-x-[-1]")}
-            />
-
-            {/* Tactical HUD Reticle & Corner Brackets (Pointer-events-none) */}
-            <div className="pointer-events-none absolute inset-0 p-4 sm:p-6 flex flex-col justify-between">
-              {/* Top Corners */}
-              <div className="flex justify-between w-full">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 border-t-2 border-l-2 border-brand-primary/80 drop-shadow-[0_0_8px_rgba(var(--brand-primary),0.8)]" />
-                <div className="w-6 h-6 sm:w-8 sm:h-8 border-t-2 border-r-2 border-brand-primary/80 drop-shadow-[0_0_8px_rgba(var(--brand-primary),0.8)]" />
-              </div>
-
-              {/* Center Aiming Guide */}
-              <div className="self-center flex flex-col items-center gap-2">
-                <div className="w-24 h-24 sm:w-36 sm:h-36 border border-dashed border-white/40 rounded-sm flex items-center justify-center relative">
-                  <div className="w-2 h-2 rounded-full bg-brand-primary shadow-[0_0_10px_rgba(var(--brand-primary),1)]" />
-                  <div className="absolute w-6 h-[1px] bg-white/50" />
-                  <div className="absolute h-6 w-[1px] bg-white/50" />
-                </div>
-                <span className="text-[10px] sm:text-xs font-mono font-bold tracking-widest uppercase bg-black/60 backdrop-blur-md px-3 py-1 rounded-sm text-white/90 border border-white/10">
-                  Align Blockage in Center
-                </span>
-              </div>
-
-              {/* Bottom Corners */}
-              <div className="flex justify-between w-full">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 border-b-2 border-l-2 border-brand-primary/80 drop-shadow-[0_0_8px_rgba(var(--brand-primary),0.8)]" />
-                <div className="w-6 h-6 sm:w-8 sm:h-8 border-b-2 border-r-2 border-brand-primary/80 drop-shadow-[0_0_8px_rgba(var(--brand-primary),0.8)]" />
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Shutter & Quick Controls Bar */}
-          <div className="shrink-0 flex items-center justify-between px-2 pt-1 pb-1">
-            <button
-              type="button"
-              onClick={stopCamera}
-              className="px-3 sm:px-4 py-2 bg-surface border border-border-subtle hover:border-text-primary text-text-muted hover:text-text-primary rounded-sm text-xs font-bold uppercase tracking-wider transition-colors -skew-x-3 sm:-skew-x-6"
-            >
-              <span className="skew-x-3 sm:skew-x-6 block">Cancel</span>
-            </button>
-
-            {/* Shutter Button */}
-            <div className="p-1 sm:p-1.5 border-4 border-white/60 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-transform">
-              <button
-                type="button"
-                onClick={capturePhoto}
-                className="w-16 h-16 sm:w-20 sm:h-20 bg-white hover:bg-gray-200 rounded-full active:scale-90 transition-all shadow-[0_0_25px_rgba(255,255,255,0.4)] flex items-center justify-center group"
-                aria-label="Capture Photo"
-              >
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-black/20 group-hover:scale-95 transition-transform" />
-              </button>
-            </div>
-
-            {cameraCount > 1 ? (
-              <button
-                type="button"
-                onClick={toggleCamera}
-                className="px-3 sm:px-4 py-2 bg-brand-primary/10 border border-brand-primary/30 text-brand-primary hover:bg-brand-primary hover:text-white rounded-sm text-xs font-bold uppercase tracking-wider transition-colors -skew-x-3 sm:-skew-x-6 flex items-center gap-1.5"
-              >
-                <RefreshCw className="w-3.5 h-3.5 skew-x-3 sm:skew-x-6" />
-                <span className="skew-x-3 sm:skew-x-6 hidden sm:inline">Flip</span>
-              </button>
-            ) : (
-              <div className="w-16" />
-            )}
+            <p className="hidden sm:block text-xs text-text-muted">Align the clogged canal or blockage in the frame</p>
           </div>
         </div>
+
+        {/* Quick Action Buttons (Torch, Flip, Close) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={toggleTorch}
+            className={twMerge(
+              "p-2.5 backdrop-blur-md rounded-sm transition-all duration-300 shadow-md border -skew-x-6 cursor-pointer",
+              isTorchOn
+                ? "bg-brand-secondary text-black border-brand-secondary"
+                : "bg-surface-subtle border-border-subtle text-text-secondary hover:text-text-primary hover:border-brand-primary"
+            )}
+            title="Toggle Flashlight"
+          >
+            <div className="skew-x-6">
+              {isTorchOn ? <Zap className="w-5 h-5" /> : <ZapOff className="w-5 h-5" />}
+            </div>
+          </button>
+
+          {cameraCount > 1 && (
+            <button
+              type="button"
+              onClick={toggleCamera}
+              className="p-2.5 bg-surface-subtle border border-border-subtle hover:border-brand-primary hover:text-brand-primary text-text-secondary rounded-sm transition-all duration-300 shadow-md -skew-x-6 cursor-pointer"
+              title="Flip Camera"
+            >
+              <RefreshCw className="w-5 h-5 skew-x-6" />
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={stopCamera}
+            className="p-2.5 bg-surface-subtle border border-border-subtle hover:bg-semantic-urgent hover:text-white hover:border-semantic-urgent text-text-secondary rounded-sm transition-all duration-300 shadow-md -skew-x-6 cursor-pointer"
+            title="Close Viewfinder"
+          >
+            <X className="w-5 h-5 skew-x-6" />
+          </button>
+        </div>
+      </div>
+
+      {/* Viewfinder Main Video Area (Fills remaining screen) */}
+      <div className="relative w-full flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden group">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className={twMerge("w-full h-full object-cover", facingMode === 'user' && "scale-x-[-1]")}
+        />
+
+        {/* Tactical HUD Reticle & Corner Brackets (Pointer-events-none) */}
+        <div className="pointer-events-none absolute inset-0 p-6 sm:p-10 flex flex-col justify-between">
+          {/* Top Corners */}
+          <div className="flex justify-between w-full">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 border-t-2 border-l-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
+            <div className="w-8 h-8 sm:w-12 sm:h-12 border-t-2 border-r-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
+          </div>
+
+          {/* Center Aiming Guide */}
+          <div className="self-center flex flex-col items-center gap-3">
+            <div className="w-32 h-32 sm:w-48 sm:h-48 border border-dashed border-white/50 rounded-sm flex items-center justify-center relative">
+              <div className="w-2.5 h-2.5 rounded-full bg-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),1)]" />
+              <div className="absolute w-8 h-[1px] bg-white/60" />
+              <div className="absolute h-8 w-[1px] bg-white/60" />
+            </div>
+            <span className="text-[11px] sm:text-xs font-mono font-bold tracking-widest uppercase bg-black/70 backdrop-blur-md px-4 py-1.5 rounded-sm text-white border border-white/15 shadow-lg">
+              Align Blockage in Center
+            </span>
+          </div>
+
+          {/* Bottom Corners */}
+          <div className="flex justify-between w-full">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 border-b-2 border-l-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
+            <div className="w-8 h-8 sm:w-12 sm:h-12 border-b-2 border-r-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Shutter & Quick Controls Bar (Blue Container Styling) */}
+      <div className="w-full px-6 sm:px-12 py-4 sm:py-6 bg-surface border-t border-border-subtle flex items-center justify-between shrink-0 shadow-[0_-4px_25px_rgba(0,0,0,0.2)] z-10">
+        <button
+          type="button"
+          onClick={stopCamera}
+          className="px-4 sm:px-6 py-2.5 sm:py-3 bg-surface-subtle border border-border-subtle hover:border-text-primary text-text-muted hover:text-text-primary rounded-sm text-xs sm:text-sm font-bold uppercase tracking-wider transition-colors -skew-x-6 cursor-pointer"
+        >
+          <span className="skew-x-6 block">Cancel</span>
+        </button>
+
+        {/* Shutter Button */}
+        <div className="p-1.5 sm:p-2 border-4 border-white/70 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-transform">
+          <button
+            type="button"
+            onClick={capturePhoto}
+            className="w-16 h-16 sm:w-20 sm:h-20 bg-white hover:bg-gray-200 rounded-full active:scale-90 transition-all shadow-[0_0_30px_rgba(255,255,255,0.4)] flex items-center justify-center group cursor-pointer"
+            aria-label="Capture Photo"
+          >
+            <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-full border-2 border-black/20 group-hover:scale-95 transition-transform" />
+          </button>
+        </div>
+
+        {cameraCount > 1 ? (
+          <button
+            type="button"
+            onClick={toggleCamera}
+            className="px-4 sm:px-6 py-2.5 sm:py-3 bg-brand-primary/10 border border-brand-primary/30 text-brand-primary hover:bg-brand-primary hover:text-white rounded-sm text-xs sm:text-sm font-bold uppercase tracking-wider transition-colors -skew-x-6 flex items-center gap-2 cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4 skew-x-6" />
+            <span className="skew-x-6 hidden sm:inline">Flip Camera</span>
+          </button>
+        ) : (
+          <div className="w-20 sm:w-32" />
+        )}
       </div>
     </div>
   );
