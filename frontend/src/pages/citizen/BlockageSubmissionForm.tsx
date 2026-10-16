@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, ChevronLeft, X, AlertCircle, RefreshCw, Zap, ZapOff, Layers, Plus, Minus, Copy, Check } from 'lucide-react';
+import { Camera, MapPin, UploadCloud, CheckCircle2, ChevronRight, ChevronLeft, X, AlertCircle, RefreshCw, Zap, ZapOff, Layers, Plus, Minus, Copy, Check, Sun, Moon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useTheme } from '../../context/ThemeContext';
 
 const customMarkerIcon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -41,36 +42,92 @@ function MapResizeHandler({ active }: { active: boolean }) {
   return null;
 }
 
+export type MapType = 'detailed' | 'simple';
+
+export const getMapTileUrl = (type: MapType, isDark: boolean) => {
+  if (type === 'detailed') {
+    return 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
+  }
+  return isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+};
+
+export const getMapTileAttribution = (type: MapType) => {
+  if (type === 'detailed') {
+    return '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by Humanitarian OpenStreetMap Team';
+  }
+  return '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>';
+};
+
 // Component to render custom stylized controls inside the map
-function CustomMapControls({ setMapStyle }: { setMapStyle: React.Dispatch<React.SetStateAction<'light' | 'dark'>> }) {
+function CustomMapControls({
+  isMapDark,
+  setIsMapDark,
+  mapType,
+  setMapType,
+}: {
+  isMapDark: boolean;
+  setIsMapDark: React.Dispatch<React.SetStateAction<boolean>>;
+  mapType: MapType;
+  setMapType: React.Dispatch<React.SetStateAction<MapType>>;
+}) {
   const map = useMap();
 
   return (
-    <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
+    <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-[400] flex flex-col gap-1.5 sm:gap-2">
+      {/* Zoom In */}
       <button
         type="button"
         onClick={() => map.zoomIn()}
-        className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-colors shadow-lg -skew-x-6"
+        className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
         title="Zoom In"
+        aria-label="Zoom In"
       >
         <Plus className="w-4 h-4 skew-x-6" />
       </button>
+
+      {/* Zoom Out */}
       <button
         type="button"
         onClick={() => map.zoomOut()}
-        className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-colors shadow-lg -skew-x-6"
+        className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
         title="Zoom Out"
+        aria-label="Zoom Out"
       >
         <Minus className="w-4 h-4 skew-x-6" />
       </button>
 
-      <div className="w-full h-px bg-border-strong my-1"></div>
+      <div className="w-full h-px bg-border-subtle my-0.5 sm:my-1" />
 
+      {/* Dedicated Map Theme Toggle (Sun / Moon) */}
       <button
         type="button"
-        onClick={() => setMapStyle(prev => prev === 'light' ? 'dark' : 'light')}
-        className="p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-secondary hover:text-black transition-colors shadow-lg -skew-x-6"
-        title="Toggle Map Style"
+        onClick={() => setIsMapDark(prev => !prev)}
+        className={twMerge(
+          "p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center",
+          isMapDark
+            ? "bg-surface/90 border-brand-primary/40 text-amber-400 hover:bg-brand-primary/20"
+            : "bg-surface/90 border-border-subtle text-brand-primary hover:bg-brand-primary hover:text-white"
+        )}
+        title={isMapDark ? "Map: Dark Mode (Click for Light)" : "Map: Light Mode (Click for Dark)"}
+        aria-label="Toggle Map Theme"
+      >
+        {isMapDark ? <Sun className="w-4 h-4 skew-x-6" /> : <Moon className="w-4 h-4 skew-x-6" />}
+      </button>
+
+      {/* Map Style Cycle: Detailed (Humanitarian) vs Simple (Minimal Carto) */}
+      <button
+        type="button"
+        onClick={() => setMapType(prev => prev === 'detailed' ? 'simple' : 'detailed')}
+        className={twMerge(
+          "p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center",
+          mapType === 'detailed'
+            ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/30"
+            : "bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-secondary hover:text-black"
+        )}
+        title={mapType === 'detailed' ? "Map: Detailed (Humanitarian OSM) - Click for Simple" : "Map: Simple (Minimal Carto) - Click for Detailed"}
+        aria-label="Cycle Map Style (Detailed / Simple)"
       >
         <Layers className="w-4 h-4 skew-x-6" />
       </button>
@@ -91,7 +148,15 @@ export default function BlockageSubmissionForm() {
   const [cameraCount, setCameraCount] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isCameraExpanded, setIsCameraExpanded] = useState(false);
-  const [mapStyle, setMapStyle] = useState<'light' | 'dark'>('dark');
+  const { theme: globalTheme } = useTheme();
+  const [isMapDark, setIsMapDark] = useState<boolean>(globalTheme === 'dark');
+  const [mapType, setMapType] = useState<MapType>('detailed');
+
+  // Synchronize map theme whenever the global navbar theme changes
+  useEffect(() => {
+    setIsMapDark(globalTheme === 'dark');
+  }, [globalTheme]);
+
   const [hasCopied, setHasCopied] = useState(false);
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -1261,7 +1326,7 @@ export default function BlockageSubmissionForm() {
               ref={mapContainerRef}
               className={twMerge(
                 "w-full flex-1 min-h-0 bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0 lg:min-h-[420px]",
-                mapStyle === 'dark' && "dark-map"
+                isMapDark && mapType === 'detailed' && "dark-map"
               )}
             >
               <MapContainer
@@ -1272,8 +1337,9 @@ export default function BlockageSubmissionForm() {
                 className="w-full h-full z-0"
               >
                 <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  key={`${mapType}-${isMapDark ? 'dark' : 'light'}`}
+                  attribution={getMapTileAttribution(mapType)}
+                  url={getMapTileUrl(mapType, isMapDark)}
                 />
                 <Marker
                   position={position}
@@ -1284,8 +1350,25 @@ export default function BlockageSubmissionForm() {
                 />
                 <MapFlyTo position={position} defaultPosition={defaultPosition} />
                 <MapResizeHandler active={mobileStep === 2} />
-                <CustomMapControls setMapStyle={setMapStyle} />
+                <CustomMapControls
+                  isMapDark={isMapDark}
+                  setIsMapDark={setIsMapDark}
+                  mapType={mapType}
+                  setMapType={setMapType}
+                />
               </MapContainer>
+
+              {/* Map Style & Mode Indicator (Bottom Left) */}
+              <div className="absolute bottom-3 left-3 z-[400] bg-surface/90 backdrop-blur-md border border-border-subtle px-2.5 py-1 rounded-sm shadow-md flex items-center gap-1.5 -skew-x-3 pointer-events-none text-[10px] font-mono font-bold text-text-secondary uppercase tracking-wider">
+                <span className="skew-x-3 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
+                  <span>{mapType === 'detailed' ? 'Detailed' : 'Simple'}</span>
+                  <span className="text-text-muted opacity-40">|</span>
+                  <span className={isMapDark ? "text-amber-400" : "text-brand-primary"}>
+                    {isMapDark ? 'Dark' : 'Light'}
+                  </span>
+                </span>
+              </div>
 
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[400] bg-surface border border-border-subtle px-3.5 py-1 rounded-sm shadow-xl flex items-center gap-2 -skew-x-[3deg] lg:-skew-x-12 overflow-hidden pointer-events-none">
                 <div className="absolute top-0 left-0 w-1 h-full bg-brand-primary"></div>
