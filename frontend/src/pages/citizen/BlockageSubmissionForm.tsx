@@ -105,15 +105,40 @@ export default function BlockageSubmissionForm() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Detect camera count on mount
+  // Filter and detect real usable camera devices (excluding Windows Hello IR & virtual devices)
+  const updateCameraCount = async () => {
+    try {
+      if (!navigator.mediaDevices?.enumerateDevices) return;
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => {
+        if (device.kind !== 'videoinput') return false;
+        const label = (device.label || '').toLowerCase();
+        if (label.includes('ir ') || label.includes('infrared') || label.includes('virtual') || label.includes('obs')) {
+          return false;
+        }
+        return true;
+      });
+      setCameraCount(videoDevices.length);
+    } catch (err) {
+      console.error("Could not enumerate devices", err);
+    }
+  };
+
   useEffect(() => {
-    navigator.mediaDevices.enumerateDevices()
-      .then(devices => {
-        const cameras = devices.filter(device => device.kind === 'videoinput');
-        setCameraCount(cameras.length);
-      })
-      .catch(err => console.error("Could not enumerate devices", err));
+    updateCameraCount();
   }, []);
+
+  // Suppress desktop navbar while camera viewfinder is active
+  useEffect(() => {
+    if (isCameraActive) {
+      document.body.setAttribute('data-camera-active', 'true');
+    } else {
+      document.body.removeAttribute('data-camera-active');
+    }
+    return () => {
+      document.body.removeAttribute('data-camera-active');
+    };
+  }, [isCameraActive]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -202,33 +227,78 @@ export default function BlockageSubmissionForm() {
   };
 
   const startCamera = async (mode: 'environment' | 'user' = facingMode) => {
-    stopCamera();
+    // If stream already exists, stop tracks cleanly
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
     try {
-      // First try to get the exact camera (front or back)
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { exact: mode } }
-      });
+      let stream: MediaStream;
+      try {
+        // First try to get the exact camera (front or back)
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: mode } }
+        });
+      } catch {
+        // If exact fails (e.g. laptop webcam has no 'environment'), fallback to ideal
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: mode } }
+        });
+      }
+
       streamRef.current = stream;
       setFacingMode(mode);
       setIsCameraActive(true);
-    } catch {
-      // If exact fails (e.g. laptop webcam has no 'environment'), fallback to ideal
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: mode } }
-        });
-        streamRef.current = stream;
-        setFacingMode(mode);
-        setIsCameraActive(true);
-      } catch (fallbackErr) {
-        console.error("Error accessing camera:", fallbackErr);
-        showToast("Could not access camera. Please check permissions.");
-      }
+
+      // Now that camera permission is granted, query real device labels to accurately detect usable camera count
+      await updateCameraCount();
+    } catch (fallbackErr) {
+      console.error("Error accessing camera:", fallbackErr);
+      showToast("Could not access camera. Please check permissions.");
     }
   };
 
-  const toggleCamera = () => {
-    startCamera(facingMode === 'environment' ? 'user' : 'environment');
+  const toggleCamera = async () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+
+    // Stop current stream tracks cleanly WITHOUT resetting isCameraActive
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    try {
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: nextMode } }
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: nextMode } }
+        });
+      }
+
+      streamRef.current = stream;
+      setFacingMode(nextMode);
+
+      // Seamlessly update video element stream without unmounting or reloading the modal
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(err => console.error("Error playing video:", err));
+      }
+
+      // Re-evaluate flashlight capability on the new camera
+      const track = stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities?.() as unknown as { torch?: boolean } | undefined;
+      if (!capabilities?.torch) {
+        setIsTorchOn(false);
+      }
+    } catch (err) {
+      console.error("Error flipping camera:", err);
+      showToast("Could not switch camera.");
+    }
   };
 
   const toggleTorch = async () => {
@@ -357,72 +427,9 @@ export default function BlockageSubmissionForm() {
   };
 
   const renderCameraModal = () => (
-    <div className="fixed inset-0 z-[500] w-full h-full flex flex-col bg-surface/95 backdrop-blur-2xl overflow-hidden animate-in fade-in duration-300">
-      {/* Top Accent Gradient Line */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary z-20" />
-
-      {/* Top Control Bar (Blue Container Styling) */}
-      <div className="w-full px-4 sm:px-8 py-3 sm:py-4 bg-surface border-b border-border-subtle flex items-center justify-between shrink-0 shadow-md z-10">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-brand-primary/20 rounded-sm text-brand-primary -skew-x-6">
-            <Camera className="w-5 h-5 skew-x-6" />
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg md:text-xl font-heading font-black text-text-primary uppercase tracking-wider">
-                Live Viewfinder
-              </h2>
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-red-500/10 border border-red-500/30 text-[10px] font-mono font-bold text-red-500 uppercase tracking-widest">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                Live
-              </span>
-            </div>
-            <p className="hidden sm:block text-xs text-text-muted">Align the clogged canal or blockage in the frame</p>
-          </div>
-        </div>
-
-        {/* Quick Action Buttons (Torch, Flip, Close) */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={toggleTorch}
-            className={twMerge(
-              "p-2.5 backdrop-blur-md rounded-sm transition-all duration-300 shadow-md border -skew-x-6 cursor-pointer",
-              isTorchOn
-                ? "bg-brand-secondary text-black border-brand-secondary"
-                : "bg-surface-subtle border-border-subtle text-text-secondary hover:text-text-primary hover:border-brand-primary"
-            )}
-            title="Toggle Flashlight"
-          >
-            <div className="skew-x-6">
-              {isTorchOn ? <Zap className="w-5 h-5" /> : <ZapOff className="w-5 h-5" />}
-            </div>
-          </button>
-
-          {cameraCount > 1 && (
-            <button
-              type="button"
-              onClick={toggleCamera}
-              className="p-2.5 bg-surface-subtle border border-border-subtle hover:border-brand-primary hover:text-brand-primary text-text-secondary rounded-sm transition-all duration-300 shadow-md -skew-x-6 cursor-pointer"
-              title="Flip Camera"
-            >
-              <RefreshCw className="w-5 h-5 skew-x-6" />
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={stopCamera}
-            className="p-2.5 bg-surface-subtle border border-border-subtle hover:bg-semantic-urgent hover:text-white hover:border-semantic-urgent text-text-secondary rounded-sm transition-all duration-300 shadow-md -skew-x-6 cursor-pointer"
-            title="Close Viewfinder"
-          >
-            <X className="w-5 h-5 skew-x-6" />
-          </button>
-        </div>
-      </div>
-
-      {/* Viewfinder Main Video Area (Fills remaining screen) */}
-      <div className="relative w-full flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden group">
+    <div className="fixed inset-0 z-[2000] w-full h-dvh bg-black overflow-hidden flex flex-col select-none animate-in fade-in duration-200">
+      {/* 1. Full Screen Video Viewfinder (Fills entire screen) */}
+      <div className="absolute inset-0 w-full h-full bg-black z-0 flex items-center justify-center overflow-hidden">
         <video
           ref={videoRef}
           autoPlay
@@ -431,7 +438,7 @@ export default function BlockageSubmissionForm() {
         />
 
         {/* Tactical HUD Reticle & Corner Brackets (Pointer-events-none) */}
-        <div className="pointer-events-none absolute inset-0 p-6 sm:p-10 flex flex-col justify-between">
+        <div className="pointer-events-none absolute inset-0 p-6 sm:p-10 md:p-14 flex flex-col justify-between z-10">
           {/* Top Corners */}
           <div className="flex justify-between w-full">
             <div className="w-8 h-8 sm:w-12 sm:h-12 border-t-2 border-l-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
@@ -440,57 +447,103 @@ export default function BlockageSubmissionForm() {
 
           {/* Center Aiming Guide */}
           <div className="self-center flex flex-col items-center gap-3">
-            <div className="w-32 h-32 sm:w-48 sm:h-48 border border-dashed border-white/50 rounded-sm flex items-center justify-center relative">
+            <div className="w-36 h-36 sm:w-52 sm:h-52 border border-dashed border-white/50 rounded-sm flex items-center justify-center relative">
               <div className="w-2.5 h-2.5 rounded-full bg-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),1)]" />
               <div className="absolute w-8 h-[1px] bg-white/60" />
               <div className="absolute h-8 w-[1px] bg-white/60" />
             </div>
-            <span className="text-[11px] sm:text-xs font-mono font-bold tracking-widest uppercase bg-black/70 backdrop-blur-md px-4 py-1.5 rounded-sm text-white border border-white/15 shadow-lg">
+            <span className="text-[11px] sm:text-xs font-mono font-bold tracking-widest uppercase bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-sm text-white/90 border border-white/15 shadow-lg">
               Align Blockage in Center
             </span>
           </div>
 
           {/* Bottom Corners */}
-          <div className="flex justify-between w-full">
+          <div className="flex justify-between w-full mb-24 sm:mb-28">
             <div className="w-8 h-8 sm:w-12 sm:h-12 border-b-2 border-l-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
             <div className="w-8 h-8 sm:w-12 sm:h-12 border-b-2 border-r-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
           </div>
         </div>
       </div>
 
-      {/* Bottom Shutter & Quick Controls Bar (Blue Container Styling) */}
-      <div className="w-full px-6 sm:px-12 py-4 sm:py-6 bg-surface border-t border-border-subtle flex items-center justify-between shrink-0 shadow-[0_-4px_25px_rgba(0,0,0,0.2)] z-10">
+      {/* 2. Floating Top Controls Overlay */}
+      <div className="relative z-20 w-full px-4 sm:px-8 pt-4 sm:pt-6 pb-12 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between pointer-events-auto">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="p-2 bg-brand-primary/20 backdrop-blur-md border border-brand-primary/40 rounded-sm text-brand-primary -skew-x-6">
+            <Camera className="w-5 h-5 skew-x-6" />
+          </div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm sm:text-base md:text-lg font-heading font-black text-white uppercase tracking-wider drop-shadow-md">
+              Live Viewfinder
+            </h2>
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-red-500/20 backdrop-blur-md border border-red-500/40 text-[10px] font-mono font-bold text-red-400 uppercase tracking-widest shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+              Live
+            </span>
+          </div>
+        </div>
+
+        {/* Floating Top Action Buttons (Torch & Close) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={toggleTorch}
+            className={twMerge(
+              "p-2.5 backdrop-blur-md rounded-full transition-all duration-300 shadow-lg border cursor-pointer",
+              isTorchOn
+                ? "bg-brand-secondary text-black border-brand-secondary shadow-[0_0_15px_rgba(var(--brand-secondary),0.5)]"
+                : "bg-black/50 border-white/20 text-white/90 hover:bg-black/80 hover:text-white"
+            )}
+            title="Toggle Flashlight"
+          >
+            {isTorchOn ? <Zap className="w-5 h-5" /> : <ZapOff className="w-5 h-5" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={stopCamera}
+            className="p-2.5 bg-black/50 hover:bg-semantic-urgent border border-white/20 hover:border-semantic-urgent backdrop-blur-md rounded-full text-white/90 hover:text-white transition-all duration-300 shadow-lg cursor-pointer"
+            title="Close Viewfinder"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* 3. Floating Bottom Controls Overlay (Purely floating, no thick solid bar) */}
+      <div className="mt-auto relative z-20 w-full px-6 sm:px-12 pb-8 sm:pb-12 pt-16 bg-gradient-to-t from-black/85 via-black/45 to-transparent flex items-center justify-between pointer-events-auto">
+        {/* Floating Cancel Button */}
         <button
           type="button"
           onClick={stopCamera}
-          className="px-4 sm:px-6 py-2.5 sm:py-3 bg-surface-subtle border border-border-subtle hover:border-text-primary text-text-muted hover:text-text-primary rounded-sm text-xs sm:text-sm font-bold uppercase tracking-wider transition-colors -skew-x-6 cursor-pointer"
+          className="px-5 py-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/25 hover:border-white text-white rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95"
         >
-          <span className="skew-x-6 block">Cancel</span>
+          Cancel
         </button>
 
-        {/* Shutter Button */}
-        <div className="p-1.5 sm:p-2 border-4 border-white/70 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-transform">
+        {/* Floating Shutter Button */}
+        <div className="p-1.5 border-4 border-white/80 rounded-full shadow-[0_0_35px_rgba(255,255,255,0.4)] hover:scale-105 active:scale-90 transition-transform">
           <button
             type="button"
             onClick={capturePhoto}
-            className="w-16 h-16 sm:w-20 sm:h-20 bg-white hover:bg-gray-200 rounded-full active:scale-90 transition-all shadow-[0_0_30px_rgba(255,255,255,0.4)] flex items-center justify-center group cursor-pointer"
+            className="w-18 h-18 sm:w-20 sm:h-20 bg-white hover:bg-gray-200 rounded-full active:scale-90 transition-all flex items-center justify-center group cursor-pointer shadow-inner"
             aria-label="Capture Photo"
           >
-            <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-full border-2 border-black/20 group-hover:scale-95 transition-transform" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-black/25 group-hover:scale-95 transition-transform" />
           </button>
         </div>
 
+        {/* Floating Flip Camera Button (Rendered ONLY if multiple cameras exist!) */}
         {cameraCount > 1 ? (
           <button
             type="button"
             onClick={toggleCamera}
-            className="px-4 sm:px-6 py-2.5 sm:py-3 bg-brand-primary/10 border border-brand-primary/30 text-brand-primary hover:bg-brand-primary hover:text-white rounded-sm text-xs sm:text-sm font-bold uppercase tracking-wider transition-colors -skew-x-6 flex items-center gap-2 cursor-pointer"
+            className="p-3.5 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/25 hover:border-white text-white rounded-full transition-all cursor-pointer shadow-lg active:scale-95 flex items-center justify-center"
+            title="Flip Camera"
           >
-            <RefreshCw className="w-4 h-4 skew-x-6" />
-            <span className="skew-x-6 hidden sm:inline">Flip Camera</span>
+            <RefreshCw className="w-5 h-5" />
           </button>
         ) : (
-          <div className="w-20 sm:w-32" />
+          <div className="w-16" />
         )}
       </div>
     </div>

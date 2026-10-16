@@ -50,6 +50,10 @@ export default function CitizenLayout() {
     let timeout: ReturnType<typeof setTimeout> | null = null;
     
     const handleMouseMove = (e: MouseEvent) => {
+      if (document.body.getAttribute('data-camera-active') === 'true') {
+        setIsNavVisible(false);
+        return;
+      }
       if (e.clientY <= 120) {
         setIsNavVisible(true);
         if (timeout) {
@@ -101,7 +105,7 @@ export default function CitizenLayout() {
         className={twMerge(
           clsx(
             "fixed top-4 w-full z-[1000] pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
-            isNavVisible ? "translate-y-0" : "-translate-y-[150%]"
+            isNavVisible && document.body.getAttribute('data-camera-active') !== 'true' ? "translate-y-0" : "-translate-y-[150%]"
           )
         )}
       >
