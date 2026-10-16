@@ -89,7 +89,7 @@ export default function CitizenLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300 relative">
+    <div className="h-dvh md:min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300 relative overflow-hidden md:overflow-visible">
       {/* Tactical GIS Ambient Background */}
       <TacticalBackground />
       
@@ -162,9 +162,9 @@ export default function CitizenLayout() {
       </div>
 
       {/* Main Content Area */}
-      {/* pb-20 on mobile ensures content fits above the bottom tab bar without pushing extra blank space */}
-      <main className="flex-1 bg-transparent overflow-x-hidden relative flex flex-col pb-20 md:pb-0 z-10">
-        <div className="flex-1 flex flex-col p-2.5 sm:p-4 md:p-6 lg:p-8 pt-2 sm:pt-4 md:pt-28 lg:pt-32 max-w-7xl mx-auto w-full animate-fade-in">
+      {/* pb-16 on mobile ensures content fits above the bottom tab bar without pushing extra blank space */}
+      <main className="flex-1 min-h-0 bg-transparent overflow-x-hidden relative flex flex-col pb-16 md:pb-0 z-10 overflow-hidden md:overflow-visible">
+        <div className="flex-1 min-h-0 flex flex-col p-2.5 sm:p-4 md:p-6 lg:p-8 pt-2 sm:pt-4 md:pt-28 lg:pt-32 max-w-7xl mx-auto w-full animate-fade-in overflow-hidden md:overflow-visible">
           <Outlet />
         </div>
       </main>
