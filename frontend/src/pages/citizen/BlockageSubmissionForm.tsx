@@ -437,114 +437,79 @@ export default function BlockageSubmissionForm() {
           className={twMerge("w-full h-full object-cover", facingMode === 'user' && "scale-x-[-1]")}
         />
 
-        {/* Tactical HUD Reticle & Corner Brackets (Pointer-events-none) */}
-        <div className="pointer-events-none absolute inset-0 p-6 sm:p-10 md:p-14 flex flex-col justify-between z-10">
-          {/* Top Corners */}
-          <div className="flex justify-between w-full">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 border-t-2 border-l-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
-            <div className="w-8 h-8 sm:w-12 sm:h-12 border-t-2 border-r-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
-          </div>
-
-          {/* Center Aiming Guide */}
-          <div className="self-center flex flex-col items-center gap-3">
-            <div className="w-36 h-36 sm:w-52 sm:h-52 border border-dashed border-white/50 rounded-sm flex items-center justify-center relative">
-              <div className="w-2.5 h-2.5 rounded-full bg-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),1)]" />
-              <div className="absolute w-8 h-[1px] bg-white/60" />
-              <div className="absolute h-8 w-[1px] bg-white/60" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-mono font-bold tracking-widest uppercase bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-sm text-white/90 border border-white/15 shadow-lg">
-              Align Blockage in Center
-            </span>
-          </div>
-
-          {/* Bottom Corners */}
-          <div className="flex justify-between w-full mb-24 sm:mb-28">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 border-b-2 border-l-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
-            <div className="w-8 h-8 sm:w-12 sm:h-12 border-b-2 border-r-2 border-brand-primary drop-shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
-          </div>
+        {/* Minimalist Rule-of-Thirds Gridlines (Pointer-events-none) */}
+        <div className="pointer-events-none absolute inset-0 z-10">
+          {/* Vertical Lines */}
+          <div className="absolute top-0 bottom-0 left-1/3 w-px bg-white/[0.08]" />
+          <div className="absolute top-0 bottom-0 left-2/3 w-px bg-white/[0.08]" />
+          {/* Horizontal Lines */}
+          <div className="absolute left-0 right-0 top-1/3 h-px bg-white/[0.08]" />
+          <div className="absolute left-0 right-0 top-2/3 h-px bg-white/[0.08]" />
         </div>
       </div>
 
       {/* 2. Floating Top Controls Overlay */}
-      <div className="relative z-20 w-full px-4 sm:px-8 pt-4 sm:pt-6 pb-12 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between pointer-events-auto">
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="p-2 bg-brand-primary/20 backdrop-blur-md border border-brand-primary/40 rounded-sm text-brand-primary -skew-x-6">
-            <Camera className="w-5 h-5 skew-x-6" />
-          </div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm sm:text-base md:text-lg font-heading font-black text-white uppercase tracking-wider drop-shadow-md">
-              Live Viewfinder
-            </h2>
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-red-500/20 backdrop-blur-md border border-red-500/40 text-[10px] font-mono font-bold text-red-400 uppercase tracking-widest shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-              Live
-            </span>
-          </div>
-        </div>
+      <div className="relative z-20 w-full px-5 sm:px-8 pt-4 sm:pt-6 pb-12 bg-gradient-to-b from-black/75 via-black/30 to-transparent flex items-center justify-between pointer-events-auto">
+        {/* Floating Flashlight / Torch Button (Skewed) */}
+        <button
+          type="button"
+          onClick={toggleTorch}
+          className={twMerge(
+            "p-2.5 sm:p-3 -skew-x-6 rounded-sm backdrop-blur-md transition-all duration-300 shadow-lg border cursor-pointer active:scale-95 flex items-center justify-center",
+            isTorchOn
+              ? "bg-brand-secondary text-black border-brand-secondary shadow-[0_0_15px_rgba(var(--brand-secondary),0.5)]"
+              : "bg-black/60 border-white/20 text-white/90 hover:bg-black/80 hover:text-white"
+          )}
+          title="Toggle Flashlight"
+        >
+          {isTorchOn ? <Zap className="w-5 h-5 sm:w-6 sm:h-6 skew-x-6" /> : <ZapOff className="w-5 h-5 sm:w-6 sm:h-6 skew-x-6" />}
+        </button>
 
-        {/* Floating Top Action Buttons (Torch & Close) */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={toggleTorch}
-            className={twMerge(
-              "p-2.5 backdrop-blur-md rounded-full transition-all duration-300 shadow-lg border cursor-pointer",
-              isTorchOn
-                ? "bg-brand-secondary text-black border-brand-secondary shadow-[0_0_15px_rgba(var(--brand-secondary),0.5)]"
-                : "bg-black/50 border-white/20 text-white/90 hover:bg-black/80 hover:text-white"
-            )}
-            title="Toggle Flashlight"
-          >
-            {isTorchOn ? <Zap className="w-5 h-5" /> : <ZapOff className="w-5 h-5" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={stopCamera}
-            className="p-2.5 bg-black/50 hover:bg-semantic-urgent border border-white/20 hover:border-semantic-urgent backdrop-blur-md rounded-full text-white/90 hover:text-white transition-all duration-300 shadow-lg cursor-pointer"
-            title="Close Viewfinder"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* 3. Floating Bottom Controls Overlay (Purely floating, no thick solid bar) */}
-      <div className="mt-auto relative z-20 w-full px-6 sm:px-12 pb-8 sm:pb-12 pt-16 bg-gradient-to-t from-black/85 via-black/45 to-transparent flex items-center justify-between pointer-events-auto">
-        {/* Floating Cancel Button */}
+        {/* Floating Red Close ("X") Button (Skewed) */}
         <button
           type="button"
           onClick={stopCamera}
-          className="px-5 py-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/25 hover:border-white text-white rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95"
+          className="p-2.5 sm:p-3 -skew-x-6 rounded-sm bg-semantic-urgent hover:bg-red-600 border border-red-500/50 backdrop-blur-md text-white transition-all duration-300 shadow-lg shadow-red-950/40 cursor-pointer active:scale-95 flex items-center justify-center"
+          title="Close Camera"
         >
-          Cancel
+          <X className="w-5 h-5 sm:w-6 sm:h-6 skew-x-6 stroke-[2.5]" />
         </button>
+      </div>
 
-        {/* Floating Shutter Button */}
-        <div className="p-1.5 border-4 border-white/80 rounded-full shadow-[0_0_35px_rgba(255,255,255,0.4)] hover:scale-105 active:scale-90 transition-transform">
-          <button
-            type="button"
-            onClick={capturePhoto}
-            className="w-18 h-18 sm:w-20 sm:h-20 bg-white hover:bg-gray-200 rounded-full active:scale-90 transition-all flex items-center justify-center group cursor-pointer shadow-inner"
-            aria-label="Capture Photo"
-          >
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-black/25 group-hover:scale-95 transition-transform" />
-          </button>
+      {/* 3. Floating Bottom Controls Overlay */}
+      <div className="mt-auto relative z-20 w-full px-6 sm:px-12 pb-8 sm:pb-12 pt-16 bg-gradient-to-t from-black/85 via-black/45 to-transparent grid grid-cols-3 items-center pointer-events-auto">
+        {/* Left balance spacer */}
+        <div className="flex justify-start">
+          {/* Spacer to keep center shutter centered */}
         </div>
 
-        {/* Floating Flip Camera Button (Rendered ONLY if multiple cameras exist!) */}
-        {cameraCount > 1 ? (
-          <button
-            type="button"
-            onClick={toggleCamera}
-            className="p-3.5 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/25 hover:border-white text-white rounded-full transition-all cursor-pointer shadow-lg active:scale-95 flex items-center justify-center"
-            title="Flip Camera"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </button>
-        ) : (
-          <div className="w-16" />
-        )}
+        {/* Center: Floating Shutter Button */}
+        <div className="flex justify-center">
+          <div className="p-1.5 border-4 border-white/80 rounded-full shadow-[0_0_35px_rgba(255,255,255,0.4)] hover:scale-105 active:scale-90 transition-transform">
+            <button
+              type="button"
+              onClick={capturePhoto}
+              className="w-18 h-18 sm:w-20 sm:h-20 bg-white hover:bg-gray-200 rounded-full active:scale-90 transition-all flex items-center justify-center group cursor-pointer shadow-inner"
+              aria-label="Capture Photo"
+            >
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-black/25 group-hover:scale-95 transition-transform" />
+            </button>
+          </div>
+        </div>
+
+        {/* Right: Floating Flip Camera Button (Rendered ONLY if multiple cameras exist!) */}
+        <div className="flex justify-end">
+          {cameraCount > 1 && (
+            <button
+              type="button"
+              onClick={toggleCamera}
+              className="p-3.5 -skew-x-6 rounded-sm bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/25 hover:border-white text-white transition-all cursor-pointer shadow-lg active:scale-95 flex items-center justify-center"
+              title="Flip Camera"
+            >
+              <RefreshCw className="w-5 h-5 skew-x-6" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
