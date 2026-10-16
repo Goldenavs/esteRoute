@@ -50,6 +50,10 @@ export default function CitizenLayout() {
     let timeout: ReturnType<typeof setTimeout> | null = null;
     
     const handleMouseMove = (e: MouseEvent) => {
+      if (document.body.getAttribute('data-camera-active') === 'true') {
+        setIsNavVisible(false);
+        return;
+      }
       if (e.clientY <= 120) {
         setIsNavVisible(true);
         if (timeout) {
@@ -89,7 +93,7 @@ export default function CitizenLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300 relative">
+    <div className="h-dvh md:h-auto md:min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300 relative overflow-hidden md:overflow-x-hidden md:overflow-y-auto">
       {/* Tactical GIS Ambient Background */}
       <TacticalBackground />
       
@@ -101,7 +105,7 @@ export default function CitizenLayout() {
         className={twMerge(
           clsx(
             "fixed top-4 w-full z-[1000] pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
-            isNavVisible ? "translate-y-0" : "-translate-y-[150%]"
+            isNavVisible && document.body.getAttribute('data-camera-active') !== 'true' ? "translate-y-0" : "-translate-y-[150%]"
           )
         )}
       >
@@ -162,9 +166,9 @@ export default function CitizenLayout() {
       </div>
 
       {/* Main Content Area */}
-      {/* pb-24 ensures content isn't hidden behind the mobile bottom tab bar */}
-      <main className="flex-1 bg-transparent overflow-x-hidden relative flex flex-col pb-24 md:pb-0 z-10">
-        <div className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 pt-4 md:pt-28 lg:pt-32 max-w-7xl mx-auto w-full animate-fade-in">
+      {/* pb-16 on mobile ensures content fits above the bottom tab bar without pushing extra blank space */}
+      <main className="flex-1 min-h-0 md:flex-none md:h-auto bg-transparent relative flex flex-col pb-16 md:pb-0 z-10 overflow-hidden md:overflow-visible">
+        <div className="flex-1 min-h-0 md:flex-none md:h-auto flex flex-col px-3.5 py-2 sm:p-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full animate-fade-in overflow-hidden md:overflow-visible md:pt-28 lg:pt-32 pb-4 md:pb-8 lg:pb-10">
           <Outlet />
         </div>
       </main>
