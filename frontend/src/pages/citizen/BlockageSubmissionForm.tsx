@@ -447,11 +447,11 @@ export default function BlockageSubmissionForm() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              className="relative w-full max-w-lg bg-surface/90 backdrop-blur-2xl border border-brand-primary/30 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.3)] overflow-hidden p-8 md:p-10 flex flex-col items-center text-center"
+              className="relative w-full max-w-lg bg-surface/90 backdrop-blur-2xl border border-brand-primary/30 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.3)] overflow-hidden -skew-x-[2deg] lg:-skew-x-[4deg] p-8 md:p-10 flex flex-col items-center text-center"
             >
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-secondary via-brand-primary to-brand-secondary"></div>
               
-              <div className="flex flex-col items-center text-center w-full">
+              <div className="skew-x-[2deg] lg:skew-x-[4deg] flex flex-col items-center text-center w-full">
                 <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mb-6 shadow-inner">
                   <CheckCircle2 className="w-10 h-10 text-green-500" />
                 </div>
@@ -460,15 +460,15 @@ export default function BlockageSubmissionForm() {
                 <p className="text-text-muted mb-8 text-sm md:text-base">Thank you for keeping our community safe. Guest submissions cannot be tracked later unless you save this reference number.</p>
                 
                 <div className="w-full mb-8 flex flex-col gap-3">
-                  <div className="bg-app-bg w-full p-4 rounded-sm border border-border-subtle flex items-center justify-between gap-4 relative shadow-inner">
-                    <div className="flex flex-col items-start gap-1">
+                  <div className="bg-app-bg w-full p-4 rounded-sm border border-border-subtle flex items-center justify-between gap-4 -skew-x-[3deg] lg:-skew-x-6 relative shadow-inner">
+                    <div className="skew-x-[3deg] lg:skew-x-6 flex flex-col items-start gap-1">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Tracking Reference</span>
                       <span className="text-xl md:text-2xl font-mono font-black text-brand-primary">{trackingRef || "ER-2026-000000"}</span>
                     </div>
                     <button
                       onClick={handleCopy}
                       className={twMerge(
-                        "p-3 rounded-sm transition-all duration-300 flex-shrink-0 border",
+                        "skew-x-[3deg] lg:skew-x-6 p-3 rounded-sm transition-all duration-300 flex-shrink-0 border",
                         hasCopied 
                           ? "bg-green-500/20 text-green-500 border-green-500/30" 
                           : "bg-surface text-text-primary hover:bg-brand-primary hover:text-white border-border-subtle"
@@ -487,20 +487,20 @@ export default function BlockageSubmissionForm() {
                   )}
                 </div>
 
-                <motion.button 
-                  whileHover={hasCopied ? { scale: 1.01 } : {}}
-                  whileTap={hasCopied ? { scale: 0.98 } : {}}
+                <button 
                   onClick={resetForm}
                   disabled={!hasCopied}
                   className={twMerge(
-                    "w-full font-bold py-4 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 group border-2 uppercase tracking-widest",
+                    "w-full font-bold py-4 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 group -skew-x-[3deg] lg:-skew-x-12 border-2",
                     hasCopied
-                      ? "bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary cursor-pointer"
+                      ? "bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary cursor-pointer active:scale-[0.99]"
                       : "bg-surface border-border-strong text-text-muted cursor-not-allowed opacity-50"
                   )}
                 >
-                  {hasCopied ? "Close & Submit Another" : "Acknowledge & Close"}
-                </motion.button>
+                  <span className="skew-x-[3deg] lg:skew-x-12 uppercase tracking-widest">
+                    {hasCopied ? "Close & Submit Another" : "Acknowledge & Close"}
+                  </span>
+                </button>
               </div>
             </motion.div>
           </motion.div>,
@@ -508,19 +508,21 @@ export default function BlockageSubmissionForm() {
         )}
       </AnimatePresence>
 
-      {/* Custom Toast Notification - Straight crisp container with no skew conflict */}
+      {/* Custom Toast Notification - Beautiful skewed industrial banner */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div 
-            initial={{ opacity: 0, y: -20, x: "-50%", scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, x: "-50%", scale: 1 }}
-            exit={{ opacity: 0, y: -20, x: "-50%", scale: 0.95 }}
+            initial={{ opacity: 0, y: -20, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: -20, x: "-50%" }}
             transition={{ duration: 0.2 }}
-            className="fixed top-6 left-1/2 z-[300] bg-semantic-urgent text-white px-5 py-3 rounded-sm shadow-2xl border-l-4 border-white pointer-events-none"
+            className="fixed top-6 left-1/2 z-[300] pointer-events-none"
           >
-            <div className="flex items-center gap-3 font-bold tracking-wider text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <span>{toastMessage}</span>
+            <div className="bg-semantic-urgent text-white px-5 py-3 rounded-sm shadow-2xl border-b-4 border-red-950 -skew-x-3 lg:-skew-x-6">
+              <div className="skew-x-3 lg:skew-x-6 flex items-center gap-3 font-bold tracking-wider text-sm">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>{toastMessage}</span>
+              </div>
             </div>
           </motion.div>
         )}
@@ -541,35 +543,36 @@ export default function BlockageSubmissionForm() {
         </p>
       </motion.div>
 
-      {/* Mobile Stepper Header (3-Step Flow with Alive Pulsing Indicators) */}
-      <div className="lg:hidden mb-2 sm:mb-3 bg-surface/90 backdrop-blur-xl border border-border-subtle p-2 sm:p-2.5 rounded-sm shadow-md shrink-0">
-        <div className="flex items-center justify-between relative px-2 sm:px-4">
+      {/* Mobile Stepper Header (3-Step Flow with Alive Pulsing Indicators & Consistent Skew) */}
+      <div className="lg:hidden mb-2 sm:mb-3 bg-surface/90 backdrop-blur-xl border border-border-subtle p-2 sm:p-2.5 rounded-sm shadow-md shrink-0 -skew-x-[2deg]">
+        <div className="skew-x-[2deg] flex items-center justify-between relative px-2 sm:px-4">
           
           {/* Step 1: Photo */}
-          <motion.button
-            whileTap={{ scale: 0.94 }}
+          <button
             type="button"
             onClick={() => setMobileStep(1)}
-            className="flex-1 flex flex-col items-center gap-1 transition-colors relative z-10 group"
+            className="flex-1 flex flex-col items-center gap-1 transition-transform active:scale-95 relative z-10 group"
           >
             <div className="relative">
               {/* Pulsing ambient halo when active */}
               {mobileStep === 1 && (
-                <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px]" />
+                <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px] -skew-x-[3deg]" />
               )}
               <div className={twMerge(
-                "relative w-8 h-8 rounded-sm flex items-center justify-center text-xs font-mono font-bold transition-all border",
+                "relative w-8 h-8 rounded-sm -skew-x-[3deg] flex items-center justify-center text-xs font-mono font-bold transition-all border",
                 mobileStep === 1 
                   ? "bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),0.5)]"
                   : photoPreview 
                     ? "bg-green-500/15 text-green-500 border-green-500/40" 
                     : "bg-surface/80 text-text-muted border-border-subtle group-hover:border-text-muted"
               )}>
-                {photoPreview && mobileStep !== 1 ? (
-                  <Check className="w-4 h-4 stroke-[3]" />
-                ) : (
-                  "01"
-                )}
+                <span className="skew-x-[3deg]">
+                  {photoPreview && mobileStep !== 1 ? (
+                    <Check className="w-4 h-4 stroke-[3]" />
+                  ) : (
+                    "01"
+                  )}
+                </span>
               </div>
             </div>
 
@@ -587,7 +590,7 @@ export default function BlockageSubmissionForm() {
                 Photo
               </span>
             </div>
-          </motion.button>
+          </button>
 
           {/* Connector Line 1-2 */}
           <div className="h-[2px] w-8 sm:w-16 -mt-4 mx-1 transition-colors relative overflow-hidden bg-border-strong rounded-full">
@@ -602,33 +605,34 @@ export default function BlockageSubmissionForm() {
           </div>
 
           {/* Step 2: Location */}
-          <motion.button
-            whileTap={{ scale: 0.94 }}
+          <button
             type="button"
             onClick={() => {
               if (photoPreview) setMobileStep(2);
               else showToast("Please attach a photo first");
             }}
-            className="flex-1 flex flex-col items-center gap-1 transition-colors relative z-10 group"
+            className="flex-1 flex flex-col items-center gap-1 transition-transform active:scale-95 relative z-10 group"
           >
             <div className="relative">
               {/* Pulsing ambient halo when active */}
               {mobileStep === 2 && (
-                <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px]" />
+                <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px] -skew-x-[3deg]" />
               )}
               <div className={twMerge(
-                "relative w-8 h-8 rounded-sm flex items-center justify-center text-xs font-mono font-bold transition-all border",
+                "relative w-8 h-8 rounded-sm -skew-x-[3deg] flex items-center justify-center text-xs font-mono font-bold transition-all border",
                 mobileStep === 2
                   ? "bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),0.5)]"
                   : mobileStep > 2 
                     ? "bg-green-500/15 text-green-500 border-green-500/40"
                     : "bg-surface/80 text-text-muted border-border-subtle group-hover:border-text-muted"
               )}>
-                {mobileStep > 2 ? (
-                  <Check className="w-4 h-4 stroke-[3]" />
-                ) : (
-                  "02"
-                )}
+                <span className="skew-x-[3deg]">
+                  {mobileStep > 2 ? (
+                    <Check className="w-4 h-4 stroke-[3]" />
+                  ) : (
+                    "02"
+                  )}
+                </span>
               </div>
             </div>
 
@@ -646,7 +650,7 @@ export default function BlockageSubmissionForm() {
                 Location
               </span>
             </div>
-          </motion.button>
+          </button>
 
           {/* Connector Line 2-3 */}
           <div className="h-[2px] w-8 sm:w-16 -mt-4 mx-1 transition-colors relative overflow-hidden bg-border-strong rounded-full">
@@ -661,27 +665,26 @@ export default function BlockageSubmissionForm() {
           </div>
 
           {/* Step 3: Review & Submit */}
-          <motion.button
-            whileTap={{ scale: 0.94 }}
+          <button
             type="button"
             onClick={() => {
               if (photoPreview) setMobileStep(3);
               else showToast("Please attach a photo first");
             }}
-            className="flex-1 flex flex-col items-center gap-1 transition-colors relative z-10 group"
+            className="flex-1 flex flex-col items-center gap-1 transition-transform active:scale-95 relative z-10 group"
           >
             <div className="relative">
               {/* Pulsing ambient halo when active */}
               {mobileStep === 3 && (
-                <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px]" />
+                <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px] -skew-x-[3deg]" />
               )}
               <div className={twMerge(
-                "relative w-8 h-8 rounded-sm flex items-center justify-center text-xs font-mono font-bold transition-all border",
+                "relative w-8 h-8 rounded-sm -skew-x-[3deg] flex items-center justify-center text-xs font-mono font-bold transition-all border",
                 mobileStep === 3 
                   ? "bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),0.5)]"
                   : "bg-surface/80 text-text-muted border-border-subtle group-hover:border-text-muted"
               )}>
-                03
+                <span className="skew-x-[3deg]">03</span>
               </div>
             </div>
 
@@ -699,7 +702,7 @@ export default function BlockageSubmissionForm() {
                 Submit
               </span>
             </div>
-          </motion.button>
+          </button>
 
         </div>
       </div>
@@ -724,13 +727,13 @@ export default function BlockageSubmissionForm() {
           )}>
             <div className="flex items-center justify-between mb-2.5 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 sm:p-2 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6">
-                  <Camera className="w-4 h-4 skew-x-6" />
+                <div className="p-1.5 sm:p-2 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-[3deg] lg:-skew-x-6">
+                  <Camera className="w-4 h-4 skew-x-[3deg] lg:skew-x-6" />
                 </div>
                 <h2 className="text-base sm:text-lg font-bold text-text-primary uppercase tracking-wider">Photo Evidence</h2>
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest bg-semantic-urgent text-white px-2 py-0.5 rounded-sm -skew-x-12 shadow-sm">
-                <span className="skew-x-12 block">Required</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest bg-semantic-urgent text-white px-2 py-0.5 rounded-sm -skew-x-[3deg] lg:-skew-x-12 shadow-sm">
+                <span className="skew-x-[3deg] lg:skew-x-12 block">Required</span>
               </span>
             </div>
             
@@ -754,8 +757,8 @@ export default function BlockageSubmissionForm() {
                       <div className="relative w-full h-full max-w-6xl bg-surface/90 backdrop-blur-2xl border border-brand-primary/30 rounded-sm shadow-[0_0_80px_-15px_rgba(var(--brand-primary),0.3)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 p-3 md:p-6 gap-4">
                         <div className="flex items-center justify-between px-2 shrink-0">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 bg-brand-primary/20 rounded-sm text-brand-primary -skew-x-6">
-                              <Camera className="w-5 h-5 skew-x-6" />
+                            <div className="p-2 bg-brand-primary/20 rounded-sm text-brand-primary -skew-x-[3deg] lg:-skew-x-6">
+                              <Camera className="w-5 h-5 skew-x-[3deg] lg:skew-x-6" />
                             </div>
                             <h2 className="text-xl font-bold text-text-primary uppercase tracking-wider">Photo Capture</h2>
                           </div>
@@ -789,27 +792,27 @@ export default function BlockageSubmissionForm() {
                   </div>
 
                   <div className="flex gap-3 w-full px-2 max-w-xs">
-                    <motion.button 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.96 }}
-                      type="button"
-                      onClick={() => startCamera('environment')}
-                      className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 bg-brand-primary/10 border border-brand-primary/30 rounded-sm hover:bg-brand-primary hover:text-white transition-all group text-brand-primary shadow-sm"
-                    >
-                      <Camera className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold uppercase tracking-wider">Camera</span>
-                    </motion.button>
+                    <div className="flex-1 transition-transform active:scale-[0.96]">
+                      <button 
+                        type="button"
+                        onClick={() => startCamera('environment')}
+                        className="w-full flex flex-col items-center justify-center gap-1.5 py-3 bg-brand-primary/10 border border-brand-primary/30 rounded-sm hover:bg-brand-primary hover:text-white transition-colors group -skew-x-3 lg:-skew-x-6 text-brand-primary shadow-sm"
+                      >
+                        <Camera className="w-6 h-6 skew-x-3 lg:skew-x-6 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold uppercase tracking-wider skew-x-3 lg:skew-x-6">Camera</span>
+                      </button>
+                    </div>
 
-                    <motion.button 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.96 }}
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 bg-surface border border-border-strong rounded-sm hover:border-brand-primary hover:bg-brand-primary/5 transition-all group text-text-primary shadow-sm"
-                    >
-                      <UploadCloud className="w-6 h-6 text-text-secondary group-hover:text-brand-primary group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold uppercase tracking-wider">Upload</span>
-                    </motion.button>
+                    <div className="flex-1 transition-transform active:scale-[0.96]">
+                      <button 
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full flex flex-col items-center justify-center gap-1.5 py-3 bg-surface border border-border-strong rounded-sm hover:border-brand-primary hover:bg-brand-primary/5 transition-colors group -skew-x-3 lg:-skew-x-6 text-text-primary shadow-sm"
+                      >
+                        <UploadCloud className="w-6 h-6 skew-x-3 lg:skew-x-6 text-text-secondary group-hover:text-brand-primary group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold uppercase tracking-wider skew-x-3 lg:skew-x-6">Upload</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -829,38 +832,42 @@ export default function BlockageSubmissionForm() {
                   <X className="w-4 h-4" />
                 </button>
                 
-                <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-white text-xs font-bold bg-green-500/90 backdrop-blur-md px-3 py-1.5 rounded-sm shadow-lg z-10">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span className="tracking-wide uppercase">Image Attached</span>
+                <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-white text-xs font-bold bg-green-500/90 backdrop-blur-md px-3 py-1.5 rounded-sm -skew-x-[3deg] lg:-skew-x-12 shadow-lg z-10">
+                  <span className="skew-x-[3deg] lg:skew-x-12 flex items-center gap-1.5 tracking-wide uppercase">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Image Attached
+                  </span>
                 </div>
               </div>
             )}
           </section>
 
-          {/* Mobile Step 1 Actions (Unskewed, no glitch, common-sense text removed) */}
+          {/* Mobile Step 1 Actions (Consistent mild skew with glitch-free press wrapper) */}
           {mobileStep === 1 && (
             <div className="lg:hidden flex flex-col shrink-0 mt-2">
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => {
-                  if (photoPreview) {
-                    setMobileStep(2);
-                  } else {
-                    showToast("Please capture or upload a photo to continue");
-                  }
-                }}
-                className={twMerge(
-                  "w-full py-3.5 px-5 rounded-sm font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-2 transition-all shadow-lg",
-                  photoPreview
-                    ? "bg-brand-primary text-white hover:bg-brand-secondary cursor-pointer shadow-brand-primary/20"
-                    : "bg-surface border border-border-strong text-text-muted cursor-not-allowed opacity-60"
-                )}
-              >
-                <span>Next: Confirm Location</span>
-                <ChevronRight className="w-4 h-4" />
-              </motion.button>
+              <div className="w-full transition-transform active:scale-[0.98]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (photoPreview) {
+                      setMobileStep(2);
+                    } else {
+                      showToast("Please capture or upload a photo to continue");
+                    }
+                  }}
+                  className={twMerge(
+                    "w-full py-3.5 px-5 rounded-sm font-bold text-sm tracking-widest uppercase flex items-center justify-center -skew-x-3 lg:-skew-x-6 shadow-lg transition-colors",
+                    photoPreview
+                      ? "bg-brand-primary text-white hover:bg-brand-secondary cursor-pointer shadow-brand-primary/20"
+                      : "bg-surface border border-border-strong text-text-muted cursor-not-allowed opacity-60"
+                  )}
+                >
+                  <span className="skew-x-3 lg:skew-x-6 flex items-center gap-2">
+                    <span>Next: Confirm Location</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -871,13 +878,13 @@ export default function BlockageSubmissionForm() {
           )}>
             <div className="flex items-center justify-between mb-2 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-gray-500/10 rounded-sm text-text-secondary -skew-x-6">
-                  <AlertCircle className="w-4 h-4 skew-x-6" />
+                <div className="p-1.5 bg-gray-500/10 rounded-sm text-text-secondary -skew-x-[3deg] lg:-skew-x-6">
+                  <AlertCircle className="w-4 h-4 skew-x-[3deg] lg:skew-x-6" />
                 </div>
                 <h2 className="text-base sm:text-lg font-bold text-text-primary uppercase tracking-wider">Notes</h2>
               </div>
-              <span className="text-xs text-text-muted font-mono bg-app-bg px-2 py-0.5 rounded-sm border border-border-subtle shadow-sm">
-                {notes.length}/280
+              <span className="text-xs text-text-muted font-mono bg-app-bg px-2 py-0.5 rounded-sm border border-border-subtle shadow-sm -skew-x-[3deg] lg:-skew-x-6">
+                <span className="skew-x-[3deg] lg:skew-x-6 block">{notes.length}/280</span>
               </span>
             </div>
 
@@ -893,85 +900,92 @@ export default function BlockageSubmissionForm() {
           {/* Review Summary Card & Mobile Step 3 Actions */}
           {mobileStep === 3 && (
             <div className="lg:hidden flex flex-col gap-2 shrink-0 mt-2">
-              {/* Review Summary Card */}
-              <div className="bg-surface/90 backdrop-blur-xl border border-border-subtle rounded-sm p-2.5 sm:p-3 flex flex-col gap-2 shadow-md">
-                <div className="flex items-center justify-between pb-1.5 border-b border-border-subtle">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Report Summary</span>
-                  <span className="text-[10px] font-mono font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-sm border border-green-500/20">
-                    Ready to Submit
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {/* Photo thumbnail */}
-                  <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-sm overflow-hidden border border-border-subtle shrink-0 bg-black">
-                    {photoPreview && (
-                      <img src={photoPreview} alt="Report preview" className="w-full h-full object-cover" />
-                    )}
+              {/* Review Summary Card with mild skew */}
+              <div className="bg-surface/90 backdrop-blur-xl border border-border-subtle rounded-sm p-2.5 sm:p-3 flex flex-col gap-2 shadow-md -skew-x-[2deg] lg:-skew-x-[4deg]">
+                <div className="skew-x-[2deg] lg:skew-x-[4deg] flex flex-col gap-2">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-border-subtle">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Report Summary</span>
+                    <span className="text-[10px] font-mono font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-sm border border-green-500/20">
+                      Ready to Submit
+                    </span>
                   </div>
 
-                  {/* Location info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-text-primary mb-0.5">
-                      <MapPin className="w-3.5 h-3.5 text-brand-secondary shrink-0" />
-                      <span className="truncate font-mono">
-                        {position.lat.toFixed(4)}°, {position.lng.toFixed(4)}°
-                      </span>
+                  <div className="flex items-center gap-3">
+                    {/* Photo thumbnail */}
+                    <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-sm overflow-hidden border border-border-subtle shrink-0 bg-black">
+                      {photoPreview && (
+                        <img src={photoPreview} alt="Report preview" className="w-full h-full object-cover" />
+                      )}
                     </div>
-                    <p className="text-[11px] text-text-muted">
-                      Pin placed on map
-                    </p>
-                  </div>
 
-                  {/* Quick edit buttons */}
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setMobileStep(1)}
-                      className="text-[10px] font-bold uppercase tracking-wider text-brand-primary hover:underline text-right"
-                    >
-                      Change Photo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMobileStep(2)}
-                      className="text-[10px] font-bold uppercase tracking-wider text-brand-secondary hover:underline text-right"
-                    >
-                      Adjust Pin
-                    </button>
+                    {/* Location info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-text-primary mb-0.5">
+                        <MapPin className="w-3.5 h-3.5 text-brand-secondary shrink-0" />
+                        <span className="truncate font-mono">
+                          {position.lat.toFixed(4)}°, {position.lng.toFixed(4)}°
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-text-muted">
+                        Pin placed on map
+                      </p>
+                    </div>
+
+                    {/* Quick edit buttons */}
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setMobileStep(1)}
+                        className="text-[10px] font-bold uppercase tracking-wider text-brand-primary hover:underline text-right"
+                      >
+                        Change Photo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMobileStep(2)}
+                        className="text-[10px] font-bold uppercase tracking-wider text-brand-secondary hover:underline text-right"
+                      >
+                        Adjust Pin
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Mobile Step 3 Actions (Back & Submit - Unskewed) */}
+              {/* Mobile Step 3 Actions (Back & Submit - Mildly skewed with glitch-free press wrapper) */}
               <div className="flex gap-2.5">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.96 }}
-                  type="button"
-                  onClick={() => setMobileStep(2)}
-                  className="py-3 px-4 bg-surface border border-border-subtle hover:border-text-primary text-text-primary rounded-sm font-bold text-sm tracking-wider uppercase transition-colors flex items-center gap-1.5"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Back</span>
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={!photoPreview || isSubmitting}
-                  className={twMerge(
-                    clsx(
-                      "flex-1 py-3 px-5 rounded-sm font-black text-sm sm:text-base tracking-widest uppercase flex items-center justify-center gap-2 transition-all shadow-lg",
-                      photoPreview && !isSubmitting
-                        ? "bg-brand-primary hover:bg-brand-secondary text-white cursor-pointer shadow-brand-primary/20"
-                        : "bg-surface border-2 border-border-strong text-text-muted cursor-not-allowed opacity-80"
-                    )
-                  )}
-                >
-                  <span>{isSubmitting ? "Uploading..." : "Submit Report"}</span>
-                  {!isSubmitting && <ChevronRight className="w-4 h-4" />}
-                </motion.button>
+                <div className="transition-transform active:scale-[0.96]">
+                  <button
+                    type="button"
+                    onClick={() => setMobileStep(2)}
+                    className="h-full py-3 px-4 bg-surface border border-border-subtle hover:border-text-primary text-text-primary rounded-sm font-bold text-sm tracking-wider uppercase transition-colors -skew-x-3 lg:-skew-x-6 flex items-center justify-center"
+                  >
+                    <span className="skew-x-3 lg:skew-x-6 flex items-center gap-1.5">
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Back</span>
+                    </span>
+                  </button>
+                </div>
+
+                <div className="flex-1 transition-transform active:scale-[0.98]">
+                  <button
+                    type="submit"
+                    disabled={!photoPreview || isSubmitting}
+                    className={twMerge(
+                      clsx(
+                        "w-full py-3 px-5 rounded-sm font-black text-sm sm:text-base tracking-widest uppercase flex items-center justify-center transition-colors -skew-x-3 lg:-skew-x-6 shadow-lg",
+                        photoPreview && !isSubmitting
+                          ? "bg-brand-primary hover:bg-brand-secondary text-white cursor-pointer shadow-brand-primary/20"
+                          : "bg-surface border-2 border-border-strong text-text-muted cursor-not-allowed opacity-80"
+                      )
+                    )}
+                  >
+                    <span className="skew-x-3 lg:skew-x-6 flex items-center gap-2">
+                      <span>{isSubmitting ? "Uploading..." : "Submit Report"}</span>
+                      {!isSubmitting && <ChevronRight className="w-4 h-4" />}
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -991,8 +1005,8 @@ export default function BlockageSubmissionForm() {
           <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-3 sm:p-5 shadow-lg shadow-black/5 flex-1 min-h-0 flex flex-col lg:min-h-[400px]">
             <div className="flex items-center justify-between mb-2 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 sm:p-2 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-6">
-                  <MapPin className="w-4 h-4 skew-x-6" />
+                <div className="p-1.5 sm:p-2 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-3 lg:-skew-x-6">
+                  <MapPin className="w-4 h-4 skew-x-3 lg:skew-x-6" />
                 </div>
                 <h2 className="text-base sm:text-lg font-bold text-text-primary uppercase tracking-wider">Location</h2>
               </div>
@@ -1001,16 +1015,16 @@ export default function BlockageSubmissionForm() {
                 <button 
                   type="button" 
                   onClick={handleLocateMe}
-                  className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-sm transition-colors border border-brand-primary/30"
+                  className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-sm transition-all -skew-x-3 lg:-skew-x-12 border border-brand-primary/30"
                 >
-                  Locate Me
+                  <span className="skew-x-3 lg:skew-x-12 block">Locate Me</span>
                 </button>
                 <button 
                   type="button" 
                   onClick={toggleFullScreen}
-                  className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-surface-subtle text-text-secondary hover:text-text-primary px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-sm transition-colors border border-border-subtle"
+                  className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-surface-subtle text-text-secondary hover:text-text-primary px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-sm transition-all -skew-x-3 lg:-skew-x-12 border border-border-subtle"
                 >
-                  Full Screen
+                  <span className="skew-x-3 lg:skew-x-12 block">Full Screen</span>
                 </button>
               </div>
             </div>
@@ -1045,9 +1059,9 @@ export default function BlockageSubmissionForm() {
                 <CustomMapControls setMapStyle={setMapStyle} />
               </MapContainer>
               
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[400] bg-surface border border-border-subtle px-3.5 py-1 rounded-sm shadow-xl flex items-center gap-2 overflow-hidden pointer-events-none">
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[400] bg-surface border border-border-subtle px-3.5 py-1 rounded-sm shadow-xl flex items-center gap-2 -skew-x-[3deg] lg:-skew-x-12 overflow-hidden pointer-events-none">
                 <div className="absolute top-0 left-0 w-1 h-full bg-brand-primary"></div>
-                <div className="flex items-center gap-2">
+                <div className="skew-x-[3deg] lg:skew-x-12 flex items-center gap-2">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-primary"></span>
@@ -1057,35 +1071,42 @@ export default function BlockageSubmissionForm() {
               </div>
             </div>
             
-            <p className="shrink-0 text-xs text-text-muted mt-2 flex items-center gap-2 bg-app-bg/50 p-2 rounded-sm border border-border-subtle">
-              <AlertCircle className="w-4 h-4 shrink-0 text-brand-secondary" />
-              <span className="truncate">Drag pin to adjust exact location.</span>
+            <p className="shrink-0 text-xs text-text-muted mt-2 flex items-center gap-2 bg-app-bg/50 p-2 rounded-sm border border-border-subtle -skew-x-[2deg] lg:-skew-x-[4deg]">
+              <span className="skew-x-[2deg] lg:skew-x-[4deg] flex items-center gap-2 truncate">
+                <AlertCircle className="w-4 h-4 shrink-0 text-brand-secondary" />
+                <span className="truncate">Drag pin to adjust exact location.</span>
+              </span>
             </p>
           </section>
 
-          {/* Mobile Step 2 Actions (Unskewed) */}
+          {/* Mobile Step 2 Actions (Mildly skewed with glitch-free press wrapper) */}
           {mobileStep === 2 && (
             <div className="lg:hidden flex gap-2.5 shrink-0 mt-2">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.96 }}
-                type="button"
-                onClick={() => setMobileStep(1)}
-                className="py-3 px-4 bg-surface border border-border-subtle hover:border-text-primary text-text-primary rounded-sm font-bold text-sm tracking-wider uppercase transition-colors flex items-center gap-1.5"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Back</span>
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => setMobileStep(3)}
-                className="flex-1 py-3 px-5 bg-brand-primary text-white hover:bg-brand-secondary rounded-sm font-bold text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-primary/20"
-              >
-                <span>Next: Add Details</span>
-                <ChevronRight className="w-4 h-4" />
-              </motion.button>
+              <div className="transition-transform active:scale-[0.96]">
+                <button
+                  type="button"
+                  onClick={() => setMobileStep(1)}
+                  className="h-full py-3 px-4 bg-surface border border-border-subtle hover:border-text-primary text-text-primary rounded-sm font-bold text-sm tracking-wider uppercase transition-colors -skew-x-3 lg:-skew-x-6 flex items-center justify-center"
+                >
+                  <span className="skew-x-3 lg:skew-x-6 flex items-center gap-1.5">
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Back</span>
+                  </span>
+                </button>
+              </div>
+
+              <div className="flex-1 transition-transform active:scale-[0.98]">
+                <button
+                  type="button"
+                  onClick={() => setMobileStep(3)}
+                  className="w-full py-3 px-5 bg-brand-primary text-white hover:bg-brand-secondary rounded-sm font-bold text-sm tracking-widest uppercase transition-colors -skew-x-3 lg:-skew-x-6 flex items-center justify-center shadow-lg shadow-brand-primary/20"
+                >
+                  <span className="skew-x-3 lg:skew-x-6 flex items-center gap-2">
+                    <span>Next: Add Details</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </span>
+                </button>
+              </div>
             </div>
           )}
 
