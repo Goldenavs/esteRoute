@@ -876,7 +876,7 @@ export default function CitizenDashboard() {
       {/* 6. Case Details Modal with AnimatePresence */}
       <AnimatePresence>
         {selectedReport && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 md:p-6 pb-20 sm:pb-6 overflow-y-auto">
             {/* Soft Frosted Backdrop matching Cookie & Terms Policy */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -895,11 +895,11 @@ export default function CitizenDashboard() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="relative w-full max-w-lg bg-surface/95 backdrop-blur-2xl border-2 border-brand-primary/50 rounded-sm shadow-2xl overflow-hidden z-10 my-auto -skew-x-1 sm:-skew-x-2"
+              className="relative w-full max-w-lg max-h-[calc(100dvh-5.5rem)] sm:max-h-[90dvh] flex flex-col bg-surface/95 backdrop-blur-2xl border-2 border-brand-primary/50 rounded-sm shadow-2xl overflow-hidden z-10 my-auto -skew-x-1 sm:-skew-x-2"
             >
               <BorderBeam delay={0} color="#60A5FA" />
 
-              <div className="skew-x-1 sm:skew-x-2 p-5 sm:p-6">
+              <div className="skew-x-1 sm:skew-x-2 p-4 sm:p-6 overflow-y-auto overscroll-contain flex flex-col">
                 
                 {/* Header (Cleaned: removed repetitive 'x' button) */}
                 <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-3 mb-4">
@@ -948,7 +948,7 @@ export default function CitizenDashboard() {
                 {/* Evidence Image (Clickable for Natural Focus View) */}
                 <div 
                   onClick={() => setIsImageFocused(true)}
-                  className="w-full h-48 rounded-sm overflow-hidden border border-border-subtle mb-4 relative bg-black/50 cursor-pointer group/img"
+                  className="w-full h-36 sm:h-48 rounded-sm overflow-hidden border border-border-subtle mb-3 sm:mb-4 relative bg-black/50 cursor-pointer group/img shrink-0"
                   title="Click to expand"
                 >
                   <img 
