@@ -5,6 +5,9 @@ import {
   CheckCircle2, 
   ChevronRight, 
   ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
+  ArrowUpDown,
   Activity, 
   AlertTriangle, 
   Copy, 
@@ -126,13 +129,14 @@ export default function CitizenDashboard() {
   const [selectedReport, setSelectedReport] = useState<CitizenReportItem | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<CitizenFilterType>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
 
-  // Reset pagination when filter changes
+  // Reset pagination when filter or sort order changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter]);
+  }, [filter, sortOrder]);
 
   // Load reports from Supabase & localStorage tracked references
   useEffect(() => {
@@ -297,14 +301,22 @@ export default function CitizenDashboard() {
     },
   ];
 
+  const sortedReports = useMemo(() => {
+    return [...reports].sort((a, b) => {
+      const timeA = a.rawDate ? new Date(a.rawDate).getTime() : 0;
+      const timeB = b.rawDate ? new Date(b.rawDate).getTime() : 0;
+      return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
+    });
+  }, [reports, sortOrder]);
+
   const filteredReports = useMemo(() => {
-    return reports.filter(r => {
+    return sortedReports.filter(r => {
       if (filter === 'pending') return r.status === 'pending' || r.status === 'review';
       if (filter === 'in_progress') return r.status === 'in_progress';
       if (filter === 'resolved') return r.status === 'resolved';
       return true;
     });
-  }, [reports, filter]);
+  }, [sortedReports, filter]);
 
   const featuredReport = useMemo(() => {
     return reports.find(r => r.status === 'in_progress' || r.status === 'pending') || reports[0];
@@ -485,10 +497,13 @@ export default function CitizenDashboard() {
                     </span>
                   </div>
 
-                  {/* Skewed Description Container */}
+                  {/* Skewed Description Container with overflow safety */}
                   {featuredReport.notes && (
-                    <div className="mt-1.5 p-2.5 sm:p-3 bg-app-bg/60 border border-border-subtle rounded-sm -skew-x-2 sm:-skew-x-3">
-                      <p className="skew-x-2 sm:skew-x-3 text-text-muted text-xs line-clamp-2 leading-relaxed italic">
+                    <div 
+                      className="mt-1.5 p-2.5 sm:p-3 bg-app-bg/60 border border-border-subtle rounded-sm -skew-x-2 sm:-skew-x-3 max-h-24 overflow-hidden"
+                      title={featuredReport.notes}
+                    >
+                      <p className="skew-x-2 sm:skew-x-3 text-text-muted text-xs line-clamp-2 sm:line-clamp-3 leading-relaxed italic break-words break-all">
                         "{featuredReport.notes}"
                       </p>
                     </div>
@@ -513,16 +528,51 @@ export default function CitizenDashboard() {
           </motion.div>
         )}
 
-        {/* 4. History Grid Section with Pagination */}
+        {/* 4. History Grid Section with Pagination & Sorting */}
         <div className="mt-2">
-          <div className="flex items-center gap-4 mb-4">
-            <h3 className="text-base sm:text-lg font-heading font-black tracking-widest uppercase text-text-secondary flex items-center gap-2 shrink-0">
-              {filter === 'all' ? 'All Submissions' : filter === 'pending' ? 'Under Review' : filter === 'in_progress' ? 'Active In Field' : 'Resolved Records'}
-            </h3>
-            <div className="flex-1 h-px bg-border-subtle" />
-            <span className="text-xs font-mono text-text-muted">
-              {historyReports.length} {filter === 'all' && featuredReport ? 'Other ' : ''}Records
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <h3 className="text-base sm:text-lg font-heading font-black tracking-widest uppercase text-text-secondary flex items-center gap-2 shrink-0">
+                {filter === 'all' ? 'All Submissions' : filter === 'pending' ? 'Under Review' : filter === 'in_progress' ? 'Active In Field' : 'Resolved Records'}
+              </h3>
+              <span className="text-xs font-mono text-text-muted hidden xs:inline">
+                ({historyReports.length} {filter === 'all' && featuredReport ? 'other ' : ''}records)
+              </span>
+            </div>
+
+            {/* Sort Control (Newest / Oldest) */}
+            <div className="flex items-center gap-1 bg-surface/75 border border-border-subtle p-1 rounded-sm -skew-x-3 shadow-xs">
+              <span className="skew-x-3 text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted px-1.5 flex items-center gap-1 shrink-0">
+                <ArrowUpDown className="w-3 h-3 text-brand-primary" />
+                <span className="hidden sm:inline">Sort:</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSortOrder('newest')}
+                className={twMerge(
+                  "px-2 py-0.5 rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
+                  sortOrder === 'newest'
+                    ? "bg-brand-primary text-white shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface"
+                )}
+                title="Sort by Newest First"
+              >
+                <span className="skew-x-3">Newest</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortOrder('oldest')}
+                className={twMerge(
+                  "px-2 py-0.5 rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
+                  sortOrder === 'oldest'
+                    ? "bg-brand-primary text-white shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface"
+                )}
+                title="Sort by Oldest First"
+              >
+                <span className="skew-x-3">Oldest</span>
+              </button>
+            </div>
           </div>
 
           {historyReports.length === 0 ? (
@@ -590,10 +640,13 @@ export default function CitizenDashboard() {
                           </div>
                         </div>
 
-                        {/* Skewed Description Container */}
+                        {/* Skewed Description Container with overflow safety */}
                         {report.notes && (
-                          <div className="mb-3 p-2 bg-app-bg/50 border border-border-subtle rounded-sm -skew-x-2">
-                            <p className="skew-x-2 text-text-muted text-[11px] line-clamp-2 leading-relaxed italic">
+                          <div 
+                            className="mb-3 p-2 bg-app-bg/50 border border-border-subtle rounded-sm -skew-x-2 max-h-16 overflow-hidden"
+                            title={report.notes}
+                          >
+                            <p className="skew-x-2 text-text-muted text-[11px] line-clamp-2 leading-relaxed italic break-words break-all">
                               "{report.notes}"
                             </p>
                           </div>
@@ -633,22 +686,39 @@ export default function CitizenDashboard() {
                   </div>
 
                   <div className="flex items-center gap-1.5">
+                    {/* First Page (<<) */}
+                    <button
+                      type="button"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(1)}
+                      className={twMerge(
+                        "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center justify-center border",
+                        currentPage === 1
+                          ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
+                          : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
+                      )}
+                      title="First Page (<<)"
+                    >
+                      <ChevronsLeft className="w-3.5 h-3.5 skew-x-3" />
+                    </button>
+
+                    {/* Previous Page (<) */}
                     <button
                       type="button"
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       className={twMerge(
-                        "px-2.5 py-1.5 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center gap-1 border",
+                        "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center justify-center border",
                         currentPage === 1
-                          ? "border-border-subtle text-text-muted opacity-40 cursor-not-allowed"
+                          ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
                           : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
                       )}
-                      title="Previous Page"
+                      title="Previous Page (<)"
                     >
                       <ChevronLeft className="w-3.5 h-3.5 skew-x-3" />
-                      <span className="skew-x-3 hidden sm:inline">Prev</span>
                     </button>
 
+                    {/* Numbered Page Buttons */}
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                       <button
                         key={pageNum}
@@ -665,20 +735,36 @@ export default function CitizenDashboard() {
                       </button>
                     ))}
 
+                    {/* Next Page (>) */}
                     <button
                       type="button"
                       disabled={currentPage === totalPages}
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       className={twMerge(
-                        "px-2.5 py-1.5 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center gap-1 border",
+                        "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center justify-center border",
                         currentPage === totalPages
-                          ? "border-border-subtle text-text-muted opacity-40 cursor-not-allowed"
+                          ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
                           : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
                       )}
-                      title="Next Page"
+                      title="Next Page (>)"
                     >
-                      <span className="skew-x-3 hidden sm:inline">Next</span>
                       <ChevronRight className="w-3.5 h-3.5 skew-x-3" />
+                    </button>
+
+                    {/* Last Page (>>) */}
+                    <button
+                      type="button"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(totalPages)}
+                      className={twMerge(
+                        "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center justify-center border",
+                        currentPage === totalPages
+                          ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
+                          : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
+                      )}
+                      title="Last Page (>>)"
+                    >
+                      <ChevronsRight className="w-3.5 h-3.5 skew-x-3" />
                     </button>
                   </div>
                 </div>
@@ -786,12 +872,14 @@ export default function CitizenDashboard() {
                   </div>
 
                   {selectedReport.notes && (
-                    <div className="bg-app-bg/50 p-2.5 rounded-sm border border-border-subtle -skew-x-2">
+                    <div className="bg-app-bg/50 p-2.5 sm:p-3 rounded-sm border border-border-subtle -skew-x-2">
                       <div className="skew-x-2">
-                        <div className="text-[10px] text-text-muted uppercase mb-1">Citizen Notes</div>
-                        <p className="font-sans text-xs text-text-primary leading-relaxed italic">
-                          "{selectedReport.notes}"
-                        </p>
+                        <div className="text-[10px] text-text-muted uppercase mb-1 font-mono">Citizen Notes</div>
+                        <div className="max-h-40 overflow-y-auto pr-1">
+                          <p className="font-sans text-xs text-text-primary leading-relaxed italic break-words">
+                            "{selectedReport.notes}"
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )}
