@@ -92,8 +92,15 @@ export default function CitizenLayout() {
     { name: 'Profile', path: '/citizen/profile', icon: User },
   ];
 
+  const isMapRoute = location.pathname.startsWith('/citizen/public-map');
+
   return (
-    <div className="h-dvh md:h-auto md:min-h-screen bg-app-bg text-text-primary flex flex-col transition-colors duration-300 relative overflow-hidden md:overflow-x-hidden md:overflow-y-auto">
+    <div className={twMerge(
+      "bg-app-bg text-text-primary flex flex-col transition-colors duration-300 relative overflow-x-hidden",
+      isMapRoute 
+        ? "h-dvh overflow-hidden md:h-auto md:min-h-screen md:overflow-x-hidden md:overflow-y-auto" 
+        : "min-h-screen overflow-y-auto"
+    )}>
       {/* Tactical GIS Ambient Background */}
       <TacticalBackground />
       
@@ -166,9 +173,17 @@ export default function CitizenLayout() {
       </div>
 
       {/* Main Content Area */}
-      {/* pb-16 on mobile ensures content fits above the bottom tab bar without pushing extra blank space */}
-      <main className="flex-1 min-h-0 md:flex-none md:h-auto bg-transparent relative flex flex-col pb-16 md:pb-0 z-10 overflow-hidden md:overflow-visible">
-        <div className="flex-1 min-h-0 md:flex-none md:h-auto flex flex-col px-3.5 py-2 sm:p-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full animate-fade-in overflow-hidden md:overflow-visible md:pt-28 lg:pt-32 pb-4 md:pb-8 lg:pb-10">
+      {/* pb-24 on mobile ensures scrollable content fully clears the fixed bottom tab bar */}
+      <main className={twMerge(
+        "flex-1 bg-transparent relative flex flex-col z-10",
+        isMapRoute 
+          ? "min-h-0 overflow-hidden md:flex-none md:h-auto md:overflow-visible pb-16 md:pb-0" 
+          : "pb-24 md:pb-0 overflow-visible"
+      )}>
+        <div className={twMerge(
+          "flex-1 flex flex-col px-3.5 py-2 sm:p-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full animate-fade-in md:pt-28 lg:pt-32 pb-4 md:pb-8 lg:pb-10",
+          isMapRoute ? "min-h-0 overflow-hidden md:overflow-visible" : "overflow-visible"
+        )}>
           <Outlet />
         </div>
       </main>
