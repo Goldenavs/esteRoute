@@ -484,6 +484,7 @@ export default function PublicEsteroStatusMap() {
     {
       filter: 'all' as const,
       label: 'TOTAL REPORTS',
+      shortLabel: 'ALL',
       value: totalCount,
       subtext: 'All Active Pins',
       tone: 'text-text-primary',
@@ -495,6 +496,7 @@ export default function PublicEsteroStatusMap() {
     {
       filter: 'blocked' as const,
       label: 'BLOCKAGES',
+      shortLabel: 'BLOCKED',
       value: blockedCount,
       subtext: `${totalCount > 0 ? Math.round((blockedCount / totalCount) * 100) : 0}% of Total`,
       tone: 'text-red-400',
@@ -506,6 +508,7 @@ export default function PublicEsteroStatusMap() {
     {
       filter: 'dispatched' as const,
       label: 'DISPATCHED',
+      shortLabel: 'DISPATCH',
       value: dispatchedCount,
       subtext: `${totalCount > 0 ? Math.round((dispatchedCount / totalCount) * 100) : 0}% in Progress`,
       tone: 'text-amber-400',
@@ -517,6 +520,7 @@ export default function PublicEsteroStatusMap() {
     {
       filter: 'resolved' as const,
       label: 'CLEARED',
+      shortLabel: 'CLEARED',
       value: resolvedCount,
       subtext: `${totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0}% Restored`,
       tone: 'text-emerald-400',
@@ -536,20 +540,20 @@ export default function PublicEsteroStatusMap() {
 
   return (
     <div className={twMerge(
-      "w-full flex flex-col transition-all duration-300",
+      "w-full flex-1 min-h-0 flex flex-col transition-all duration-300",
       isFullscreen 
         ? "fixed inset-0 z-[999] bg-app-bg h-screen w-screen p-0 m-0" 
-        : "h-[calc(100dvh-130px)] md:h-[calc(100dvh-170px)] min-h-[580px] lg:h-[calc(100dvh-200px)] lg:min-h-[660px]"
+        : "h-[calc(100dvh-170px)] sm:h-[calc(100dvh-185px)] md:h-[calc(100dvh-200px)] min-h-[420px] md:min-h-[600px] mb-2 sm:mb-0"
     )}>
       
       {/* 1. Standardized Hero Header (Matches CitizenDashboard, Profile & Report Screens) */}
       {!isFullscreen && (
-        <div className="shrink-0 mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-          <div>
-            <h1 className="text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-4">
+        <div className="shrink-0 mb-1.5 sm:mb-4 flex items-center justify-between gap-2 sm:gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4 truncate">
               Public Basin Map
             </h1>
-            <p className="text-text-muted text-xs md:text-sm pl-5 mt-1">
+            <p className="hidden md:block text-text-muted text-xs md:text-sm pl-5 mt-1">
               Live waterway flow, community blockage advisories, and ongoing city maintenance.
             </p>
           </div>
@@ -557,17 +561,18 @@ export default function PublicEsteroStatusMap() {
           {/* Report CTA Link */}
           <Link
             to="/citizen"
-            className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-4 py-2.5 rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider shadow-md shrink-0 active:scale-95 cursor-pointer whitespace-nowrap self-start sm:self-auto"
+            className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider shadow-md shrink-0 active:scale-95 cursor-pointer whitespace-nowrap"
           >
-            <PlusCircle className="w-4 h-4 skew-x-3 sm:skew-x-6 shrink-0" />
-            <span className="skew-x-3 sm:skew-x-6">Report Blockage</span>
+            <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 skew-x-3 sm:skew-x-6 shrink-0" />
+            <span className="skew-x-3 sm:skew-x-6 hidden xs:inline">Report Blockage</span>
+            <span className="skew-x-3 sm:skew-x-6 xs:hidden">Report</span>
           </Link>
         </div>
       )}
 
-      {/* 2. Stylistic KPI Strip Filter (with proportional indicator bar) */}
+      {/* 2. Stylistic KPI Strip Filter (Ultra-compact 4-column single row on mobile to maximize map height) */}
       {!isFullscreen && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-3 shrink-0">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-3 mb-2 sm:mb-3 shrink-0">
           {kpiMetrics.map((metric) => {
             const isSelected = statusFilter === metric.filter;
             return (
@@ -576,10 +581,10 @@ export default function PublicEsteroStatusMap() {
                 type="button"
                 onClick={() => setStatusFilter(metric.filter)}
                 className={twMerge(
-                  "group relative overflow-hidden flex min-h-[56px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-3 sm:-skew-x-6 cursor-pointer text-left",
+                  "group relative overflow-hidden flex h-10 sm:min-h-[56px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 sm:-skew-x-6 cursor-pointer text-left",
                   metric.border,
                   isSelected 
-                    ? "ring-2 ring-brand-primary opacity-100 z-10 scale-[1.02]" 
+                    ? "ring-1 sm:ring-2 ring-brand-primary opacity-100 z-10 scale-[1.02]" 
                     : "opacity-85 hover:opacity-100"
                 )}
               >
@@ -593,7 +598,7 @@ export default function PublicEsteroStatusMap() {
                 />
 
                 {/* Bottom Accent Bar */}
-                <div className="absolute bottom-0 left-0 h-1 bg-border-subtle/50 w-full overflow-hidden">
+                <div className="absolute bottom-0 left-0 h-0.5 sm:h-1 bg-border-subtle/50 w-full overflow-hidden">
                   <div 
                     className={twMerge("h-full transition-all duration-500", metric.barBg)}
                     style={{ width: `${metric.pct}%` }}
@@ -601,17 +606,18 @@ export default function PublicEsteroStatusMap() {
                 </div>
 
                 {/* Content (Unskewed) */}
-                <div className="relative z-10 flex w-full items-center justify-between gap-2 px-3.5 py-2 skew-x-3 sm:skew-x-6">
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase text-text-secondary group-hover:text-brand-primary transition-colors truncate">
-                      {metric.label}
+                <div className="relative z-10 flex w-full items-center justify-between gap-1 px-1.5 sm:px-3.5 py-1 sm:py-2 skew-x-2 sm:skew-x-6">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[9px] sm:text-[11px] font-mono font-bold tracking-wider uppercase text-text-secondary group-hover:text-brand-primary transition-colors truncate">
+                      <span className="sm:hidden">{metric.shortLabel}</span>
+                      <span className="hidden sm:inline">{metric.label}</span>
                     </span>
-                    <span className="text-[9px] font-mono text-text-muted tracking-tight">
+                    <span className="text-[8px] sm:text-[9px] font-mono text-text-muted tracking-tight truncate hidden sm:inline">
                       {metric.subtext}
                     </span>
                   </div>
                   <span className={twMerge(
-                    "text-xl sm:text-2xl font-mono font-bold shrink-0 leading-none",
+                    "text-xs sm:text-2xl font-mono font-bold shrink-0 leading-none",
                     metric.tone,
                     metric.pulse && "animate-pulse"
                   )}>
