@@ -867,10 +867,10 @@ export default function PublicEsteroStatusMap() {
                     <div className="mt-3">
                       <Link
                         to={`/citizen?basin=${basin.id}`}
-                        className="w-full bg-brand-primary hover:bg-brand-secondary text-white hover:text-black py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors"
+                        className="w-full bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black py-2 rounded-sm text-[10px] font-mono font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors -skew-x-3 shadow-md"
                       >
-                        <PlusCircle className="w-3.5 h-3.5" />
-                        Report Constriction on this Canal
+                        <PlusCircle className="w-3.5 h-3.5 skew-x-3 !text-white hover:!text-black" />
+                        <span className="skew-x-3 !text-white hover:!text-black font-bold">Report Constriction on this Canal</span>
                       </Link>
                     </div>
                   </div>
@@ -973,11 +973,11 @@ export default function PublicEsteroStatusMap() {
                       <div className="mt-2.5 pt-2 border-t border-border-subtle">
                         <Link
                           to={`/citizen/dashboard?report=${encodeURIComponent(report.trackingRef)}`}
-                          className="w-full py-1.5 px-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black border border-brand-primary transition-all rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-xs cursor-pointer -skew-x-3 active:scale-95 group"
+                          className="w-full py-2 px-2.5 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black border border-brand-primary hover:border-brand-secondary transition-all rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer -skew-x-3 active:scale-95 group"
                           title="Open detailed case view in My Reports"
                         >
-                          <FileText className="w-3.5 h-3.5 skew-x-3 group-hover:scale-110 transition-transform" />
-                          <span className="skew-x-3">View in My Reports</span>
+                          <FileText className="w-3.5 h-3.5 skew-x-3 !text-white group-hover:!text-black group-hover:scale-110 transition-transform" />
+                          <span className="skew-x-3 !text-white group-hover:!text-black font-bold">View in My Reports</span>
                         </Link>
                       </div>
                     </div>
@@ -1068,6 +1068,10 @@ export default function PublicEsteroStatusMap() {
         }
         .custom-popup .leaflet-popup-tip-container {
           display: none !important;
+        }
+        .custom-popup a {
+          color: inherit !important;
+          text-decoration: none !important;
         }
       `}</style>
 
