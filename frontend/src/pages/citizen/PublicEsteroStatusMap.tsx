@@ -80,26 +80,17 @@ const getTileUrl = (type: MapTileType) => {
   return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 };
 
-// Custom Citizen Pin Marker Generator (Pulsing DivIcon with High-Visibility Glow)
+// Custom Citizen Pin Marker Generator (Clean, crisp, no annoying constant flashing)
 const createCitizenIcon = (status: 'blocked' | 'dispatched' | 'resolved') => {
   const colorMap = {
     blocked: {
-      bg: 'bg-semantic-urgent',
-      border: 'border-white',
-      shadow: 'shadow-[0_0_15px_rgba(239,68,68,0.8)]',
-      pulse: 'bg-red-500',
+      bg: '#DC2626',
     },
     dispatched: {
-      bg: 'bg-amber-500',
-      border: 'border-white',
-      shadow: 'shadow-[0_0_15px_rgba(245,158,11,0.8)]',
-      pulse: 'bg-amber-400',
+      bg: '#D97706',
     },
     resolved: {
-      bg: 'bg-green-500',
-      border: 'border-white',
-      shadow: 'shadow-[0_0_15px_rgba(34,197,94,0.8)]',
-      pulse: 'bg-green-400',
+      bg: '#059669',
     },
   };
 
@@ -108,10 +99,9 @@ const createCitizenIcon = (status: 'blocked' | 'dispatched' | 'resolved') => {
   return L.divIcon({
     className: 'custom-citizen-marker',
     html: `
-      <div class="relative flex items-center justify-center -translate-x-1/2 -translate-y-full cursor-pointer">
-        <span class="absolute -inset-1 rounded-full ${style.pulse} animate-ping opacity-60"></span>
-        <div class="relative w-7 h-7 rounded-full ${style.bg} ${style.border} border-2 ${style.shadow} flex items-center justify-center text-white transform hover:scale-110 transition-transform">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <div class="relative flex flex-col items-center -translate-x-1/2 -translate-y-full cursor-pointer group">
+        <div style="background-color: ${style.bg};" class="w-6 h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white transition-transform duration-200 group-hover:scale-125">
+          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             ${status === 'resolved' 
               ? '<polyline points="20 6 9 17 4 12"></polyline>' 
               : status === 'dispatched'
@@ -119,12 +109,12 @@ const createCitizenIcon = (status: 'blocked' | 'dispatched' | 'resolved') => {
                 : '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>'}
           </svg>
         </div>
-        <div class="w-1.5 h-2 ${style.bg} -mt-0.5 clip-triangle"></div>
+        <div style="background-color: ${style.bg};" class="w-1.5 h-1.5 -mt-1 rotate-45 border-r border-b border-white"></div>
       </div>
     `,
-    iconSize: [28, 36],
-    iconAnchor: [14, 36],
-    popupAnchor: [0, -38],
+    iconSize: [24, 28],
+    iconAnchor: [12, 28],
+    popupAnchor: [0, -30],
   });
 };
 
@@ -409,76 +399,26 @@ export default function PublicEsteroStatusMap() {
         : "h-[calc(100dvh-130px)] md:h-[calc(100dvh-170px)] min-h-[580px] lg:h-[calc(100dvh-200px)] lg:min-h-[660px]"
     )}>
       
-      {/* 1. Header & Live Civic Stats Strip (Hidden in Fullscreen) */}
+      {/* 1. Minimal Header (Hidden in Fullscreen) */}
       {!isFullscreen && (
-        <div className="shrink-0 mb-3 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+        <div className="shrink-0 mb-3 flex items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-brand-primary/10 text-brand-primary border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm -skew-x-3">
-                <span className="skew-x-3 flex items-center gap-1.5">
-                  <Waves className="w-3 h-3 text-brand-primary" />
-                  Live Drainage Transparency
-                </span>
-              </span>
-              <span className="text-text-muted text-[10px] font-mono hidden sm:inline">• Cebu City Basin Network</span>
-            </div>
-
-            <h1 className="text-xl sm:text-2xl md:text-4xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3">
               Public Basin Map
             </h1>
-            <p className="text-text-muted text-xs md:text-sm pl-4 line-clamp-1">
-              Real-time waterway flow, community blockage advisories, and ongoing city maintenance.
+            <p className="text-text-muted text-xs md:text-sm pl-4 line-clamp-1 mt-0.5">
+              Live waterway flow, community blockage advisories, and ongoing city maintenance.
             </p>
           </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-            {/* Flow Health */}
-            <div className="bg-surface/60 backdrop-blur-md border border-border-subtle px-3 py-1.5 rounded-sm -skew-x-3 flex items-center gap-2 shrink-0">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse skew-x-3" />
-              <div className="skew-x-3 text-left">
-                <div className="text-[9px] font-mono text-text-muted uppercase tracking-wider">Flow Index</div>
-                <div className="text-xs font-heading font-bold text-emerald-400">{overallFlowHealth}% Optimal</div>
-              </div>
-            </div>
-
-            {/* Active Blockages */}
-            <div className="bg-surface/60 backdrop-blur-md border border-border-subtle px-3 py-1.5 rounded-sm -skew-x-3 flex items-center gap-2 shrink-0">
-              <div className="w-2 h-2 rounded-full bg-semantic-urgent skew-x-3" />
-              <div className="skew-x-3 text-left">
-                <div className="text-[9px] font-mono text-text-muted uppercase tracking-wider">Active Alerts</div>
-                <div className="text-xs font-heading font-bold text-text-primary">{activeBlockagesCount} Constricted</div>
-              </div>
-            </div>
-
-            {/* Ongoing Cleanups */}
-            <div className="bg-surface/60 backdrop-blur-md border border-border-subtle px-3 py-1.5 rounded-sm -skew-x-3 flex items-center gap-2 shrink-0">
-              <div className="w-2 h-2 rounded-full bg-amber-500 skew-x-3" />
-              <div className="skew-x-3 text-left">
-                <div className="text-[9px] font-mono text-text-muted uppercase tracking-wider">Crews In Field</div>
-                <div className="text-xs font-heading font-bold text-amber-400">{dispatchedCleanupsCount} Operations</div>
-              </div>
-            </div>
-
-            {/* Resolved / Cleared */}
-            <div className="bg-surface/60 backdrop-blur-md border border-border-subtle px-3 py-1.5 rounded-sm -skew-x-3 flex items-center gap-2 shrink-0">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 skew-x-3" />
-              <div className="skew-x-3 text-left">
-                <div className="text-[9px] font-mono text-text-muted uppercase tracking-wider">Cleaned</div>
-                <div className="text-xs font-heading font-bold text-emerald-400">{resolvedCount} Restored</div>
-              </div>
-            </div>
-
-            {/* Report CTA Link */}
-            <Link
-              to="/citizen"
-              className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-3 py-2 rounded-sm -skew-x-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider shadow-md shrink-0 active:scale-95 cursor-pointer"
-            >
-              <PlusCircle className="w-3.5 h-3.5 skew-x-3" />
-              <span className="skew-x-3 hidden sm:inline">Report Blockage</span>
-              <span className="skew-x-3 sm:hidden">Report</span>
-            </Link>
-          </div>
+          {/* Report CTA Link (Always visible, perfectly padded, never cut off) */}
+          <Link
+            to="/citizen"
+            className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-3.5 py-2.5 rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider shadow-md shrink-0 active:scale-95 cursor-pointer whitespace-nowrap"
+          >
+            <PlusCircle className="w-4 h-4 skew-x-3 sm:skew-x-6 shrink-0" />
+            <span className="skew-x-3 sm:skew-x-6">Report Blockage</span>
+          </Link>
         </div>
       )}
 
@@ -505,7 +445,7 @@ export default function PublicEsteroStatusMap() {
                   : "text-text-muted hover:text-text-primary"
               )}
             >
-              All Pins
+              All ({reports.length})
             </button>
             <button
               onClick={() => setStatusFilter('blocked')}
@@ -517,7 +457,7 @@ export default function PublicEsteroStatusMap() {
               )}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-semantic-urgent" />
-              Blockages
+              Blockages ({activeBlockagesCount})
             </button>
             <button
               onClick={() => setStatusFilter('dispatched')}
@@ -529,7 +469,7 @@ export default function PublicEsteroStatusMap() {
               )}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              Cleanups
+              Cleanups ({dispatchedCleanupsCount})
             </button>
             <button
               onClick={() => setStatusFilter('resolved')}
@@ -541,7 +481,7 @@ export default function PublicEsteroStatusMap() {
               )}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Cleared
+              Cleared ({resolvedCount})
             </button>
           </div>
 
@@ -737,12 +677,12 @@ export default function PublicEsteroStatusMap() {
         {/* 5. Basin Legend & Color Guide (Bottom Left) */}
         <div className="absolute bottom-4 left-3 z-[400] pointer-events-none hidden sm:block">
           <div className="bg-surface/90 backdrop-blur-md border border-border-subtle p-2.5 rounded-sm shadow-xl -skew-x-3 pointer-events-auto max-w-[240px]">
-            <div className="skew-x-3 text-[10px] font-mono uppercase tracking-wider font-bold text-text-secondary mb-1.5 flex items-center justify-between">
+            <div className="skew-x-3 text-[10px] font-mono uppercase tracking-wider font-bold text-text-secondary mb-1.5 flex items-center justify-between gap-3">
               <span className="flex items-center gap-1">
                 <Info className="w-3 h-3 text-brand-primary" />
                 Drainage Status
               </span>
-              <span className="text-text-muted">{displayedBasins.length} Basins</span>
+              <span className="text-emerald-400 font-bold">{overallFlowHealth}% Flow Index</span>
             </div>
             
             <div className="skew-x-3 flex flex-col gap-1 text-[11px]">
