@@ -554,7 +554,12 @@ export default function PublicEsteroStatusMap() {
       
       {/* 1. Standardized Hero Header (Matches CitizenDashboard, Profile & Report Screens) */}
       {!isFullscreen && (
-        <div className="shrink-0 mb-1.5 sm:mb-4 flex items-center justify-between gap-2 sm:gap-3">
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="shrink-0 mb-1.5 sm:mb-4 flex items-center justify-between gap-2 sm:gap-3"
+        >
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4 truncate">
               Public Basin Map
@@ -573,18 +578,24 @@ export default function PublicEsteroStatusMap() {
             <span className="skew-x-3 sm:skew-x-6 hidden xs:inline">Report Blockage</span>
             <span className="skew-x-3 sm:skew-x-6 xs:hidden">Report</span>
           </Link>
-        </div>
+        </motion.div>
       )}
 
       {/* 2. Stylistic KPI Strip Filter (Ultra-compact 4-column single row on mobile to maximize map height) */}
       {!isFullscreen && (
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-3 mb-2 sm:mb-3 shrink-0">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.05 }}
+          className="grid grid-cols-4 gap-1.5 sm:gap-3 mb-2 sm:mb-3 shrink-0"
+        >
           {kpiMetrics.map((metric) => {
             const isSelected = statusFilter === metric.filter;
             return (
-              <button
+              <motion.button
                 key={metric.label}
                 type="button"
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setStatusFilter(metric.filter)}
                 className={twMerge(
                   "group relative overflow-hidden flex h-10 sm:min-h-[56px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 sm:-skew-x-6 cursor-pointer text-left",
@@ -630,19 +641,24 @@ export default function PublicEsteroStatusMap() {
                     {metric.value}
                   </span>
                 </div>
-              </button>
+              </motion.button>
             );
           })}
-        </div>
+        </motion.div>
       )}
 
       {/* 3. Map Glassmorphic Card Container with BorderBeam Highlight */}
-      <div className={twMerge(
-        "flex-1 w-full relative overflow-hidden transition-all duration-300 shadow-2xl min-h-[420px] md:min-h-[560px] lg:min-h-[640px]",
-        isFullscreen 
-          ? "rounded-none border-0 h-full" 
-          : "rounded-sm border-2 border-border-subtle bg-surface/35 hover:bg-surface/50 backdrop-blur-xl"
-      )}>
+      <motion.div
+        initial={{ opacity: 0, y: 12, scale: 0.99 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+        className={twMerge(
+          "flex-1 w-full relative overflow-hidden transition-all duration-300 shadow-2xl min-h-[420px] md:min-h-[560px] lg:min-h-[640px]",
+          isFullscreen 
+            ? "rounded-none border-0 h-full" 
+            : "rounded-sm border-2 border-border-subtle bg-surface/35 hover:bg-surface/50 backdrop-blur-xl"
+        )}
+      >
         {/* Traveling Highlight Beam (Disabled in Fullscreen) */}
         {!isFullscreen && <BorderBeam delay={0} color="#60A5FA" />}
 
@@ -881,7 +897,7 @@ export default function PublicEsteroStatusMap() {
           </span>
         </div>
 
-      </div>
+      </motion.div>
 
       {/* Pop-up Custom Styling */}
       <style>{`
