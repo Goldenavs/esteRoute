@@ -220,13 +220,13 @@ export default function CitizenDashboard() {
   const getStatusColor = (status: CitizenReportItem['status']) => {
     switch(status) {
       case 'resolved': 
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+        return 'bg-emerald-100 text-emerald-800 border-emerald-400 dark:bg-emerald-950/95 dark:text-emerald-300 dark:border-emerald-500/60 shadow-sm';
       case 'in_progress': 
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        return 'bg-amber-100 text-amber-800 border-amber-400 dark:bg-amber-950/95 dark:text-amber-300 dark:border-amber-500/60 shadow-sm';
       case 'review':
-        return 'bg-semantic-warning/10 text-semantic-warning border-semantic-warning/30';
+        return 'bg-orange-100 text-orange-800 border-orange-400 dark:bg-orange-950/95 dark:text-orange-300 dark:border-orange-500/60 shadow-sm';
       default: 
-        return 'bg-brand-primary/10 text-brand-primary border-brand-primary/30';
+        return 'bg-blue-100 text-blue-800 border-blue-400 dark:bg-blue-950/95 dark:text-blue-300 dark:border-blue-500/60 shadow-sm';
     }
   };
 
@@ -427,86 +427,88 @@ export default function CitizenDashboard() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="w-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-4 sm:p-6 md:p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-1 sm:-skew-x-2"
+            className="w-full"
           >
-            {/* Traveling Highlight Beam */}
-            <BorderBeam delay={0} color="#60A5FA" />
+            <div className="w-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-4 sm:p-6 md:p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
+              {/* Traveling Highlight Beam */}
+              <BorderBeam delay={0} color="#60A5FA" />
 
-            {/* Industrial Left Accent Pillar */}
-            <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
+              {/* Industrial Left Accent Pillar */}
+              <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
 
-            <div className="flex flex-col md:flex-row gap-5 md:gap-8 items-start md:items-center relative z-20 skew-x-1 sm:skew-x-2">
-              
-              {/* Image Preview with Skewed Badge */}
-              <div className="w-full md:w-56 h-48 md:h-40 rounded-sm border-2 border-border-subtle overflow-hidden shrink-0 relative shadow-inner bg-black/40">
-                <img 
-                  src={featuredReport.image} 
-                  alt="Report Evidence"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-2.5 left-2.5">
-                  <span className="px-2.5 py-1 bg-brand-primary text-white text-[10px] font-mono font-black uppercase tracking-widest rounded-sm -skew-x-6 shadow-md inline-block">
-                    <span className="skew-x-6 flex items-center gap-1.5">
-                      <Activity className="w-3 h-3 animate-spin" style={{ animationDuration: '4s' }} /> 
-                      Active Tracking
-                    </span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Info Column */}
-              <div className="flex-1 flex flex-col gap-2 w-full min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={twMerge(
-                    "px-2.5 py-0.5 text-[10px] font-mono font-black uppercase tracking-widest rounded-sm -skew-x-6 border",
-                    getStatusColor(featuredReport.status)
-                  )}>
-                    <span className="skew-x-6 flex items-center gap-1.5">
-                      {getStatusIcon(featuredReport.status)}
-                      {featuredReport.statusLabel}
-                    </span>
-                  </span>
-                  <span className="text-text-muted text-xs font-mono tracking-wide">
-                    {featuredReport.date}
-                  </span>
-                </div>
-
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black tracking-tight text-text-primary group-hover:text-brand-primary transition-colors truncate">
-                  {featuredReport.trackingRef}
-                </h2>
-
-                {/* Skewed Location Box */}
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-bg/60 border border-border-subtle rounded-sm -skew-x-2 self-start mt-0.5">
-                  <MapPin className="w-3.5 h-3.5 text-brand-secondary skew-x-2 shrink-0" />
-                  <span className="skew-x-2 font-mono text-xs text-text-muted">
-                    GPS: {Number(featuredReport.latitude).toFixed(4)}, {Number(featuredReport.longitude).toFixed(4)}
-                  </span>
-                </div>
-
-                {/* Skewed Description Container */}
-                {featuredReport.notes && (
-                  <div className="mt-1.5 p-2.5 sm:p-3 bg-app-bg/60 border border-border-subtle rounded-sm -skew-x-2 sm:-skew-x-3">
-                    <p className="skew-x-2 sm:skew-x-3 text-text-muted text-xs line-clamp-2 leading-relaxed italic">
-                      "{featuredReport.notes}"
-                    </p>
+              <div className="flex flex-col md:flex-row gap-5 md:gap-8 items-start md:items-center relative z-20 skew-x-2 sm:skew-x-3">
+                
+                {/* Image Preview with Skewed Badge */}
+                <div className="w-full md:w-56 h-48 md:h-40 rounded-sm border-2 border-border-subtle overflow-hidden shrink-0 relative shadow-inner bg-black/40">
+                  <img 
+                    src={featuredReport.image} 
+                    alt="Report Evidence"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute bottom-2.5 left-2.5">
+                    <div className="px-2.5 py-1 bg-brand-primary text-white text-[10px] font-mono font-black uppercase tracking-widest rounded-sm -skew-x-6 shadow-md inline-flex items-center">
+                      <span className="skew-x-6 inline-flex items-center gap-1.5">
+                        <Activity className="w-3 h-3 animate-spin" style={{ animationDuration: '4s' }} /> 
+                        Active Tracking
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* Action Button */}
-              <div className="w-full md:w-auto border-t md:border-t-0 md:border-l border-border-subtle pt-3 md:pt-0 md:pl-6 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setSelectedReport(featuredReport)}
-                  className="w-full md:w-auto py-3 px-6 bg-surface hover:bg-brand-primary hover:text-white border border-border-strong hover:border-brand-primary transition-all rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center justify-center shadow-md active:scale-95 cursor-pointer group/btn"
-                >
-                  <span className="skew-x-3 sm:skew-x-6 font-bold text-xs uppercase tracking-widest flex items-center gap-2 text-text-primary group-hover/btn:text-white transition-colors">
-                    View Details <ChevronRight className="w-4 h-4 text-brand-primary group-hover/btn:text-white transition-colors" />
-                  </span>
-                </button>
-              </div>
+                {/* Info Column */}
+                <div className="flex-1 flex flex-col gap-2 w-full min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className={twMerge(
+                      "px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm -skew-x-6 border shadow-sm inline-flex items-center",
+                      getStatusColor(featuredReport.status)
+                    )}>
+                      <span className="skew-x-6 inline-flex items-center gap-1.5">
+                        {getStatusIcon(featuredReport.status)}
+                        {featuredReport.statusLabel}
+                      </span>
+                    </div>
+                    <span className="text-text-muted text-xs font-mono tracking-wide">
+                      {featuredReport.date}
+                    </span>
+                  </div>
 
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black tracking-tight text-text-primary group-hover:text-brand-primary transition-colors truncate">
+                    {featuredReport.trackingRef}
+                  </h2>
+
+                  {/* Skewed Location Box */}
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-bg/60 border border-border-subtle rounded-sm -skew-x-2 self-start mt-0.5">
+                    <MapPin className="w-3.5 h-3.5 text-brand-secondary skew-x-2 shrink-0" />
+                    <span className="skew-x-2 font-mono text-xs text-text-muted">
+                      GPS: {Number(featuredReport.latitude).toFixed(4)}, {Number(featuredReport.longitude).toFixed(4)}
+                    </span>
+                  </div>
+
+                  {/* Skewed Description Container */}
+                  {featuredReport.notes && (
+                    <div className="mt-1.5 p-2.5 sm:p-3 bg-app-bg/60 border border-border-subtle rounded-sm -skew-x-2 sm:-skew-x-3">
+                      <p className="skew-x-2 sm:skew-x-3 text-text-muted text-xs line-clamp-2 leading-relaxed italic">
+                        "{featuredReport.notes}"
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Button */}
+                <div className="w-full md:w-auto border-t md:border-t-0 md:border-l border-border-subtle pt-3 md:pt-0 md:pl-6 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReport(featuredReport)}
+                    className="w-full md:w-auto py-3 px-6 bg-surface hover:bg-brand-primary hover:text-white border border-border-strong hover:border-brand-primary transition-all rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center justify-center shadow-md active:scale-95 cursor-pointer group/btn"
+                  >
+                    <span className="skew-x-3 sm:skew-x-6 font-bold text-xs uppercase tracking-widest flex items-center gap-2 text-text-primary group-hover/btn:text-white transition-colors">
+                      View Details <ChevronRight className="w-4 h-4 text-brand-primary group-hover/btn:text-white transition-colors" />
+                    </span>
+                  </button>
+                </div>
+
+              </div>
             </div>
           </motion.div>
         )}
@@ -537,78 +539,83 @@ export default function CitizenDashboard() {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, delay: 0.05 + idx * 0.04 }}
-                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                    onClick={() => setSelectedReport(report)}
-                    className="bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 rounded-sm p-3.5 sm:p-4 shadow-sm hover:shadow-xl hover:shadow-brand-primary/10 flex flex-col group cursor-pointer relative overflow-hidden -skew-x-1 sm:-skew-x-2"
+                    className="w-full flex"
                   >
-                    {/* Subtle Border highlight on hover */}
-                    <BorderBeam delay={idx * 1.8} color="#3F72AF" />
+                    <div
+                      onClick={() => setSelectedReport(report)}
+                      className="w-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 rounded-sm p-3.5 sm:p-4 shadow-sm hover:shadow-xl hover:shadow-brand-primary/10 flex flex-col group cursor-pointer relative overflow-hidden -skew-x-2"
+                    >
+                      {/* Subtle Border highlight on hover */}
+                      <BorderBeam delay={idx * 1.8} color="#3F72AF" />
 
-                    <div className="skew-x-1 sm:skew-x-2 flex flex-col flex-1">
-                      
-                      {/* Picture Thumbnail Preview */}
-                      <div className="w-full h-28 sm:h-32 mb-3 rounded-sm border border-border-subtle overflow-hidden relative bg-black/40 shrink-0">
-                        <img 
-                          src={report.image} 
-                          alt="Report preview" 
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/25" />
+                      <div className="skew-x-2 flex flex-col flex-1">
                         
-                        {/* Status Pill Badge over Picture */}
-                        <div className="absolute top-2 left-2">
-                          <span className={twMerge(
-                            "px-2 py-0.5 text-[9px] font-mono font-black uppercase tracking-wider rounded-sm -skew-x-6 border shadow-sm backdrop-blur-sm",
-                            getStatusColor(report.status)
-                          )}>
-                            <span className="skew-x-6 flex items-center gap-1">
-                              {getStatusIcon(report.status)}
-                              {report.statusLabel}
+                        {/* Upper Section: Info on Left (~3/4th) & Photo Thumbnail on Right (~1/4th) */}
+                        <div className="flex items-start justify-between gap-2.5 sm:gap-3 mb-3">
+                          {/* Info Column */}
+                          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                            {/* Status Pill Badge */}
+                            <div className="self-start">
+                              <div className={twMerge(
+                                "px-2 py-0.5 text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm -skew-x-6 border shadow-sm inline-flex items-center",
+                                getStatusColor(report.status)
+                              )}>
+                                <span className="skew-x-6 inline-flex items-center gap-1">
+                                  {getStatusIcon(report.status)}
+                                  {report.statusLabel}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Tracking ID Header */}
+                            <h4 className="text-base sm:text-lg font-heading font-black tracking-tight text-text-primary group-hover:text-brand-primary transition-colors truncate">
+                              {report.trackingRef}
+                            </h4>
+
+                            {/* Date */}
+                            <span className="text-text-muted text-[10px] font-mono">
+                              {report.date}
                             </span>
-                          </span>
+                          </div>
+
+                          {/* 1/4th Photo Thumbnail on upper right */}
+                          <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-sm border border-border-subtle overflow-hidden relative bg-black/40 shrink-0 shadow-sm">
+                            <img 
+                              src={report.image} 
+                              alt="Report thumbnail" 
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                          </div>
                         </div>
 
-                        {/* Short Date Badge on Image */}
-                        <div className="absolute bottom-1.5 right-2">
-                          <span className="text-[10px] font-mono text-white/90 bg-black/60 px-1.5 py-0.5 rounded-sm backdrop-blur-xs">
-                            {report.date.split(',')[0]}
-                          </span>
+                        {/* Skewed Description Container */}
+                        {report.notes && (
+                          <div className="mb-3 p-2 bg-app-bg/50 border border-border-subtle rounded-sm -skew-x-2">
+                            <p className="skew-x-2 text-text-muted text-[11px] line-clamp-2 leading-relaxed italic">
+                              "{report.notes}"
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Simplified Location & Action Footer */}
+                        <div className="mt-auto flex items-center justify-between text-xs text-text-secondary bg-app-bg/60 p-2 rounded-sm border border-border-subtle -skew-x-2 group-hover:border-border-strong transition-colors">
+                          <div className="skew-x-2 flex items-center gap-1.5 truncate">
+                            <MapPin className="w-3.5 h-3.5 shrink-0 text-brand-secondary" />
+                            <span className="font-mono text-[10px] truncate">
+                              {typeof report.latitude === 'number' && typeof report.longitude === 'number'
+                                ? `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}` 
+                                : report.location.replace('Canal Coordinates: ', '')}
+                            </span>
+                          </div>
+                          <div className="skew-x-2 flex items-center gap-1 text-text-muted group-hover:text-brand-primary text-[10px] font-mono font-bold uppercase transition-colors shrink-0 ml-1">
+                            <span>View</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </div>
                         </div>
+
                       </div>
-
-                      {/* ID Header */}
-                      <div className="mb-2">
-                        <h4 className="text-base sm:text-lg font-heading font-black tracking-tight text-text-primary group-hover:text-brand-primary transition-colors truncate">
-                          {report.trackingRef}
-                        </h4>
-                      </div>
-
-                      {/* Skewed Description Container */}
-                      {report.notes && (
-                        <div className="mb-3 p-2 bg-app-bg/50 border border-border-subtle rounded-sm -skew-x-2">
-                          <p className="skew-x-2 text-text-muted text-[11px] line-clamp-2 leading-relaxed italic">
-                            "{report.notes}"
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Simplified Location & Action Footer */}
-                      <div className="mt-auto flex items-center justify-between text-xs text-text-secondary bg-app-bg/60 p-2 rounded-sm border border-border-subtle -skew-x-2 group-hover:border-border-strong transition-colors">
-                        <div className="skew-x-2 flex items-center gap-1.5 truncate">
-                          <MapPin className="w-3.5 h-3.5 shrink-0 text-brand-secondary" />
-                          <span className="font-mono text-[10px] truncate">
-                            {typeof report.latitude === 'number' && typeof report.longitude === 'number'
-                              ? `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}` 
-                              : report.location.replace('Canal Coordinates: ', '')}
-                          </span>
-                        </div>
-                        <div className="skew-x-2 flex items-center gap-1 text-text-muted group-hover:text-brand-primary text-[10px] font-mono font-bold uppercase transition-colors shrink-0 ml-1">
-                          <span>View</span>
-                          <ChevronRight className="w-3 h-3" />
-                        </div>
-                      </div>
-
                     </div>
                   </motion.div>
                 ))}
@@ -710,15 +717,15 @@ export default function CitizenDashboard() {
                 {/* Header */}
                 <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-3 mb-4">
                   <div className="flex items-center gap-2">
-                    <span className={twMerge(
-                      "px-2.5 py-1 text-[10px] font-mono font-black uppercase tracking-wider rounded-sm -skew-x-6 border",
+                    <div className={twMerge(
+                      "px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm -skew-x-6 border shadow-sm inline-flex items-center",
                       getStatusColor(selectedReport.status)
                     )}>
-                      <span className="skew-x-6 flex items-center gap-1.5">
+                      <span className="skew-x-6 inline-flex items-center gap-1.5">
                         {getStatusIcon(selectedReport.status)}
                         {selectedReport.statusLabel}
                       </span>
-                    </span>
+                    </div>
                     <span className="text-text-muted text-xs font-mono">{selectedReport.date}</span>
                   </div>
 
