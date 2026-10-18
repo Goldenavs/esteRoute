@@ -102,7 +102,7 @@ function MapResizeHandler({ active }: { active: boolean }) {
 export type MapType = 'detailed' | 'simple';
 
 // 100% Free OpenStreetMap tile servers with NO API key required
-export const getMapTileUrl = (type: MapType) => {
+const getMapTileUrl = (type: MapType) => {
   if (type === 'detailed') {
     // Humanitarian OpenStreetMap - rich detail for canals, waterways, buildings & streets
     return 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
@@ -151,7 +151,7 @@ function OffscreenPinTracker({ position }: { position: L.LatLng }) {
         const angleDeg = (angleRad * 180) / Math.PI;
 
         // Distance in meters
-        let distanceM = 0;
+        let distanceM: number;
         try {
           distanceM = Math.round(centerLatLng.distanceTo(position));
         } catch {
@@ -236,7 +236,9 @@ function OffscreenPinTracker({ position }: { position: L.LatLng }) {
         onClick={() => {
           try {
             map.flyTo(position, Math.max(map.getZoom(), 15), { animate: true, duration: 0.8 });
-          } catch {}
+          } catch {
+            // Ignore map fly error if layer is not yet fully ready
+          }
         }}
         className="group flex items-center gap-2 px-3 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-sm shadow-2xl border border-white/40 cursor-pointer active:scale-95 transition-all shadow-black/50 -skew-x-6"
         title="Pin is off-screen. Click to re-center on pin."
@@ -408,7 +410,9 @@ export default function BlockageSubmissionForm() {
 
   // Synchronize map theme whenever the global navbar theme changes
   useEffect(() => {
-    setIsMapDark(globalTheme === 'dark');
+    queueMicrotask(() => {
+      setIsMapDark(globalTheme === 'dark');
+    });
   }, [globalTheme]);
 
   const [hasCopied, setHasCopied] = useState(false);
@@ -453,7 +457,9 @@ export default function BlockageSubmissionForm() {
   };
 
   useEffect(() => {
-    updateCameraCount();
+    queueMicrotask(() => {
+      updateCameraCount();
+    });
   }, []);
 
   // Suppress desktop navbar while camera viewfinder is active
@@ -729,6 +735,15 @@ export default function BlockageSubmissionForm() {
 
       const data = await response.json();
       setTrackingRef(data.tracking_reference);
+      try {
+        const stored: string[] = JSON.parse(localStorage.getItem('esteroute_my_reports') || '[]');
+        if (data.tracking_reference && !stored.includes(data.tracking_reference)) {
+          stored.unshift(data.tracking_reference);
+          localStorage.setItem('esteroute_my_reports', JSON.stringify(stored));
+        }
+      } catch (storageErr) {
+        console.warn("Could not save tracking ref to localStorage:", storageErr);
+      }
       setIsSubmitted(true);
     } catch (error) {
       console.error("Submission error:", error);
