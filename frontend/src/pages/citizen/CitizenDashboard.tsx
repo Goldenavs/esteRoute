@@ -1,9 +1,10 @@
-import { useState, useEffect, useId } from 'react';
+import { useState, useEffect, useId, useMemo } from 'react';
 import { 
   MapPin, 
   Clock, 
   CheckCircle2, 
   ChevronRight, 
+  ChevronLeft,
   Activity, 
   AlertTriangle, 
   Copy, 
@@ -119,11 +120,20 @@ const fallbackReports: CitizenReportItem[] = [
   }
 ];
 
+export type CitizenFilterType = 'all' | 'pending' | 'in_progress' | 'resolved';
+
 export default function CitizenDashboard() {
   const [reports, setReports] = useState<CitizenReportItem[]>(fallbackReports);
   const [selectedReport, setSelectedReport] = useState<CitizenReportItem | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'active' | 'resolved'>('all');
+  const [filter, setFilter] = useState<CitizenFilterType>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
+
+  // Reset pagination when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter]);
 
   // Load reports from Supabase & localStorage tracked references
   useEffect(() => {
@@ -141,7 +151,7 @@ export default function CitizenDashboard() {
         if (savedRefs.length > 0) {
           query = query.in('tracking_reference', savedRefs);
         } else {
-          query = query.limit(10);
+          query = query.limit(20);
         }
 
         const { data, error } = await query;
@@ -230,88 +240,184 @@ export default function CitizenDashboard() {
     }
   };
 
-  const filteredReports = reports.filter(r => {
-    if (filter === 'active') return r.status === 'in_progress' || r.status === 'pending';
-    if (filter === 'resolved') return r.status === 'resolved';
-    return true;
-  });
+  // 100% Accurate Counts strictly computed from the reports state
+  const totalCount = reports.length;
+  const pendingCount = useMemo(() => reports.filter(r => r.status === 'pending' || r.status === 'review').length, [reports]);
+  const inProgressCount = useMemo(() => reports.filter(r => r.status === 'in_progress').length, [reports]);
+  const resolvedCount = useMemo(() => reports.filter(r => r.status === 'resolved').length, [reports]);
 
-  const featuredReport = reports.find(r => r.status === 'in_progress' || r.status === 'pending') || reports[0];
-  const historyReports = filter === 'all' && featuredReport
-    ? filteredReports.filter(r => r.id !== featuredReport.id)
-    : filteredReports;
+  // Stylistic KPI Strip Filter metrics with visual proportion bars (meters) matching PublicEsteroStatusMap
+  const kpiMetrics = [
+    {
+      filter: 'all' as const,
+      label: 'TOTAL REPORTS',
+      shortLabel: 'ALL',
+      value: totalCount,
+      subtext: 'All Submissions',
+      tone: 'text-text-primary',
+      border: 'border-border-subtle',
+      barBg: 'bg-brand-primary',
+      pct: 100,
+      pulse: false,
+    },
+    {
+      filter: 'pending' as const,
+      label: 'UNDER REVIEW',
+      shortLabel: 'PENDING',
+      value: pendingCount,
+      subtext: `${totalCount > 0 ? Math.round((pendingCount / totalCount) * 100) : 0}% of Total`,
+      tone: 'text-brand-primary',
+      border: 'border-brand-primary/40',
+      barBg: 'bg-brand-primary',
+      pct: totalCount > 0 ? Math.round((pendingCount / totalCount) * 100) : 0,
+      pulse: pendingCount > 0,
+    },
+    {
+      filter: 'in_progress' as const,
+      label: 'IN PROGRESS',
+      shortLabel: 'ACTIVE',
+      value: inProgressCount,
+      subtext: `${totalCount > 0 ? Math.round((inProgressCount / totalCount) * 100) : 0}% in Field`,
+      tone: 'text-amber-400',
+      border: 'border-amber-500/40',
+      barBg: 'bg-amber-500',
+      pct: totalCount > 0 ? Math.round((inProgressCount / totalCount) * 100) : 0,
+      pulse: inProgressCount > 0,
+    },
+    {
+      filter: 'resolved' as const,
+      label: 'RESOLVED CASES',
+      shortLabel: 'RESOLVED',
+      value: resolvedCount,
+      subtext: `${totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0}% Cleared`,
+      tone: 'text-emerald-400',
+      border: 'border-emerald-500/40',
+      barBg: 'bg-emerald-500',
+      pct: totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0,
+      pulse: false,
+    },
+  ];
+
+  const filteredReports = useMemo(() => {
+    return reports.filter(r => {
+      if (filter === 'pending') return r.status === 'pending' || r.status === 'review';
+      if (filter === 'in_progress') return r.status === 'in_progress';
+      if (filter === 'resolved') return r.status === 'resolved';
+      return true;
+    });
+  }, [reports, filter]);
+
+  const featuredReport = useMemo(() => {
+    return reports.find(r => r.status === 'in_progress' || r.status === 'pending') || reports[0];
+  }, [reports]);
+
+  // When 'all' is selected, omit featured report from the history grid to prevent duplicate display
+  const historyReports = useMemo(() => {
+    if (filter === 'all' && featuredReport) {
+      return filteredReports.filter(r => r.id !== featuredReport.id);
+    }
+    return filteredReports;
+  }, [filteredReports, filter, featuredReport]);
+
+  // Pagination logic for edge-cases with many reports
+  const totalPages = Math.max(1, Math.ceil(historyReports.length / ITEMS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedReports = useMemo(() => {
+    return historyReports.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [historyReports, startIndex, ITEMS_PER_PAGE]);
 
   return (
     <div className="w-full flex-1 flex flex-col pb-12">
       
-      {/* 1. Header (Standardized Hero with Framer Entrance) */}
+      {/* 1. Header (Standardized Hero with Framer Entrance & Exact Map Alignment) */}
       <motion.div 
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 shrink-0"
+        className="shrink-0 mb-2 sm:mb-4 flex items-center justify-between gap-2 sm:gap-3"
       >
-        <div>
-          <h1 className="text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4 truncate">
             My Reports
           </h1>
-          <p className="text-text-muted text-xs md:text-base pl-5 mt-1">
+          <p className="hidden md:block text-text-muted text-xs md:text-sm pl-5 mt-1">
             Track real-time resolution status of canal blockages you've submitted.
           </p>
         </div>
 
-        {/* Quick Report CTA Button */}
+        {/* Report CTA Link matching Map Page */}
         <Link
           to="/citizen"
-          className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-4 py-2.5 rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider shadow-md shrink-0 active:scale-95 cursor-pointer whitespace-nowrap self-start sm:self-auto"
+          className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider shadow-md shrink-0 active:scale-95 cursor-pointer whitespace-nowrap"
         >
-          <PlusCircle className="w-4 h-4 skew-x-3 sm:skew-x-6 shrink-0" />
-          <span className="skew-x-3 sm:skew-x-6">New Report</span>
+          <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 skew-x-3 sm:skew-x-6 shrink-0" />
+          <span className="skew-x-3 sm:skew-x-6 hidden xs:inline">Report Blockage</span>
+          <span className="skew-x-3 sm:skew-x-6 xs:hidden">Report</span>
         </Link>
       </motion.div>
 
-      {/* 2. Quick Status Filter Tabs */}
+      {/* 2. Stylistic KPI Strip Filter (with proportional indicator meters) */}
       <motion.div 
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.05 }}
-        className="flex items-center gap-2 mb-6 shrink-0"
+        className="grid grid-cols-4 gap-1.5 sm:gap-3 mb-4 sm:mb-6 shrink-0"
       >
-        <button
-          onClick={() => setFilter('all')}
-          className={twMerge(
-            "px-3.5 py-1.5 rounded-sm text-xs font-mono font-bold uppercase tracking-wider transition-all -skew-x-3 sm:-skew-x-6 cursor-pointer",
-            filter === 'all'
-              ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20"
-              : "bg-surface/60 hover:bg-surface border border-border-subtle text-text-secondary hover:text-text-primary"
-          )}
-        >
-          <span className="skew-x-3 sm:skew-x-6">All Cases ({reports.length})</span>
-        </button>
+        {kpiMetrics.map((metric) => {
+          const isSelected = filter === metric.filter;
+          return (
+            <motion.button
+              key={metric.label}
+              type="button"
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setFilter(metric.filter)}
+              className={twMerge(
+                "group relative overflow-hidden flex h-10 sm:min-h-[56px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 sm:-skew-x-6 cursor-pointer text-left",
+                metric.border,
+                isSelected 
+                  ? "ring-1 sm:ring-2 ring-brand-primary opacity-100 z-10 scale-[1.02]" 
+                  : "opacity-85 hover:opacity-100"
+              )}
+            >
+              {/* Proportional Occupancy Fill Bar (Meter) */}
+              <div 
+                className={twMerge(
+                  "absolute inset-y-0 left-0 opacity-15 pointer-events-none transition-all duration-500",
+                  metric.barBg
+                )}
+                style={{ width: `${metric.pct}%` }}
+              />
 
-        <button
-          onClick={() => setFilter('active')}
-          className={twMerge(
-            "px-3.5 py-1.5 rounded-sm text-xs font-mono font-bold uppercase tracking-wider transition-all -skew-x-3 sm:-skew-x-6 cursor-pointer",
-            filter === 'active'
-              ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
-              : "bg-surface/60 hover:bg-surface border border-border-subtle text-text-secondary hover:text-amber-400"
-          )}
-        >
-          <span className="skew-x-3 sm:skew-x-6">Active ({reports.filter(r => r.status !== 'resolved').length})</span>
-        </button>
+              {/* Bottom Accent Meter Bar */}
+              <div className="absolute bottom-0 left-0 h-0.5 sm:h-1 bg-border-subtle/50 w-full overflow-hidden">
+                <div 
+                  className={twMerge("h-full transition-all duration-500", metric.barBg)}
+                  style={{ width: `${metric.pct}%` }}
+                />
+              </div>
 
-        <button
-          onClick={() => setFilter('resolved')}
-          className={twMerge(
-            "px-3.5 py-1.5 rounded-sm text-xs font-mono font-bold uppercase tracking-wider transition-all -skew-x-3 sm:-skew-x-6 cursor-pointer",
-            filter === 'resolved'
-              ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-              : "bg-surface/60 hover:bg-surface border border-border-subtle text-text-secondary hover:text-emerald-400"
-          )}
-        >
-          <span className="skew-x-3 sm:skew-x-6">Resolved ({reports.filter(r => r.status === 'resolved').length})</span>
-        </button>
+              {/* Content (Unskewed) */}
+              <div className="relative z-10 flex w-full items-center justify-between gap-1 px-1.5 sm:px-3.5 py-1 sm:py-2 skew-x-2 sm:skew-x-6">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] sm:text-[11px] font-mono font-bold tracking-wider uppercase text-text-secondary group-hover:text-brand-primary transition-colors truncate">
+                    <span className="sm:hidden">{metric.shortLabel}</span>
+                    <span className="hidden sm:inline">{metric.label}</span>
+                  </span>
+                  <span className="text-[8px] sm:text-[9px] font-mono text-text-muted tracking-tight truncate hidden sm:inline">
+                    {metric.subtext}
+                  </span>
+                </div>
+                <span className={twMerge(
+                  "text-xs sm:text-2xl font-mono font-bold shrink-0 leading-none",
+                  metric.tone,
+                  metric.pulse && "animate-pulse"
+                )}>
+                  {metric.value}
+                </span>
+              </div>
+            </motion.button>
+          );
+        })}
       </motion.div>
 
       {/* 3. Main Content Area */}
@@ -401,81 +507,148 @@ export default function CitizenDashboard() {
           </motion.div>
         )}
 
-        {/* 4. History Grid Section */}
+        {/* 4. History Grid Section with Pagination */}
         <div className="mt-2">
           <div className="flex items-center gap-4 mb-4">
             <h3 className="text-base sm:text-lg font-heading font-black tracking-widest uppercase text-text-secondary flex items-center gap-2 shrink-0">
-              {filter === 'all' ? 'All Submissions' : filter === 'active' ? 'Active In Field' : 'Resolved Records'}
+              {filter === 'all' ? 'All Submissions' : filter === 'pending' ? 'Under Review' : filter === 'in_progress' ? 'Active In Field' : 'Resolved Records'}
             </h3>
             <div className="flex-1 h-px bg-border-subtle" />
-            <span className="text-xs font-mono text-text-muted">{historyReports.length} {filter === 'all' && featuredReport ? 'Other ' : ''}Records</span>
+            <span className="text-xs font-mono text-text-muted">
+              {historyReports.length} {filter === 'all' && featuredReport ? 'Other ' : ''}Records
+            </span>
           </div>
 
           {historyReports.length === 0 ? (
             <div className="w-full bg-surface/35 backdrop-blur-xl border-2 border-border-subtle rounded-sm p-8 text-center flex flex-col items-center justify-center gap-3">
               <Clock className="w-8 h-8 text-text-muted" />
-              <p className="text-sm font-mono text-text-muted">No additional reports match the selected filter.</p>
+              <p className="text-sm font-mono text-text-muted">No reports match the selected filter category.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-              {historyReports.map((report, idx) => (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: 0.08 + idx * 0.05 }}
-                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                  onClick={() => setSelectedReport(report)}
-                  className="bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-sm hover:shadow-xl hover:shadow-brand-primary/10 flex flex-col group cursor-pointer relative overflow-hidden"
-                >
-                  {/* Subtle Border highlight on hover */}
-                  <BorderBeam delay={idx * 1.8} color="#3F72AF" />
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+                {paginatedReports.map((report, idx) => (
+                  <motion.div
+                    key={report.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: 0.05 + idx * 0.04 }}
+                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                    onClick={() => setSelectedReport(report)}
+                    className="bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-sm hover:shadow-xl hover:shadow-brand-primary/10 flex flex-col group cursor-pointer relative overflow-hidden"
+                  >
+                    {/* Subtle Border highlight on hover */}
+                    <BorderBeam delay={idx * 1.8} color="#3F72AF" />
 
-                  {/* Header Row */}
-                  <div className="flex items-start justify-between gap-2 mb-3 relative z-20">
-                    <span className={twMerge(
-                      "px-2.5 py-0.5 text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-wider rounded-sm -skew-x-6 border",
-                      getStatusColor(report.status)
-                    )}>
-                      <span className="skew-x-6 flex items-center gap-1.5">
-                        {getStatusIcon(report.status)}
-                        {report.statusLabel}
+                    {/* Header Row */}
+                    <div className="flex items-start justify-between gap-2 mb-3 relative z-20">
+                      <span className={twMerge(
+                        "px-2.5 py-0.5 text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-wider rounded-sm -skew-x-6 border",
+                        getStatusColor(report.status)
+                      )}>
+                        <span className="skew-x-6 flex items-center gap-1.5">
+                          {getStatusIcon(report.status)}
+                          {report.statusLabel}
+                        </span>
                       </span>
-                    </span>
-                    <span className="text-text-muted text-[10px] font-mono">
-                      {report.date.split('•')[0].trim()}
-                    </span>
-                  </div>
-
-                  {/* ID & Notes */}
-                  <div className="relative z-20 mb-3">
-                    <h4 className="text-lg sm:text-xl font-heading font-black tracking-tight text-text-primary group-hover:text-brand-primary transition-colors truncate">
-                      {report.trackingRef}
-                    </h4>
-                    {report.notes && (
-                      <p className="text-text-muted text-[11px] line-clamp-2 mt-1 leading-relaxed">
-                        {report.notes}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Location Pill */}
-                  <div className="mt-auto relative z-20 flex items-center justify-between text-xs text-text-secondary bg-app-bg/60 p-2.5 rounded-sm border border-border-subtle -skew-x-2 group-hover:border-border-strong transition-colors">
-                    <div className="skew-x-2 flex items-center gap-1.5 truncate">
-                      <MapPin className="w-3.5 h-3.5 shrink-0 text-brand-secondary" />
-                      <span className="font-mono text-[10px] truncate">{report.location}</span>
+                      <span className="text-text-muted text-[10px] font-mono">
+                        {report.date.split('•')[0].trim()}
+                      </span>
                     </div>
-                    <Eye className="w-3.5 h-3.5 text-text-muted group-hover:text-brand-primary shrink-0 transition-colors ml-1" />
+
+                    {/* ID & Notes */}
+                    <div className="relative z-20 mb-3">
+                      <h4 className="text-lg sm:text-xl font-heading font-black tracking-tight text-text-primary group-hover:text-brand-primary transition-colors truncate">
+                        {report.trackingRef}
+                      </h4>
+                      {report.notes && (
+                        <p className="text-text-muted text-[11px] line-clamp-2 mt-1 leading-relaxed">
+                          {report.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Location Pill */}
+                    <div className="mt-auto relative z-20 flex items-center justify-between text-xs text-text-secondary bg-app-bg/60 p-2.5 rounded-sm border border-border-subtle -skew-x-2 group-hover:border-border-strong transition-colors">
+                      <div className="skew-x-2 flex items-center gap-1.5 truncate">
+                        <MapPin className="w-3.5 h-3.5 shrink-0 text-brand-secondary" />
+                        <span className="font-mono text-[10px] truncate">{report.location}</span>
+                      </div>
+                      <Eye className="w-3.5 h-3.5 text-text-muted group-hover:text-brand-primary shrink-0 transition-colors ml-1" />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* 5. Pagination Bar for Large Collections */}
+              {totalPages > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border-subtle shrink-0">
+                  <div className="text-xs font-mono text-text-muted">
+                    Showing <span className="text-text-primary font-bold">{startIndex + 1}</span> to{" "}
+                    <span className="text-text-primary font-bold">
+                      {Math.min(startIndex + ITEMS_PER_PAGE, historyReports.length)}
+                    </span>{" "}
+                    of <span className="text-text-primary font-bold">{historyReports.length}</span> submissions
                   </div>
-                </motion.div>
-              ))}
-            </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      className={twMerge(
+                        "px-2.5 py-1.5 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center gap-1 border",
+                        currentPage === 1
+                          ? "border-border-subtle text-text-muted opacity-40 cursor-not-allowed"
+                          : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
+                      )}
+                      title="Previous Page"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5 skew-x-3" />
+                      <span className="skew-x-3 hidden sm:inline">Prev</span>
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={twMerge(
+                          "w-7 h-7 rounded-sm text-xs font-mono font-bold transition-all -skew-x-3 flex items-center justify-center border cursor-pointer active:scale-95",
+                          currentPage === pageNum
+                            ? "bg-brand-primary text-white border-brand-primary shadow-sm shadow-brand-primary/30"
+                            : "bg-surface/60 border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface"
+                        )}
+                      >
+                        <span className="skew-x-3">{pageNum}</span>
+                      </button>
+                    ))}
+
+                    <button
+                      type="button"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      className={twMerge(
+                        "px-2.5 py-1.5 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center gap-1 border",
+                        currentPage === totalPages
+                          ? "border-border-subtle text-text-muted opacity-40 cursor-not-allowed"
+                          : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
+                      )}
+                      title="Next Page"
+                    >
+                      <span className="skew-x-3 hidden sm:inline">Next</span>
+                      <ChevronRight className="w-3.5 h-3.5 skew-x-3" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
       </div>
 
-      {/* 5. Case Details Modal with AnimatePresence */}
+      {/* 6. Case Details Modal with AnimatePresence */}
       <AnimatePresence>
         {selectedReport && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto">
