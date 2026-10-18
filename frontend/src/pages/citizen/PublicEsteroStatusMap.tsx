@@ -66,10 +66,16 @@ const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: 
 function MapResizeHandler({ isFullscreen }: { isFullscreen: boolean }) {
   const map = useMap();
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const handleResize = () => {
       map.invalidateSize();
-    }, 200);
-    return () => clearTimeout(timer);
+    };
+    handleResize();
+    const timer = setTimeout(handleResize, 150);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
+    };
   }, [isFullscreen, map]);
   return null;
 }
@@ -632,9 +638,9 @@ export default function PublicEsteroStatusMap() {
 
       {/* 3. Map Glassmorphic Card Container with BorderBeam Highlight */}
       <div className={twMerge(
-        "flex-1 w-full relative overflow-hidden transition-all duration-300 shadow-2xl",
+        "flex-1 w-full relative overflow-hidden transition-all duration-300 shadow-2xl min-h-[420px] md:min-h-[560px] lg:min-h-[640px]",
         isFullscreen 
-          ? "rounded-none border-0" 
+          ? "rounded-none border-0 h-full" 
           : "rounded-sm border-2 border-border-subtle bg-surface/35 hover:bg-surface/50 backdrop-blur-xl"
       )}>
         {/* Traveling Highlight Beam (Disabled in Fullscreen) */}
@@ -642,7 +648,7 @@ export default function PublicEsteroStatusMap() {
 
         {/* 4. The Leaflet Map Instance */}
         <div className={twMerge(
-          "w-full h-full relative transition-colors",
+          "w-full h-full absolute inset-0 transition-colors",
           isMapDark && "dark-map"
         )}>
           <MapContainer
@@ -811,14 +817,14 @@ export default function PublicEsteroStatusMap() {
           </MapContainer>
         </div>
 
-        {/* 5. Hideable Drainage Flow Legend (Bottom Left with Toggle Arrow) */}
-        <div className="absolute bottom-11 sm:bottom-12 left-3 z-[400] pointer-events-auto">
-          <div className="bg-surface/95 backdrop-blur-md border border-border-subtle rounded-sm shadow-xl -skew-x-3 overflow-hidden transition-all duration-200 max-w-[250px]">
+        {/* 5. Hideable Drainage Flow Legend (Bottom Right with Toggle Arrow) */}
+        <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-[400] pointer-events-auto">
+          <div className="bg-surface/95 backdrop-blur-md border border-border-subtle rounded-sm shadow-xl -skew-x-3 overflow-hidden transition-all duration-200 w-[210px] sm:w-[240px]">
             {/* Header / Toggle Button */}
             <button
               type="button"
               onClick={() => setIsLegendOpen(prev => !prev)}
-              className="w-full px-2.5 py-1.5 flex items-center justify-between gap-3 text-[10px] font-mono uppercase tracking-wider font-bold text-text-secondary hover:text-brand-primary transition-colors cursor-pointer"
+              className="w-full px-2.5 py-1.5 flex items-center justify-between gap-2 text-[10px] font-mono uppercase tracking-wider font-bold text-text-secondary hover:text-brand-primary transition-colors cursor-pointer"
               title={isLegendOpen ? "Hide Legend" : "Show Legend"}
               aria-label="Toggle Legend"
             >
