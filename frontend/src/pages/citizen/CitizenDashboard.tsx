@@ -850,11 +850,11 @@ export default function CitizenDashboard() {
                   </button>
                 </div>
 
-                {/* Evidence Image (Clickable for High-Res Focus View) */}
+                {/* Evidence Image (Clickable for Natural Focus View) */}
                 <div 
                   onClick={() => setIsImageFocused(true)}
                   className="w-full h-48 rounded-sm overflow-hidden border border-border-subtle mb-4 relative bg-black/50 cursor-pointer group/img"
-                  title="Click to view high-resolution photo"
+                  title="Click to expand"
                 >
                   <img 
                     src={selectedReport.image} 
@@ -863,7 +863,7 @@ export default function CitizenDashboard() {
                   />
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-mono font-bold">
                     <Maximize2 className="w-4 h-4" />
-                    <span>Click to Focus Photo</span>
+                    <span>Click to expand</span>
                   </div>
                 </div>
 
@@ -937,30 +937,29 @@ export default function CitizenDashboard() {
               className="fixed inset-0 bg-app-bg/80 backdrop-blur-md cursor-pointer"
             />
 
-            {/* Focused Image Box */}
+            {/* Focused Image Box (Natural / Unskewed) */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 10 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 10 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="relative z-20 max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3 p-3 sm:p-4 bg-surface/95 border-2 border-brand-primary rounded-sm shadow-2xl -skew-x-1 sm:-skew-x-2"
+              className="relative z-20 max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3 p-3 sm:p-4 bg-surface/95 border-2 border-brand-primary rounded-sm shadow-2xl"
             >
-              <div className="skew-x-1 sm:skew-x-2 w-full flex items-center justify-between pb-2 border-b border-border-subtle text-xs font-mono">
+              <div className="w-full flex items-center justify-between pb-2 border-b border-border-subtle text-xs font-mono">
                 <div className="flex items-center gap-2 truncate">
                   <span className="font-bold text-text-primary truncate">{selectedReport.trackingRef}</span>
-                  <span className="text-text-muted hidden sm:inline">• High-Resolution Focus</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsImageFocused(false)}
-                  className="px-2.5 py-1 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                  className="px-2.5 py-1 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase transition-colors cursor-pointer flex items-center gap-1 shrink-0 active:scale-95"
                 >
                   <Minimize2 className="w-3.5 h-3.5" />
-                  <span>Close Focus</span>
+                  <span>Close</span>
                 </button>
               </div>
 
-              <div className="skew-x-1 sm:skew-x-2 w-full max-h-[75vh] overflow-hidden rounded-sm bg-black/60 flex items-center justify-center">
+              <div className="w-full max-h-[75vh] overflow-hidden rounded-sm bg-black/60 flex items-center justify-center">
                 <img 
                   src={selectedReport.image} 
                   alt="Full canal evidence" 
