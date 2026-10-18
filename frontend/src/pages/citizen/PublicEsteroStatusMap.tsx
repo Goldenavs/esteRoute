@@ -16,7 +16,8 @@ import {
   Plus,
   Minus,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
@@ -359,6 +360,7 @@ export default function PublicEsteroStatusMap() {
   const [searchParams] = useSearchParams();
   const targetLat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : null;
   const targetLng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : null;
+  const targetRef = searchParams.get('ref') || searchParams.get('report') || searchParams.get('id');
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mapTileType, setMapTileType] = useState<MapTileType>('detailed');
@@ -368,6 +370,8 @@ export default function PublicEsteroStatusMap() {
   const [isLegendOpen, setIsLegendOpen] = useState(true);
 
   const mapRef = useRef<L.Map>(null);
+  const targetMarkerInstance = useRef<L.Marker | null>(null);
+  const hasAutoOpenedRef = useRef<string | null>(null);
 
   // Sync map dark mode when the global navbar theme changes
   useEffect(() => {
@@ -386,8 +390,10 @@ export default function PublicEsteroStatusMap() {
           .order('created_at', { ascending: false })
           .limit(40);
 
+        let mapped: PublicReportItem[] = [];
+
         if (!error && data && data.length > 0) {
-          const mapped: PublicReportItem[] = data.map((item) => {
+          mapped = data.map((item) => {
             let mappedStatus: 'blocked' | 'dispatched' | 'resolved' = 'blocked';
             if (item.status === 'resolved') mappedStatus = 'resolved';
             else if (item.status === 'dispatched') mappedStatus = 'dispatched';
@@ -413,6 +419,46 @@ export default function PublicEsteroStatusMap() {
               }),
             };
           });
+
+          // Ensure target report exists even if it is not in the top 40 query results
+          if (targetRef && !mapped.some(r => r.trackingRef.toLowerCase() === targetRef.toLowerCase() || r.id === targetRef)) {
+            try {
+              const { data: specificItem } = await supabase
+                .from('reports')
+                .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
+                .or(`tracking_reference.eq.${targetRef},report_id.eq.${targetRef}`)
+                .maybeSingle();
+
+              if (specificItem) {
+                let mappedStatus: 'blocked' | 'dispatched' | 'resolved' = 'blocked';
+                if (specificItem.status === 'resolved') mappedStatus = 'resolved';
+                else if (specificItem.status === 'dispatched') mappedStatus = 'dispatched';
+
+                let sev: 'low' | 'moderate' | 'high' = 'moderate';
+                if ((specificItem.priority_score ?? 0) >= 70) sev = 'high';
+                else if ((specificItem.priority_score ?? 0) < 40) sev = 'low';
+
+                mapped.unshift({
+                  id: specificItem.report_id,
+                  trackingRef: specificItem.tracking_reference || `ER-${specificItem.report_id.slice(0, 6)}`,
+                  lat: Number(specificItem.latitude),
+                  lng: Number(specificItem.longitude),
+                  status: mappedStatus,
+                  severity: sev,
+                  notes: specificItem.citizen_notes || 'Citizen reported waterway debris constriction.',
+                  imageUrl: specificItem.image_url,
+                  createdAt: new Date(specificItem.created_at).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }),
+                });
+              }
+            } catch (err) {
+              console.warn('Could not query specific target report:', err);
+            }
+          }
 
           if (isMounted) setReports(mapped);
         } else {
@@ -459,6 +505,27 @@ export default function PublicEsteroStatusMap() {
               createdAt: 'Today, 9:20 AM',
             },
           ];
+
+          // If target coordinates are passed and not already in fallback list, inject it
+          if (targetLat !== null && targetLng !== null) {
+            const hasTarget = fallbackData.some(r =>
+              (targetRef && (r.trackingRef.toLowerCase() === targetRef.toLowerCase() || r.id === targetRef)) ||
+              (Math.abs(r.lat - targetLat) < 0.0005 && Math.abs(r.lng - targetLng) < 0.0005)
+            );
+            if (!hasTarget) {
+              fallbackData.unshift({
+                id: targetRef || 'demo-target',
+                trackingRef: targetRef || 'ER-2026-CUSTOM',
+                lat: targetLat,
+                lng: targetLng,
+                status: 'blocked',
+                severity: 'high',
+                notes: 'Citizen verified canal choke point under real-time observation.',
+                createdAt: 'Active Tracking',
+              });
+            }
+          }
+
           if (isMounted) setReports(fallbackData);
         }
       } catch (err) {
@@ -480,15 +547,50 @@ export default function PublicEsteroStatusMap() {
       isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [targetRef, targetLat, targetLng]);
 
-  // Filtered reports
+  // Resolve target report coordinates if targetRef was supplied without lat/lng
+  const targetReport = useMemo(() => {
+    if (!targetRef) return null;
+    return reports.find(
+      (r) => r.trackingRef.toLowerCase() === targetRef.toLowerCase() || r.id === targetRef
+    ) || null;
+  }, [targetRef, reports]);
+
+  const effectiveLat = targetLat ?? targetReport?.lat ?? null;
+  const effectiveLng = targetLng ?? targetReport?.lng ?? null;
+  const targetKey = targetRef || (effectiveLat && effectiveLng ? `${effectiveLat},${effectiveLng}` : null);
+
+  // Auto-open target marker popup when target reports or coordinates resolve
+  useEffect(() => {
+    if (!targetKey) return;
+    const timer = setTimeout(() => {
+      try {
+        if (targetMarkerInstance.current && !targetMarkerInstance.current.isPopupOpen()) {
+          targetMarkerInstance.current.openPopup();
+        }
+      } catch (e) {
+        console.warn('Auto-open popup error:', e);
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [targetKey, reports]);
+
+  // Filtered reports (target report is guaranteed visible even if another status filter is selected)
   const filteredReports = useMemo(() => {
     return reports.filter(r => {
+      const isTarget = Boolean(
+        (targetRef && (r.trackingRef.toLowerCase() === targetRef.toLowerCase() || r.id === targetRef)) ||
+        (effectiveLat !== null && effectiveLng !== null &&
+          Math.abs(r.lat - effectiveLat) < 0.0005 &&
+          Math.abs(r.lng - effectiveLng) < 0.0005)
+      );
+      if (isTarget) return true;
       if (statusFilter !== 'all' && r.status !== statusFilter) return false;
       return true;
     });
-  }, [reports, statusFilter]);
+  }, [reports, statusFilter, targetRef, effectiveLat, effectiveLng]);
 
   // Computed metric counts
   const totalCount = reports.length;
@@ -689,7 +791,7 @@ export default function PublicEsteroStatusMap() {
             className="w-full h-full z-0"
             ref={mapRef}
           >
-            <MapTargetFlyer targetLat={targetLat} targetLng={targetLng} />
+            <MapTargetFlyer targetLat={effectiveLat} targetLng={effectiveLng} />
 
             <TileLayer
               key={`${mapTileType}-${isMapDark ? 'dark' : 'light'}`}
@@ -777,74 +879,112 @@ export default function PublicEsteroStatusMap() {
             ))}
 
             {/* Community Blockage & Cleanup Markers */}
-            {filteredReports.map((report) => (
-              <Marker
-                key={report.id}
-                position={[report.lat, report.lng]}
-                icon={createCitizenIcon(report.status)}
-              >
-                <Popup className="custom-popup" closeButton={false}>
-                  <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary">
-                    {/* Header */}
-                    <div className="flex items-center justify-between gap-1 mb-2 border-b border-border-subtle pb-2">
-                      <div>
-                        <div className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
-                          {report.trackingRef}
+            {filteredReports.map((report) => {
+              const isTarget = Boolean(
+                (targetRef && (report.trackingRef.toLowerCase() === targetRef.toLowerCase() || report.id === targetRef)) ||
+                (effectiveLat !== null && effectiveLng !== null &&
+                  Math.abs(report.lat - effectiveLat) < 0.0005 &&
+                  Math.abs(report.lng - effectiveLng) < 0.0005)
+              );
+
+              return (
+                <Marker
+                  key={report.id}
+                  position={[report.lat, report.lng]}
+                  icon={createCitizenIcon(report.status)}
+                  ref={(marker) => {
+                    if (isTarget && marker) {
+                      targetMarkerInstance.current = marker;
+                      if (hasAutoOpenedRef.current !== targetKey) {
+                        hasAutoOpenedRef.current = targetKey;
+                        setTimeout(() => {
+                          try {
+                            if (!marker.isPopupOpen()) {
+                              marker.openPopup();
+                            }
+                          } catch (e) {
+                            console.warn('Could not auto-open marker popup:', e);
+                          }
+                        }, 400);
+                      }
+                    }
+                  }}
+                >
+                  <Popup className="custom-popup" closeButton={false}>
+                    <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary">
+                      {/* Header */}
+                      <div className="flex items-center justify-between gap-1 mb-2 border-b border-border-subtle pb-2">
+                        <div>
+                          <div className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
+                            {report.trackingRef}
+                          </div>
+                          <div className="text-xs font-heading font-black text-text-primary">
+                            {report.status === 'resolved' 
+                              ? 'Cleared Waterway' 
+                              : report.status === 'dispatched' 
+                                ? 'Cleanup Dispatched' 
+                                : 'Active Constriction'}
+                          </div>
                         </div>
-                        <div className="text-xs font-heading font-black text-text-primary">
-                          {report.status === 'resolved' 
-                            ? 'Cleared Waterway' 
+
+                        <span className={twMerge(
+                          "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider",
+                          report.status === 'resolved' 
+                            ? "bg-green-500/20 text-green-400 border border-green-500/30" 
                             : report.status === 'dispatched' 
-                              ? 'Cleanup Dispatched' 
-                              : 'Active Constriction'}
+                              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" 
+                              : "bg-red-500/20 text-red-400 border border-red-500/30"
+                        )}>
+                          {report.status}
+                        </span>
+                      </div>
+
+                      {/* Image Preview if available */}
+                      {report.imageUrl && (
+                        <div className="w-full h-28 mb-2.5 rounded-sm overflow-hidden border border-border-subtle bg-black/40 relative">
+                          <img 
+                            src={report.imageUrl} 
+                            alt="Canal Condition" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
                         </div>
+                      )}
+
+                      {/* Notes */}
+                      <p className="text-[11px] text-text-secondary line-clamp-3 mb-2 leading-relaxed">
+                        "{report.notes}"
+                      </p>
+
+                      {/* Footer Info */}
+                      <div className="flex items-center justify-between text-[10px] font-mono text-text-muted pt-1 border-t border-border-subtle">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {report.createdAt}
+                        </span>
+                        <span className="text-brand-primary font-bold">
+                          {report.severity === 'high' ? 'High Impact' : report.severity === 'low' ? 'Low Impact' : 'Moderate'}
+                        </span>
                       </div>
 
-                      <span className={twMerge(
-                        "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider",
-                        report.status === 'resolved' 
-                          ? "bg-green-500/20 text-green-400 border border-green-500/30" 
-                          : report.status === 'dispatched' 
-                            ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" 
-                            : "bg-red-500/20 text-red-400 border border-red-500/30"
-                      )}>
-                        {report.status}
-                      </span>
-                    </div>
-
-                    {/* Image Preview if available */}
-                    {report.imageUrl && (
-                      <div className="w-full h-28 mb-2.5 rounded-sm overflow-hidden border border-border-subtle bg-black/40 relative">
-                        <img 
-                          src={report.imageUrl} 
-                          alt="Canal Condition" 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
+                      {/* Action: Immediately Redirect to My Reports Detailed View */}
+                      <div className="mt-2.5 pt-2 border-t border-border-subtle">
+                        <Link
+                          to={`/citizen/dashboard?report=${encodeURIComponent(report.trackingRef)}`}
+                          className="w-full py-1.5 px-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black border border-brand-primary transition-all rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-xs cursor-pointer -skew-x-3 active:scale-95 group"
+                          title="Open detailed case view in My Reports"
+                        >
+                          <FileText className="w-3.5 h-3.5 skew-x-3 group-hover:scale-110 transition-transform" />
+                          <span className="skew-x-3">View in My Reports</span>
+                        </Link>
                       </div>
-                    )}
-
-                    {/* Notes */}
-                    <p className="text-[11px] text-text-secondary line-clamp-3 mb-2 leading-relaxed">
-                      "{report.notes}"
-                    </p>
-
-                    {/* Footer Info */}
-                    <div className="flex items-center justify-between text-[10px] font-mono text-text-muted pt-1 border-t border-border-subtle">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {report.createdAt}
-                      </span>
-                      <span className="text-brand-primary font-bold">
-                        {report.severity === 'high' ? 'High Impact' : report.severity === 'low' ? 'Low Impact' : 'Moderate'}
-                      </span>
                     </div>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+                  </Popup>
+                </Marker>
+              );
+            })}
           </MapContainer>
         </div>
 

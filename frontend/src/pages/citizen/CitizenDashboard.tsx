@@ -1,4 +1,4 @@
-import { useState, useEffect, useId, useMemo } from 'react';
+import { useState, useEffect, useId, useMemo, useRef } from 'react';
 import { 
   MapPin, 
   Clock, 
@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
 // Subtle, eye-friendly traveling perimeter highlight matching Landing Page features
@@ -80,7 +80,7 @@ export interface CitizenReportItem {
 const fallbackReports: CitizenReportItem[] = [
   {
     id: 'demo-1',
-    trackingRef: 'ER-2026-000481',
+    trackingRef: 'ER-2026-881204',
     date: 'Oct 15, 2026 • 2:30 PM',
     rawDate: '2026-10-15T14:30:00Z',
     status: 'in_progress',
@@ -91,26 +91,26 @@ const fallbackReports: CitizenReportItem[] = [
     latitude: 10.3330,
     longitude: 123.9180,
     image: 'https://images.unsplash.com/photo-1596767746408-db2891d4e0e2?q=80&w=600',
-    notes: 'Severe trash choke point at commercial culvert. Water pooling across curb.'
+    notes: 'Dense plastic and fallen branches trapping garbage at Subangdaku culvert gate.'
   },
   {
     id: 'demo-2',
-    trackingRef: 'ER-2026-000329',
+    trackingRef: 'ER-2026-443912',
     date: 'Oct 02, 2026 • 9:15 AM',
     rawDate: '2026-10-02T09:15:00Z',
-    status: 'resolved',
-    statusLabel: 'Resolved',
+    status: 'in_progress',
+    statusLabel: 'Crew Dispatched',
     severity: 'Medium Priority (Score: 52)',
     priorityScore: 52,
     location: 'San Juan Spillway Drainage, Lahug',
     latitude: 10.3190,
     longitude: 123.9040,
     image: 'https://images.unsplash.com/photo-1584449856172-2d8544d6db53?q=80&w=600',
-    notes: 'Silt and tree debris removed by city dredging crew.'
+    notes: 'LGU declogging truck and manual cleaning crew on site for routine maintenance.'
   },
   {
     id: 'demo-3',
-    trackingRef: 'ER-2026-000490',
+    trackingRef: 'ER-2026-559281',
     date: 'Oct 17, 2026 • 11:05 AM',
     rawDate: '2026-10-17T11:05:00Z',
     status: 'pending',
@@ -120,13 +120,32 @@ const fallbackReports: CitizenReportItem[] = [
     latitude: 10.3150,
     longitude: 123.8860,
     image: 'https://images.unsplash.com/photo-1621360662234-5835694a50bb?q=80&w=600',
-    notes: 'Plastic waste buildup after moderate localized rainfall.'
+    notes: 'Debris accumulation after moderate rainfall. Drainage grate partly clogged.'
+  },
+  {
+    id: 'demo-4',
+    trackingRef: 'ER-2026-102948',
+    date: 'Oct 16, 2026 • 4:45 PM',
+    rawDate: '2026-10-16T16:45:00Z',
+    status: 'resolved',
+    statusLabel: 'Resolved',
+    severity: 'Low Priority (Score: 28)',
+    priorityScore: 28,
+    location: 'Tinago Creek Outfall, Cebu Port Area',
+    latitude: 10.3010,
+    longitude: 123.8760,
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600',
+    notes: 'Canal dredging completed by engineering department. Waterway free flowing.'
   }
 ];
 
 export type CitizenFilterType = 'all' | 'pending' | 'in_progress' | 'resolved';
 
 export default function CitizenDashboard() {
+  const [searchParams] = useSearchParams();
+  const targetReportRef = searchParams.get('report') || searchParams.get('id');
+  const hasAutoOpenedRef = useRef<string | null>(null);
+
   const [reports, setReports] = useState<CitizenReportItem[]>(fallbackReports);
   const [selectedReport, setSelectedReport] = useState<CitizenReportItem | null>(null);
   const [isImageFocused, setIsImageFocused] = useState(false);
@@ -148,14 +167,18 @@ export default function CitizenDashboard() {
     async function loadCitizenReports() {
       try {
         const savedRefs: string[] = JSON.parse(localStorage.getItem('esteroute_my_reports') || '[]');
+        const refsToFetch = [...savedRefs];
+        if (targetReportRef && !refsToFetch.includes(targetReportRef)) {
+          refsToFetch.push(targetReportRef);
+        }
 
         let query = supabase
           .from('reports')
           .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
           .order('created_at', { ascending: false });
 
-        if (savedRefs.length > 0) {
-          query = query.in('tracking_reference', savedRefs);
+        if (refsToFetch.length > 0) {
+          query = query.in('tracking_reference', refsToFetch);
         } else {
           query = query.limit(20);
         }
@@ -204,6 +227,60 @@ export default function CitizenDashboard() {
             };
           });
 
+          // If targetReportRef was specified and not found in tracked list, fetch specifically
+          if (targetReportRef && !mapped.some(r => r.trackingRef.toLowerCase() === targetReportRef.toLowerCase() || r.id === targetReportRef)) {
+            try {
+              const { data: directData } = await supabase
+                .from('reports')
+                .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
+                .or(`tracking_reference.eq.${targetReportRef},report_id.eq.${targetReportRef}`)
+                .maybeSingle();
+
+              if (directData) {
+                let statusKey: CitizenReportItem['status'] = 'pending';
+                let label = 'Under Review';
+
+                if (directData.status === 'resolved') {
+                  statusKey = 'resolved';
+                  label = 'Resolved';
+                } else if (directData.status === 'dispatched' || directData.status === 'triaged') {
+                  statusKey = 'in_progress';
+                  label = directData.status === 'dispatched' ? 'Crew Dispatched' : 'In Progress';
+                } else if (directData.status === 'failed_analysis') {
+                  statusKey = 'review';
+                  label = 'Manual Verification';
+                }
+
+                const score = directData.priority_score ?? 0;
+                const sevText = score >= 70 ? `Critical (${score})` : score >= 40 ? `Moderate (${score})` : `Low (${score})`;
+
+                mapped.unshift({
+                  id: directData.report_id,
+                  trackingRef: directData.tracking_reference || `ER-${directData.report_id.slice(0, 6)}`,
+                  date: new Date(directData.created_at).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }),
+                  rawDate: directData.created_at,
+                  status: statusKey,
+                  statusLabel: label,
+                  severity: sevText,
+                  priorityScore: score,
+                  location: `Canal Coordinates: ${Number(directData.latitude).toFixed(4)}, ${Number(directData.longitude).toFixed(4)}`,
+                  latitude: Number(directData.latitude),
+                  longitude: Number(directData.longitude),
+                  image: directData.image_url || 'https://images.unsplash.com/photo-1596767746408-db2891d4e0e2?q=80&w=600',
+                  notes: directData.citizen_notes || 'Citizen canal blockage observation.',
+                });
+              }
+            } catch (err) {
+              console.warn('Could not query target report by ID/Ref:', err);
+            }
+          }
+
           if (isMounted) setReports(mapped);
         }
       } catch (err) {
@@ -216,7 +293,25 @@ export default function CitizenDashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [targetReportRef]);
+
+  // Auto-open detailed view when arriving with a ?report= query parameter
+  useEffect(() => {
+    if (targetReportRef && hasAutoOpenedRef.current !== targetReportRef && reports.length > 0) {
+      const matched = reports.find(
+        (r) =>
+          r.trackingRef.toLowerCase() === targetReportRef.toLowerCase() ||
+          r.id === targetReportRef ||
+          (targetReportRef === 'ER-2026-000481' && r.trackingRef === 'ER-2026-881204') ||
+          (targetReportRef === 'ER-2026-000329' && r.trackingRef === 'ER-2026-443912') ||
+          (targetReportRef === 'ER-2026-000490' && r.trackingRef === 'ER-2026-559281')
+      );
+      if (matched) {
+        hasAutoOpenedRef.current = targetReportRef;
+        setSelectedReport(matched);
+      }
+    }
+  }, [targetReportRef, reports]);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
