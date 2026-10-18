@@ -3,19 +3,22 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap } fro
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { 
-  Maximize, 
-  Minimize, 
+  Maximize2, 
+  Minimize2, 
   Crosshair, 
-  Droplets, 
   Clock, 
   PlusCircle, 
   Layers, 
   Sun, 
   Moon, 
   Waves,
-  Info
+  Info,
+  Plus,
+  Minus,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
@@ -79,6 +82,128 @@ const getTileUrl = (type: MapTileType) => {
   }
   return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 };
+
+// Custom Map Controls mirroring BlockageSubmissionForm styling
+function CustomMapControls({
+  isMapDark,
+  setIsMapDark,
+  mapType,
+  setMapType,
+  toggleFullScreen,
+  isFullscreen,
+}: {
+  isMapDark: boolean;
+  setIsMapDark: React.Dispatch<React.SetStateAction<boolean>>;
+  mapType: MapTileType;
+  setMapType: React.Dispatch<React.SetStateAction<MapTileType>>;
+  toggleFullScreen: () => void;
+  isFullscreen: boolean;
+}) {
+  const map = useMap();
+
+  return (
+    <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-[400] flex flex-col gap-1.5 sm:gap-2">
+      {/* Zoom In */}
+      <button
+        type="button"
+        onClick={() => map.zoomIn()}
+        className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+        title="Zoom In"
+        aria-label="Zoom In"
+      >
+        <Plus className="w-4 h-4 skew-x-6" />
+      </button>
+
+      {/* Zoom Out */}
+      <button
+        type="button"
+        onClick={() => map.zoomOut()}
+        className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+        title="Zoom Out"
+        aria-label="Zoom Out"
+      >
+        <Minus className="w-4 h-4 skew-x-6" />
+      </button>
+
+      <div className="w-full h-px bg-border-subtle my-0.5" />
+
+      {/* Locate Me (GPS) */}
+      <button
+        type="button"
+        onClick={() => {
+          if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                if (pos?.coords) {
+                  try {
+                    map.flyTo([pos.coords.latitude, pos.coords.longitude], 16, { animate: true, duration: 1.2 });
+                  } catch (err) {
+                    console.warn("LocateMe error:", err);
+                  }
+                }
+              },
+              () => {
+                alert("Could not access your location. Please check browser permissions.");
+              },
+              { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+          }
+        }}
+        className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+        title="Locate Me (GPS)"
+        aria-label="Locate Me"
+      >
+        <Crosshair className="w-4 h-4 skew-x-6" />
+      </button>
+
+      {/* Fullscreen Toggle (Maximize2 / Minimize2) */}
+      <button
+        type="button"
+        onClick={toggleFullScreen}
+        className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+        title={isFullscreen ? "Exit Fullscreen" : "Fullscreen Map"}
+        aria-label="Toggle Fullscreen"
+      >
+        {isFullscreen ? <Minimize2 className="w-4 h-4 skew-x-6" /> : <Maximize2 className="w-4 h-4 skew-x-6" />}
+      </button>
+
+      <div className="w-full h-px bg-border-subtle my-0.5" />
+
+      {/* Map Theme Toggle (Sun / Moon) */}
+      <button
+        type="button"
+        onClick={() => setIsMapDark(prev => !prev)}
+        className={twMerge(
+          "p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center",
+          isMapDark
+            ? "bg-surface/90 border-brand-primary/40 text-amber-400 hover:bg-brand-primary/20"
+            : "bg-surface/90 border-border-subtle text-brand-primary hover:bg-brand-primary hover:text-white"
+        )}
+        title={isMapDark ? "Map: Dark Mode (Click for Light)" : "Map: Light Mode (Click for Dark)"}
+        aria-label="Toggle Map Theme"
+      >
+        {isMapDark ? <Sun className="w-4 h-4 skew-x-6" /> : <Moon className="w-4 h-4 skew-x-6" />}
+      </button>
+
+      {/* Map Style Cycle: 1 vs 2 */}
+      <button
+        type="button"
+        onClick={() => setMapType(prev => prev === 'detailed' ? 'standard' : 'detailed')}
+        className={twMerge(
+          "p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center gap-1",
+          mapType === 'detailed'
+            ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/30"
+            : "bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-secondary hover:text-black"
+        )}
+        title={mapType === 'detailed' ? "Map Style 1 (Click for Map Style 2)" : "Map Style 2 (Click for Map Style 1)"}
+        aria-label="Cycle Map Style (1 / 2)"
+      >
+        <Layers className="w-3.5 h-3.5 skew-x-6" />
+        <span className="font-mono text-[10px] font-bold skew-x-6">{mapType === 'detailed' ? '1' : '2'}</span>
+      </button>
+    </div>
+  );
+}
 
 // Custom Citizen Pin Marker Generator (Clean, crisp, no annoying constant flashing)
 const createCitizenIcon = (status: 'blocked' | 'dispatched' | 'resolved') => {
@@ -146,7 +271,7 @@ const CEBU_BASINS: BasinCorridor[] = [
     status: 'flowing',
     flowRate: '88% Normal Flow',
     capacityScore: 88,
-    color: '#10B981', // Emerald
+    color: '#10B981',
     details: 'Primary stormwater corridor from upstream hills discharging cleanly into Cebu harbor. No major obstruction reported.',
   },
   {
@@ -162,7 +287,7 @@ const CEBU_BASINS: BasinCorridor[] = [
     status: 'advisory',
     flowRate: '65% Moderate Capacity',
     capacityScore: 65,
-    color: '#F59E0B', // Amber
+    color: '#F59E0B',
     details: 'Heavy siltation and localized plastic accumulation near commercial culverts. Maintenance cleanup scheduled within 24 hours.',
   },
   {
@@ -194,7 +319,7 @@ const CEBU_BASINS: BasinCorridor[] = [
     status: 'critical',
     flowRate: '42% Restricted Flow',
     capacityScore: 42,
-    color: '#EF4444', // Red
+    color: '#EF4444',
     details: 'Severe localized constriction reported near Mambaling bridge. Flood hazard advisory active during heavy localized downpours.',
   },
 ];
@@ -209,17 +334,18 @@ interface PublicReportItem {
   notes: string;
   imageUrl?: string;
   createdAt: string;
-  basinName?: string;
 }
+
+export type StatusFilterType = 'all' | 'blocked' | 'dispatched' | 'resolved';
 
 export default function PublicEsteroStatusMap() {
   const { theme: globalTheme } = useTheme();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mapTileType, setMapTileType] = useState<MapTileType>('detailed');
   const [isMapDark, setIsMapDark] = useState<boolean>(globalTheme === 'dark');
-  const [selectedBasinId, setSelectedBasinId] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'blocked' | 'dispatched' | 'resolved'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all');
   const [reports, setReports] = useState<PublicReportItem[]>([]);
+  const [isLegendOpen, setIsLegendOpen] = useState(true);
 
   const mapRef = useRef<L.Map>(null);
 
@@ -281,7 +407,6 @@ export default function PublicEsteroStatusMap() {
               severity: 'high',
               notes: 'Dense plastic and fallen branches trapping garbage at Subangdaku culvert gate.',
               createdAt: 'Today, 2:15 PM',
-              basinName: 'Mahiga Creek Corridor',
             },
             {
               id: 'demo-2',
@@ -292,7 +417,6 @@ export default function PublicEsteroStatusMap() {
               severity: 'moderate',
               notes: 'LGU declogging truck and manual cleaning crew on site for routine maintenance.',
               createdAt: 'Today, 11:30 AM',
-              basinName: 'Lahug River Basin',
             },
             {
               id: 'demo-3',
@@ -303,7 +427,6 @@ export default function PublicEsteroStatusMap() {
               severity: 'low',
               notes: 'Canal dredging completed by engineering department. Waterway free flowing.',
               createdAt: 'Yesterday, 4:45 PM',
-              basinName: 'Kinalumsan Drainage Basin',
             },
             {
               id: 'demo-4',
@@ -314,7 +437,6 @@ export default function PublicEsteroStatusMap() {
               severity: 'moderate',
               notes: 'Debris accumulation after moderate rainfall. Drainage grate partly clogged.',
               createdAt: 'Today, 9:20 AM',
-              basinName: 'Guadalupe River System',
             },
           ];
           if (isMounted) setReports(fallbackData);
@@ -340,12 +462,6 @@ export default function PublicEsteroStatusMap() {
     };
   }, []);
 
-  // Filtered corridors
-  const displayedBasins = useMemo(() => {
-    if (selectedBasinId === 'all') return CEBU_BASINS;
-    return CEBU_BASINS.filter(b => b.id === selectedBasinId);
-  }, [selectedBasinId]);
-
   // Filtered reports
   const filteredReports = useMemo(() => {
     return reports.filter(r => {
@@ -354,41 +470,68 @@ export default function PublicEsteroStatusMap() {
     });
   }, [reports, statusFilter]);
 
-  // Computed summary metrics
-  const activeBlockagesCount = reports.filter(r => r.status === 'blocked').length;
-  const dispatchedCleanupsCount = reports.filter(r => r.status === 'dispatched').length;
+  // Computed metric counts
+  const totalCount = reports.length;
+  const blockedCount = reports.filter(r => r.status === 'blocked').length;
+  const dispatchedCount = reports.filter(r => r.status === 'dispatched').length;
   const resolvedCount = reports.filter(r => r.status === 'resolved').length;
   const overallFlowHealth = Math.round(
     CEBU_BASINS.reduce((acc, curr) => acc + curr.capacityScore, 0) / CEBU_BASINS.length
   );
+
+  // Stylistic KPI Strip Filter metrics with visual proportion bars
+  const kpiMetrics = [
+    {
+      filter: 'all' as const,
+      label: 'TOTAL REPORTS',
+      value: totalCount,
+      subtext: 'All Active Pins',
+      tone: 'text-text-primary',
+      border: 'border-border-subtle',
+      barBg: 'bg-brand-primary',
+      pct: 100,
+      pulse: false,
+    },
+    {
+      filter: 'blocked' as const,
+      label: 'BLOCKAGES',
+      value: blockedCount,
+      subtext: `${totalCount > 0 ? Math.round((blockedCount / totalCount) * 100) : 0}% of Total`,
+      tone: 'text-red-400',
+      border: 'border-red-500/40',
+      barBg: 'bg-red-500',
+      pct: totalCount > 0 ? Math.round((blockedCount / totalCount) * 100) : 0,
+      pulse: blockedCount > 0,
+    },
+    {
+      filter: 'dispatched' as const,
+      label: 'DISPATCHED',
+      value: dispatchedCount,
+      subtext: `${totalCount > 0 ? Math.round((dispatchedCount / totalCount) * 100) : 0}% in Progress`,
+      tone: 'text-amber-400',
+      border: 'border-amber-500/40',
+      barBg: 'bg-amber-500',
+      pct: totalCount > 0 ? Math.round((dispatchedCount / totalCount) * 100) : 0,
+      pulse: false,
+    },
+    {
+      filter: 'resolved' as const,
+      label: 'CLEARED',
+      value: resolvedCount,
+      subtext: `${totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0}% Restored`,
+      tone: 'text-emerald-400',
+      border: 'border-emerald-500/40',
+      barBg: 'bg-emerald-500',
+      pct: totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0,
+      pulse: false,
+    },
+  ];
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
     setTimeout(() => {
       mapRef.current?.invalidateSize();
     }, 250);
-  };
-
-  const goToCurrentLocation = () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          mapRef.current?.flyTo([latitude, longitude], 15, { duration: 1.5 });
-        },
-        (error) => {
-          console.warn('GPS Error:', error);
-          alert('Unable to retrieve location. Please check browser permissions.');
-        },
-        { enableHighAccuracy: true }
-      );
-    }
-  };
-
-  const focusBasin = (basin: BasinCorridor) => {
-    setSelectedBasinId(basin.id);
-    const midPoint = basin.coordinates[Math.floor(basin.coordinates.length / 2)];
-    mapRef.current?.flyTo(midPoint, 14, { duration: 1.2 });
   };
 
   return (
@@ -399,22 +542,22 @@ export default function PublicEsteroStatusMap() {
         : "h-[calc(100dvh-130px)] md:h-[calc(100dvh-170px)] min-h-[580px] lg:h-[calc(100dvh-200px)] lg:min-h-[660px]"
     )}>
       
-      {/* 1. Minimal Header (Hidden in Fullscreen) */}
+      {/* 1. Standardized Hero Header (Matches CitizenDashboard, Profile & Report Screens) */}
       {!isFullscreen && (
-        <div className="shrink-0 mb-3 flex items-center justify-between gap-4">
+        <div className="shrink-0 mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3">
+            <h1 className="text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-4">
               Public Basin Map
             </h1>
-            <p className="text-text-muted text-xs md:text-sm pl-4 line-clamp-1 mt-0.5">
+            <p className="text-text-muted text-xs md:text-sm pl-5 mt-1">
               Live waterway flow, community blockage advisories, and ongoing city maintenance.
             </p>
           </div>
 
-          {/* Report CTA Link (Always visible, perfectly padded, never cut off) */}
+          {/* Report CTA Link */}
           <Link
             to="/citizen"
-            className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-3.5 py-2.5 rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider shadow-md shrink-0 active:scale-95 cursor-pointer whitespace-nowrap"
+            className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-4 py-2.5 rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider shadow-md shrink-0 active:scale-95 cursor-pointer whitespace-nowrap self-start sm:self-auto"
           >
             <PlusCircle className="w-4 h-4 skew-x-3 sm:skew-x-6 shrink-0" />
             <span className="skew-x-3 sm:skew-x-6">Report Blockage</span>
@@ -422,7 +565,66 @@ export default function PublicEsteroStatusMap() {
         </div>
       )}
 
-      {/* 2. Map Glassmorphic Card Container with BorderBeam Highlight */}
+      {/* 2. Stylistic KPI Strip Filter (with proportional indicator bar) */}
+      {!isFullscreen && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-3 shrink-0">
+          {kpiMetrics.map((metric) => {
+            const isSelected = statusFilter === metric.filter;
+            return (
+              <button
+                key={metric.label}
+                type="button"
+                onClick={() => setStatusFilter(metric.filter)}
+                className={twMerge(
+                  "group relative overflow-hidden flex min-h-[56px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-3 sm:-skew-x-6 cursor-pointer text-left",
+                  metric.border,
+                  isSelected 
+                    ? "ring-2 ring-brand-primary opacity-100 z-10 scale-[1.02]" 
+                    : "opacity-85 hover:opacity-100"
+                )}
+              >
+                {/* Proportional Occupancy Fill Bar */}
+                <div 
+                  className={twMerge(
+                    "absolute inset-y-0 left-0 opacity-15 pointer-events-none transition-all duration-500",
+                    metric.barBg
+                  )}
+                  style={{ width: `${metric.pct}%` }}
+                />
+
+                {/* Bottom Accent Bar */}
+                <div className="absolute bottom-0 left-0 h-1 bg-border-subtle/50 w-full overflow-hidden">
+                  <div 
+                    className={twMerge("h-full transition-all duration-500", metric.barBg)}
+                    style={{ width: `${metric.pct}%` }}
+                  />
+                </div>
+
+                {/* Content (Unskewed) */}
+                <div className="relative z-10 flex w-full items-center justify-between gap-2 px-3.5 py-2 skew-x-3 sm:skew-x-6">
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase text-text-secondary group-hover:text-brand-primary transition-colors truncate">
+                      {metric.label}
+                    </span>
+                    <span className="text-[9px] font-mono text-text-muted tracking-tight">
+                      {metric.subtext}
+                    </span>
+                  </div>
+                  <span className={twMerge(
+                    "text-xl sm:text-2xl font-mono font-bold shrink-0 leading-none",
+                    metric.tone,
+                    metric.pulse && "animate-pulse"
+                  )}>
+                    {metric.value}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 3. Map Glassmorphic Card Container with BorderBeam Highlight */}
       <div className={twMerge(
         "flex-1 w-full relative overflow-hidden transition-all duration-300 shadow-2xl",
         isFullscreen 
@@ -431,86 +633,6 @@ export default function PublicEsteroStatusMap() {
       )}>
         {/* Traveling Highlight Beam (Disabled in Fullscreen) */}
         {!isFullscreen && <BorderBeam delay={0} color="#60A5FA" />}
-
-        {/* 3. Floating Filter Strip (Top Left Overlay) */}
-        <div className="absolute top-3 left-3 right-3 md:right-auto z-[400] flex flex-wrap items-center gap-1.5 pointer-events-auto">
-          {/* Status Filters */}
-          <div className="bg-surface/90 backdrop-blur-md border border-border-subtle p-1 rounded-sm shadow-xl flex items-center gap-1 -skew-x-3">
-            <button
-              onClick={() => setStatusFilter('all')}
-              className={twMerge(
-                "px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm transition-all skew-x-3",
-                statusFilter === 'all' 
-                  ? "bg-brand-primary text-white shadow-sm" 
-                  : "text-text-muted hover:text-text-primary"
-              )}
-            >
-              All ({reports.length})
-            </button>
-            <button
-              onClick={() => setStatusFilter('blocked')}
-              className={twMerge(
-                "px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm transition-all skew-x-3 flex items-center gap-1",
-                statusFilter === 'blocked' 
-                  ? "bg-semantic-urgent text-white shadow-sm" 
-                  : "text-text-muted hover:text-semantic-urgent"
-              )}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-semantic-urgent" />
-              Blockages ({activeBlockagesCount})
-            </button>
-            <button
-              onClick={() => setStatusFilter('dispatched')}
-              className={twMerge(
-                "px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm transition-all skew-x-3 flex items-center gap-1",
-                statusFilter === 'dispatched' 
-                  ? "bg-amber-500 text-white shadow-sm" 
-                  : "text-text-muted hover:text-amber-400"
-              )}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              Cleanups ({dispatchedCleanupsCount})
-            </button>
-            <button
-              onClick={() => setStatusFilter('resolved')}
-              className={twMerge(
-                "px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm transition-all skew-x-3 flex items-center gap-1",
-                statusFilter === 'resolved' 
-                  ? "bg-emerald-600 text-white shadow-sm" 
-                  : "text-text-muted hover:text-emerald-400"
-              )}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Cleared ({resolvedCount})
-            </button>
-          </div>
-
-          {/* Basin Selector Dropdown Pill */}
-          <div className="bg-surface/90 backdrop-blur-md border border-border-subtle px-2 py-1 rounded-sm shadow-xl flex items-center gap-1.5 -skew-x-3 text-xs">
-            <Droplets className="w-3.5 h-3.5 text-brand-primary skew-x-3" />
-            <select
-              value={selectedBasinId}
-              onChange={(e) => {
-                const bId = e.target.value;
-                setSelectedBasinId(bId);
-                if (bId !== 'all') {
-                  const basin = CEBU_BASINS.find(b => b.id === bId);
-                  if (basin) focusBasin(basin);
-                } else {
-                  mapRef.current?.flyTo([10.3157, 123.8854], 13.5, { duration: 1.2 });
-                }
-              }}
-              className="bg-transparent text-text-primary text-[10px] font-mono font-bold uppercase tracking-wider outline-none cursor-pointer skew-x-3"
-            >
-              <option value="all" className="bg-surface text-text-primary">All Waterway Basins</option>
-              {CEBU_BASINS.map(b => (
-                <option key={b.id} value={b.id} className="bg-surface text-text-primary">
-                  {b.name} ({b.capacityScore}%)
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
 
         {/* 4. The Leaflet Map Instance */}
         <div className={twMerge(
@@ -533,8 +655,18 @@ export default function PublicEsteroStatusMap() {
 
             <MapResizeHandler isFullscreen={isFullscreen} />
 
+            {/* Custom Map Controls following BlockageSubmissionForm layout */}
+            <CustomMapControls
+              isMapDark={isMapDark}
+              setIsMapDark={setIsMapDark}
+              mapType={mapTileType}
+              setMapType={setMapTileType}
+              toggleFullScreen={toggleFullscreen}
+              isFullscreen={isFullscreen}
+            />
+
             {/* Basin Waterway Polylines */}
-            {displayedBasins.map((basin) => (
+            {CEBU_BASINS.map((basin) => (
               <Polyline
                 key={basin.id}
                 positions={basin.coordinates}
@@ -645,7 +777,6 @@ export default function PublicEsteroStatusMap() {
                           alt="Canal Condition" 
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            // If storage image fails to load, conceal thumbnail
                             (e.target as HTMLElement).style.display = 'none';
                           }}
                         />
@@ -674,83 +805,68 @@ export default function PublicEsteroStatusMap() {
           </MapContainer>
         </div>
 
-        {/* 5. Basin Legend & Color Guide (Bottom Left) */}
-        <div className="absolute bottom-4 left-3 z-[400] pointer-events-none hidden sm:block">
-          <div className="bg-surface/90 backdrop-blur-md border border-border-subtle p-2.5 rounded-sm shadow-xl -skew-x-3 pointer-events-auto max-w-[240px]">
-            <div className="skew-x-3 text-[10px] font-mono uppercase tracking-wider font-bold text-text-secondary mb-1.5 flex items-center justify-between gap-3">
-              <span className="flex items-center gap-1">
-                <Info className="w-3 h-3 text-brand-primary" />
-                Drainage Status
+        {/* 5. Hideable Drainage Flow Legend (Bottom Left with Toggle Arrow) */}
+        <div className="absolute bottom-11 sm:bottom-12 left-3 z-[400] pointer-events-auto">
+          <div className="bg-surface/95 backdrop-blur-md border border-border-subtle rounded-sm shadow-xl -skew-x-3 overflow-hidden transition-all duration-200 max-w-[250px]">
+            {/* Header / Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsLegendOpen(prev => !prev)}
+              className="w-full px-2.5 py-1.5 flex items-center justify-between gap-3 text-[10px] font-mono uppercase tracking-wider font-bold text-text-secondary hover:text-brand-primary transition-colors cursor-pointer"
+              title={isLegendOpen ? "Hide Legend" : "Show Legend"}
+              aria-label="Toggle Legend"
+            >
+              <span className="skew-x-3 flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                <span>Drainage Flow</span>
               </span>
-              <span className="text-emerald-400 font-bold">{overallFlowHealth}% Flow Index</span>
-            </div>
-            
-            <div className="skew-x-3 flex flex-col gap-1 text-[11px]">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-1 bg-emerald-500 rounded-full" />
-                <span className="text-text-primary text-[10px] font-bold">Free Flowing / Safe</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-1 bg-amber-500 rounded-full" />
-                <span className="text-text-primary text-[10px] font-bold">Maintenance / Moderate</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-1 bg-semantic-urgent rounded-full" />
-                <span className="text-text-primary text-[10px] font-bold">High Constriction Advisory</span>
-              </div>
-            </div>
+              <span className="skew-x-3 flex items-center gap-1">
+                <span className="text-emerald-400 font-bold">{overallFlowHealth}%</span>
+                {isLegendOpen ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-text-muted" />
+                ) : (
+                  <ChevronUp className="w-3.5 h-3.5 text-text-muted" />
+                )}
+              </span>
+            </button>
+
+            {/* Collapsible Content */}
+            <AnimatePresence initial={false}>
+              {isLegendOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="px-2.5 pb-2 pt-0.5 border-t border-border-subtle/50 skew-x-3 flex flex-col gap-1 text-[10px]"
+                >
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="w-3 h-1 bg-emerald-500 rounded-full shrink-0" />
+                    <span className="text-text-primary font-bold">Free Flowing (Normal)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-1 bg-amber-500 rounded-full shrink-0" />
+                    <span className="text-text-primary font-bold">Maintenance / Advisory</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-1 bg-semantic-urgent rounded-full shrink-0" />
+                    <span className="text-text-primary font-bold">Restricted / Blocked</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* 6. Floating Map Utility Controls (Bottom Right) */}
-        <div className="absolute bottom-4 right-3 z-[400] flex flex-col gap-2 pointer-events-auto">
-          {/* Map Style 1 / 2 Switcher */}
-          <button
-            onClick={() => setMapTileType(prev => prev === 'detailed' ? 'standard' : 'detailed')}
-            className="bg-surface/90 hover:bg-brand-primary hover:text-white text-text-primary p-2.5 rounded-sm shadow-xl border border-border-subtle -skew-x-3 transition-all active:scale-95 flex items-center justify-center group"
-            title={mapTileType === 'detailed' ? "Switch to Map Style 2 (Standard OSM)" : "Switch to Map Style 1 (Detailed Humanitarian)"}
-            aria-label="Toggle Map Tile Source"
-          >
-            <Layers className="w-4 h-4 skew-x-3 text-text-secondary group-hover:text-white" />
-          </button>
-
-          {/* Dark / Light Invert Toggle */}
-          <button
-            onClick={() => setIsMapDark(prev => !prev)}
-            className="bg-surface/90 hover:bg-brand-primary hover:text-white text-text-primary p-2.5 rounded-sm shadow-xl border border-border-subtle -skew-x-3 transition-all active:scale-95 flex items-center justify-center group"
-            title={isMapDark ? "Switch to Light Map Mode" : "Switch to Dark Map Mode"}
-            aria-label="Toggle Dark Mode"
-          >
-            {isMapDark ? (
-              <Sun className="w-4 h-4 skew-x-3 text-amber-400 group-hover:text-white" />
-            ) : (
-              <Moon className="w-4 h-4 skew-x-3 text-brand-primary group-hover:text-white" />
-            )}
-          </button>
-
-          {/* GPS Locate Me */}
-          <button
-            onClick={goToCurrentLocation}
-            className="bg-surface/90 hover:bg-brand-primary hover:text-white text-text-primary p-2.5 rounded-sm shadow-xl border border-border-subtle -skew-x-3 transition-all active:scale-95 flex items-center justify-center group"
-            title="Locate Waterways Near Me"
-            aria-label="Locate me"
-          >
-            <Crosshair className="w-4 h-4 skew-x-3 text-brand-secondary group-hover:text-white" />
-          </button>
-
-          {/* Fullscreen Toggle */}
-          <button
-            onClick={toggleFullscreen}
-            className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black p-2.5 rounded-sm shadow-xl -skew-x-3 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
-            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            aria-label="Toggle fullscreen"
-          >
-            {isFullscreen ? (
-              <Minimize className="w-4 h-4 skew-x-3" />
-            ) : (
-              <Maximize className="w-4 h-4 skew-x-3" />
-            )}
-          </button>
+        {/* 6. Map Style & Mode Indicator (Bottom Left, mirroring BlockageSubmissionForm) */}
+        <div className="absolute bottom-3 left-3 z-[400] bg-surface/90 backdrop-blur-md border border-border-subtle px-2.5 py-1 rounded-sm shadow-md flex items-center gap-1.5 -skew-x-3 pointer-events-none text-[10px] font-mono font-bold text-text-secondary uppercase tracking-wider">
+          <span className="skew-x-3 flex items-center gap-1.5">
+            <span>{mapTileType === 'detailed' ? 'Map 1' : 'Map 2'}</span>
+            <span className="text-text-muted opacity-40">|</span>
+            <span className={isMapDark ? "text-amber-400" : "text-brand-primary"}>
+              {isMapDark ? 'Dark' : 'Light'}
+            </span>
+          </span>
         </div>
 
       </div>
@@ -769,9 +885,6 @@ export default function PublicEsteroStatusMap() {
         }
         .custom-popup .leaflet-popup-tip-container {
           display: none !important;
-        }
-        .clip-triangle {
-          clip-path: polygon(50% 100%, 0 0, 100% 0);
         }
       `}</style>
 
