@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,6 +12,45 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../../context/ThemeContext';
+
+// Subtle, eye-friendly traveling perimeter highlight (matching Landing Page features)
+const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
+  const id = useId();
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-sm z-10">
+      <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#3F72AF" stopOpacity="0" />
+            <stop offset="50%" stopColor={color} stopOpacity="0.85" />
+            <stop offset="100%" stopColor="#3F72AF" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <motion.rect
+          x="1"
+          y="1"
+          width="calc(100% - 2px)"
+          height="calc(100% - 2px)"
+          rx="2"
+          fill="none"
+          stroke={`url(#${id})`}
+          strokeWidth="2.5"
+          strokeDasharray="140 1200"
+          animate={{
+            strokeDashoffset: [1340, 0],
+          }}
+          transition={{
+            duration: 9,
+            delay,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          className="opacity-30 group-hover:opacity-95 transition-opacity duration-500"
+        />
+      </svg>
+    </div>
+  );
+};
 
 const customMarkerIcon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -944,8 +983,9 @@ export default function BlockageSubmissionForm() {
       </motion.div>
 
       {/* Mobile Stepper Header (3-Step Flow with Alive Pulsing Indicators & Consistent Skew) */}
-      <div className="lg:hidden mb-2 sm:mb-3 mx-1 bg-surface/90 backdrop-blur-xl border border-border-subtle p-2 sm:p-2.5 rounded-sm shadow-md shrink-0 -skew-x-[2deg]">
-        <div className="skew-x-[2deg] flex items-center justify-between relative px-2 sm:px-4">
+      <div className="group lg:hidden mb-2 sm:mb-3 mx-1 bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-2 sm:p-2.5 rounded-sm shadow-sm hover:shadow-lg shrink-0 -skew-x-[2deg] relative overflow-hidden">
+        <BorderBeam delay={0.2} />
+        <div className="skew-x-[2deg] flex items-center justify-between relative z-20 px-2 sm:px-4">
 
           {/* Step 1: Photo */}
           <button
@@ -1122,112 +1162,115 @@ export default function BlockageSubmissionForm() {
 
           {/* Photo Upload Section (Step 1 on mobile, always on desktop) */}
           <section className={twMerge(
-            "bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-lg shadow-black/5 flex flex-col relative",
+            "group bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 flex flex-col relative overflow-hidden",
             mobileStep === 1
               ? "flex-1 min-h-0 flex flex-col justify-between lg:flex-none lg:h-auto lg:justify-start"
               : "hidden lg:flex lg:flex-none lg:h-auto"
           )}>
-            <div className="flex items-center justify-between mb-2.5 lg:mb-4 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 sm:p-2 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-[3deg] lg:-skew-x-6">
-                  <Camera className="w-4 h-4 skew-x-[3deg] lg:skew-x-6" />
-                </div>
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-text-primary uppercase tracking-wider">Photo Evidence</h2>
-              </div>
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-semantic-urgent text-white px-2 py-0.5 sm:py-1 rounded-sm -skew-x-[3deg] lg:-skew-x-12 shadow-sm">
-                <span className="skew-x-[3deg] lg:skew-x-12 block">Required</span>
-              </span>
-            </div>
-
-            {/* Hidden Inputs */}
-            <input
-              type="file"
-              accept="image/jpeg, image/png, image/webp"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            <canvas ref={canvasRef} className="hidden" />
-
-            {!photoPreview ? (
-              isCameraActive ? (
-                <>
-                  {createPortal(renderCameraModal(), document.body)}
-                  <div className="w-full flex-1 min-h-[160px] lg:flex-none lg:h-72 border-2 border-dashed border-brand-primary/50 rounded-sm flex flex-col items-center justify-center gap-3 bg-brand-primary/5 p-4 text-center">
-                    <div className="p-3 bg-brand-primary/20 rounded-full text-brand-primary animate-pulse">
-                      <Camera className="w-6 h-6 lg:w-8 lg:h-8" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-text-primary text-sm lg:text-base">Camera Viewfinder Active</p>
-                      <p className="text-xs text-text-muted mt-0.5">Aiming in ~80% full-screen mode</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={stopCamera}
-                      className="text-xs font-bold uppercase tracking-wider text-semantic-urgent hover:underline mt-1 cursor-pointer"
-                    >
-                      Cancel Camera
-                    </button>
+            <BorderBeam delay={0} />
+            <div className="relative z-20 flex flex-col flex-1 min-h-0 justify-between">
+              <div className="flex items-center justify-between mb-2.5 lg:mb-4 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 sm:p-2 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-[3deg] lg:-skew-x-6">
+                    <Camera className="w-4 h-4 skew-x-[3deg] lg:skew-x-6" />
                   </div>
-                </>
+                  <h2 className="text-base sm:text-lg lg:text-xl font-bold text-text-primary uppercase tracking-wider">Photo Evidence</h2>
+                </div>
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-semantic-urgent text-white px-2 py-0.5 sm:py-1 rounded-sm -skew-x-[3deg] lg:-skew-x-12 shadow-sm">
+                  <span className="skew-x-[3deg] lg:skew-x-12 block">Required</span>
+                </span>
+              </div>
+
+              {/* Hidden Inputs */}
+              <input
+                type="file"
+                accept="image/jpeg, image/png, image/webp"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+
+              {!photoPreview ? (
+                isCameraActive ? (
+                  <>
+                    {createPortal(renderCameraModal(), document.body)}
+                    <div className="w-full flex-1 min-h-[160px] lg:flex-none lg:h-72 border-2 border-dashed border-brand-primary/50 rounded-sm flex flex-col items-center justify-center gap-3 bg-brand-primary/5 p-4 text-center">
+                      <div className="p-3 bg-brand-primary/20 rounded-full text-brand-primary animate-pulse">
+                        <Camera className="w-6 h-6 lg:w-8 lg:h-8" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-text-primary text-sm lg:text-base">Camera Viewfinder Active</p>
+                        <p className="text-xs text-text-muted mt-0.5">Aiming in ~80% full-screen mode</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={stopCamera}
+                        className="text-xs font-bold uppercase tracking-wider text-semantic-urgent hover:underline mt-1 cursor-pointer"
+                      >
+                        Cancel Camera
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full flex-1 min-h-[160px] lg:flex-none lg:h-72 border-2 border-dashed border-border-strong rounded-sm flex flex-col items-center justify-center gap-3 lg:gap-5 bg-app-bg/50 p-3 lg:p-6">
+                    <div className="text-center px-2">
+                      <p className="font-bold text-text-primary text-base sm:text-lg lg:text-xl">Add Photo Evidence</p>
+                      <p className="text-xs lg:text-sm text-text-muted mt-0.5 lg:mt-1">Take a live photo or upload from your device (Max 8MB)</p>
+                    </div>
+
+                    <div className="flex gap-3 lg:gap-4 w-full px-2 max-w-xs lg:max-w-sm">
+                      <div className="flex-1 transition-transform active:scale-[0.96]">
+                        <button
+                          type="button"
+                          onClick={() => startCamera('environment')}
+                          className="w-full flex flex-col items-center justify-center gap-1.5 py-3 lg:py-3.5 bg-brand-primary/10 border border-brand-primary/30 rounded-sm hover:bg-brand-primary hover:text-white transition-colors group -skew-x-3 lg:-skew-x-6 text-brand-primary shadow-sm"
+                        >
+                          <Camera className="w-6 h-6 lg:w-7 lg:h-7 skew-x-3 lg:skew-x-6 group-hover:scale-110 transition-transform" />
+                          <span className="text-xs lg:text-sm font-bold uppercase tracking-wider skew-x-3 lg:skew-x-6">Camera</span>
+                        </button>
+                      </div>
+
+                      <div className="flex-1 transition-transform active:scale-[0.96]">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full flex flex-col items-center justify-center gap-1.5 py-3 lg:py-3.5 bg-surface border border-border-strong rounded-sm hover:border-brand-primary hover:bg-brand-primary/5 transition-colors group -skew-x-3 lg:-skew-x-6 text-text-primary shadow-sm"
+                        >
+                          <UploadCloud className="w-6 h-6 lg:w-7 lg:h-7 skew-x-3 lg:skew-x-6 text-text-secondary group-hover:text-brand-primary group-hover:scale-110 transition-transform" />
+                          <span className="text-xs lg:text-sm font-bold uppercase tracking-wider skew-x-3 lg:skew-x-6">Upload</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
               ) : (
-                <div className="w-full flex-1 min-h-[160px] lg:flex-none lg:h-72 border-2 border-dashed border-border-strong rounded-sm flex flex-col items-center justify-center gap-3 lg:gap-5 bg-app-bg/50 p-3 lg:p-6">
-                  <div className="text-center px-2">
-                    <p className="font-bold text-text-primary text-base sm:text-lg lg:text-xl">Add Photo Evidence</p>
-                    <p className="text-xs lg:text-sm text-text-muted mt-0.5 lg:mt-1">Take a live photo or upload from your device (Max 8MB)</p>
-                  </div>
+                <div className="relative w-full flex-1 min-h-[160px] lg:flex-none lg:h-72 rounded-sm overflow-hidden group border border-border-subtle shadow-inner">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                    style={{ backgroundImage: `url(${photoPreview})` }}
+                  ></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/40 opacity-80 group-hover:opacity-100 transition-opacity"></div>
 
-                  <div className="flex gap-3 lg:gap-4 w-full px-2 max-w-xs lg:max-w-sm">
-                    <div className="flex-1 transition-transform active:scale-[0.96]">
-                      <button
-                        type="button"
-                        onClick={() => startCamera('environment')}
-                        className="w-full flex flex-col items-center justify-center gap-1.5 py-3 lg:py-3.5 bg-brand-primary/10 border border-brand-primary/30 rounded-sm hover:bg-brand-primary hover:text-white transition-colors group -skew-x-3 lg:-skew-x-6 text-brand-primary shadow-sm"
-                      >
-                        <Camera className="w-6 h-6 lg:w-7 lg:h-7 skew-x-3 lg:skew-x-6 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs lg:text-sm font-bold uppercase tracking-wider skew-x-3 lg:skew-x-6">Camera</span>
-                      </button>
-                    </div>
+                  <button
+                    type="button"
+                    onClick={removePhoto}
+                    className="absolute top-3 right-3 p-2 sm:p-2.5 -skew-x-[3deg] lg:-skew-x-6 rounded-sm bg-semantic-urgent hover:bg-red-600 border border-red-500/50 backdrop-blur-md text-white transition-all duration-300 shadow-lg shadow-red-950/40 hover:scale-105 active:scale-95 z-10 flex items-center justify-center cursor-pointer"
+                    title="Remove photo"
+                    aria-label="Remove photo"
+                  >
+                    <X className="w-4 h-4 sm:w-5 sm:h-5 skew-x-[3deg] lg:skew-x-6 stroke-[2.5]" />
+                  </button>
 
-                    <div className="flex-1 transition-transform active:scale-[0.96]">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full flex flex-col items-center justify-center gap-1.5 py-3 lg:py-3.5 bg-surface border border-border-strong rounded-sm hover:border-brand-primary hover:bg-brand-primary/5 transition-colors group -skew-x-3 lg:-skew-x-6 text-text-primary shadow-sm"
-                      >
-                        <UploadCloud className="w-6 h-6 lg:w-7 lg:h-7 skew-x-3 lg:skew-x-6 text-text-secondary group-hover:text-brand-primary group-hover:scale-110 transition-transform" />
-                        <span className="text-xs lg:text-sm font-bold uppercase tracking-wider skew-x-3 lg:skew-x-6">Upload</span>
-                      </button>
-                    </div>
+                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-white text-xs font-bold bg-green-500/90 backdrop-blur-md px-3 py-1.5 rounded-sm -skew-x-[3deg] lg:-skew-x-12 shadow-lg z-10">
+                    <span className="skew-x-[3deg] lg:skew-x-12 flex items-center gap-1.5 tracking-wide uppercase">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Image Attached
+                    </span>
                   </div>
                 </div>
-              )
-            ) : (
-              <div className="relative w-full flex-1 min-h-[160px] lg:flex-none lg:h-72 rounded-sm overflow-hidden group border border-border-subtle shadow-inner">
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                  style={{ backgroundImage: `url(${photoPreview})` }}
-                ></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/40 opacity-80 group-hover:opacity-100 transition-opacity"></div>
-
-                <button
-                  type="button"
-                  onClick={removePhoto}
-                  className="absolute top-3 right-3 p-2 sm:p-2.5 -skew-x-[3deg] lg:-skew-x-6 rounded-sm bg-semantic-urgent hover:bg-red-600 border border-red-500/50 backdrop-blur-md text-white transition-all duration-300 shadow-lg shadow-red-950/40 hover:scale-105 active:scale-95 z-10 flex items-center justify-center cursor-pointer"
-                  title="Remove photo"
-                  aria-label="Remove photo"
-                >
-                  <X className="w-4 h-4 sm:w-5 sm:h-5 skew-x-[3deg] lg:skew-x-6 stroke-[2.5]" />
-                </button>
-
-                <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-white text-xs font-bold bg-green-500/90 backdrop-blur-md px-3 py-1.5 rounded-sm -skew-x-[3deg] lg:-skew-x-12 shadow-lg z-10">
-                  <span className="skew-x-[3deg] lg:skew-x-12 flex items-center gap-1.5 tracking-wide uppercase">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Image Attached
-                  </span>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </section>
 
           {/* Mobile Step 1 Actions (Consistent mild skew with glitch-free press wrapper) */}
@@ -1261,36 +1304,40 @@ export default function BlockageSubmissionForm() {
 
           {/* Notes Section (Step 3 on mobile, always on desktop) */}
           <section className={twMerge(
-            "bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-lg shadow-black/5 flex flex-col",
+            "group bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 flex flex-col relative overflow-hidden",
             mobileStep === 3 ? "flex flex-1 min-h-0" : "hidden lg:flex lg:flex-1"
           )}>
-            <div className="flex items-center justify-between mb-2 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-gray-500/10 rounded-sm text-text-secondary -skew-x-[3deg] lg:-skew-x-6">
-                  <AlertCircle className="w-4 h-4 skew-x-[3deg] lg:skew-x-6" />
+            <BorderBeam delay={1.5} />
+            <div className="relative z-20 flex flex-col flex-1 min-h-0">
+              <div className="flex items-center justify-between mb-2 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-gray-500/10 rounded-sm text-text-secondary -skew-x-[3deg] lg:-skew-x-6">
+                    <AlertCircle className="w-4 h-4 skew-x-[3deg] lg:skew-x-6" />
+                  </div>
+                  <h2 className="text-base sm:text-lg lg:text-xl font-bold text-text-primary uppercase tracking-wider">Notes</h2>
                 </div>
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-text-primary uppercase tracking-wider">Notes</h2>
+                <span className="text-xs text-text-muted font-mono bg-app-bg px-2 py-0.5 rounded-sm border border-border-subtle shadow-sm -skew-x-[3deg] lg:-skew-x-6">
+                  <span className="skew-x-[3deg] lg:skew-x-6 block">{notes.length}/280</span>
+                </span>
               </div>
-              <span className="text-xs text-text-muted font-mono bg-app-bg px-2 py-0.5 rounded-sm border border-border-subtle shadow-sm -skew-x-[3deg] lg:-skew-x-6">
-                <span className="skew-x-[3deg] lg:skew-x-6 block">{notes.length}/280</span>
-              </span>
-            </div>
 
-            <textarea
-              value={notes}
-              maxLength={280}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Provide details about the blockage..."
-              className="w-full flex-1 min-h-[100px] lg:min-h-[140px] bg-app-bg/80 border border-border-subtle rounded-sm p-3.5 lg:p-4 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all resize-none shadow-inner"
-            />
+              <textarea
+                value={notes}
+                maxLength={280}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Provide details about the blockage..."
+                className="w-full flex-1 min-h-[100px] lg:min-h-[140px] bg-app-bg/80 border border-border-subtle rounded-sm p-3.5 lg:p-4 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all resize-none shadow-inner"
+              />
+            </div>
           </section>
 
           {/* Review Summary Card & Mobile Step 3 Actions */}
           {mobileStep === 3 && (
             <div className="lg:hidden flex flex-col gap-2 shrink-0">
               {/* Review Summary Card with mild skew */}
-              <div className="bg-surface/90 backdrop-blur-xl border border-border-subtle rounded-sm p-2.5 sm:p-3 mx-1 flex flex-col gap-2 shadow-md -skew-x-[2deg] lg:-skew-x-[4deg]">
-                <div className="skew-x-[2deg] lg:skew-x-[4deg] flex flex-col gap-2">
+              <div className="group bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-2.5 sm:p-3 mx-1 flex flex-col gap-2 shadow-sm hover:shadow-lg -skew-x-[2deg] lg:-skew-x-[4deg] relative overflow-hidden">
+                <BorderBeam delay={2.2} />
+                <div className="skew-x-[2deg] lg:skew-x-[4deg] flex flex-col gap-2 relative z-20">
                   <div className="flex items-center justify-between pb-1.5 border-b border-border-subtle">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Report Summary</span>
                     <span className="text-[10px] font-mono font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-sm border border-green-500/20">
@@ -1390,78 +1437,81 @@ export default function BlockageSubmissionForm() {
             mobileStep === 2 ? "flex flex-1 min-h-0 flex-col justify-between" : "hidden"
           )}
         >
-          <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-lg shadow-black/5 flex-1 min-h-0 flex flex-col min-h-[350px] lg:min-h-[520px]">
-            <div className="flex items-center justify-between mb-2 shrink-0">
-              <div className="flex items-center gap-2 sm:gap-2.5">
-                <div className="p-1.5 sm:p-2 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-3 lg:-skew-x-6">
-                  <MapPin className="w-4 h-4 skew-x-3 lg:skew-x-6" />
-                </div>
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-text-primary uppercase tracking-wider">Location</h2>
-                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-semantic-urgent text-white px-2 py-0.5 sm:py-1 rounded-sm -skew-x-[3deg] lg:-skew-x-12 shadow-sm">
-                  <span className="skew-x-[3deg] lg:skew-x-12 block">Required</span>
-                </span>
-              </div>
-            </div>
-
-            <div
-              ref={mapContainerRef}
-              className={twMerge(
-                "w-full flex-1 min-h-0 bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0 lg:min-h-[420px]",
-                isMapDark && "dark-map"
-              )}
-            >
-              <MapContainer
-                center={position}
-                zoom={15}
-                scrollWheelZoom={true}
-                zoomControl={false}
-                attributionControl={false}
-                className="w-full h-full z-0"
-              >
-                <TileLayer
-                  key={`${mapType}-${isMapDark ? 'dark' : 'light'}`}
-                  attribution=""
-                  url={getMapTileUrl(mapType)}
-                />
-                <Marker
-                  position={position}
-                  icon={customMarkerIcon}
-                  draggable={true}
-                  eventHandlers={eventHandlers}
-                  ref={markerRef}
-                />
-                <MapFlyTo position={position} defaultPosition={defaultPosition} />
-                <MapResizeHandler active={mobileStep === 2} />
-                <OffscreenPinTracker position={position} />
-                <CustomMapControls
-                  isMapDark={isMapDark}
-                  setIsMapDark={setIsMapDark}
-                  mapType={mapType}
-                  setMapType={setMapType}
-                  setPosition={setPosition}
-                  toggleFullScreen={toggleFullScreen}
-                  isFullscreen={isFullscreen}
-                />
-              </MapContainer>
-
-              {/* Map Style & Mode Indicator (Bottom Left, no dot) */}
-              <div className="absolute bottom-3 left-3 z-[400] bg-surface/90 backdrop-blur-md border border-border-subtle px-2.5 py-1 rounded-sm shadow-md flex items-center gap-1.5 -skew-x-3 pointer-events-none text-[10px] font-mono font-bold text-text-secondary uppercase tracking-wider">
-                <span className="skew-x-3 flex items-center gap-1.5">
-                  <span>{mapType === 'detailed' ? 'Map 1' : 'Map 2'}</span>
-                  <span className="text-text-muted opacity-40">|</span>
-                  <span className={isMapDark ? "text-amber-400" : "text-brand-primary"}>
-                    {isMapDark ? 'Dark' : 'Light'}
+          <section className="group bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 flex-1 min-h-0 flex flex-col min-h-[350px] lg:min-h-[520px] relative overflow-hidden">
+            <BorderBeam delay={3} />
+            <div className="relative z-20 flex flex-col flex-1 min-h-0">
+              <div className="flex items-center justify-between mb-2 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-2.5">
+                  <div className="p-1.5 sm:p-2 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-3 lg:-skew-x-6">
+                    <MapPin className="w-4 h-4 skew-x-3 lg:skew-x-6" />
+                  </div>
+                  <h2 className="text-base sm:text-lg lg:text-xl font-bold text-text-primary uppercase tracking-wider">Location</h2>
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-semantic-urgent text-white px-2 py-0.5 sm:py-1 rounded-sm -skew-x-[3deg] lg:-skew-x-12 shadow-sm">
+                    <span className="skew-x-[3deg] lg:skew-x-12 block">Required</span>
                   </span>
-                </span>
+                </div>
               </div>
-            </div>
 
-            <p className="shrink-0 text-xs text-text-muted mt-2 flex items-center gap-2 bg-app-bg/50 p-2 rounded-sm border border-border-subtle -skew-x-[2deg] lg:-skew-x-[4deg]">
-              <span className="skew-x-[2deg] lg:skew-x-[4deg] flex items-center gap-2 truncate">
-                <AlertCircle className="w-4 h-4 shrink-0 text-brand-secondary" />
-                <span className="truncate">Drag pin to adjust exact location.</span>
-              </span>
-            </p>
+              <div
+                ref={mapContainerRef}
+                className={twMerge(
+                  "w-full flex-1 min-h-0 bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0 lg:min-h-[420px]",
+                  isMapDark && "dark-map"
+                )}
+              >
+                <MapContainer
+                  center={position}
+                  zoom={15}
+                  scrollWheelZoom={true}
+                  zoomControl={false}
+                  attributionControl={false}
+                  className="w-full h-full z-0"
+                >
+                  <TileLayer
+                    key={`${mapType}-${isMapDark ? 'dark' : 'light'}`}
+                    attribution=""
+                    url={getMapTileUrl(mapType)}
+                  />
+                  <Marker
+                    position={position}
+                    icon={customMarkerIcon}
+                    draggable={true}
+                    eventHandlers={eventHandlers}
+                    ref={markerRef}
+                  />
+                  <MapFlyTo position={position} defaultPosition={defaultPosition} />
+                  <MapResizeHandler active={mobileStep === 2} />
+                  <OffscreenPinTracker position={position} />
+                  <CustomMapControls
+                    isMapDark={isMapDark}
+                    setIsMapDark={setIsMapDark}
+                    mapType={mapType}
+                    setMapType={setMapType}
+                    setPosition={setPosition}
+                    toggleFullScreen={toggleFullScreen}
+                    isFullscreen={isFullscreen}
+                  />
+                </MapContainer>
+
+                {/* Map Style & Mode Indicator (Bottom Left, no dot) */}
+                <div className="absolute bottom-3 left-3 z-[400] bg-surface/90 backdrop-blur-md border border-border-subtle px-2.5 py-1 rounded-sm shadow-md flex items-center gap-1.5 -skew-x-3 pointer-events-none text-[10px] font-mono font-bold text-text-secondary uppercase tracking-wider">
+                  <span className="skew-x-3 flex items-center gap-1.5">
+                    <span>{mapType === 'detailed' ? 'Map 1' : 'Map 2'}</span>
+                    <span className="text-text-muted opacity-40">|</span>
+                    <span className={isMapDark ? "text-amber-400" : "text-brand-primary"}>
+                      {isMapDark ? 'Dark' : 'Light'}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              <p className="shrink-0 text-xs text-text-muted mt-2 flex items-center gap-2 bg-app-bg/50 p-2 rounded-sm border border-border-subtle -skew-x-[2deg] lg:-skew-x-[4deg]">
+                <span className="skew-x-[2deg] lg:skew-x-[4deg] flex items-center gap-2 truncate">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-brand-secondary" />
+                  <span className="truncate">Drag pin to adjust exact location.</span>
+                </span>
+              </p>
+            </div>
           </section>
 
           {/* Mobile Step 2 Actions (Mildly skewed with glitch-free press wrapper) */}
