@@ -729,6 +729,15 @@ export default function BlockageSubmissionForm() {
 
       const data = await response.json();
       setTrackingRef(data.tracking_reference);
+      try {
+        const stored: string[] = JSON.parse(localStorage.getItem('esteroute_my_reports') || '[]');
+        if (data.tracking_reference && !stored.includes(data.tracking_reference)) {
+          stored.unshift(data.tracking_reference);
+          localStorage.setItem('esteroute_my_reports', JSON.stringify(stored));
+        }
+      } catch (storageErr) {
+        console.warn("Could not save tracking ref to localStorage:", storageErr);
+      }
       setIsSubmitted(true);
     } catch (error) {
       console.error("Submission error:", error);
