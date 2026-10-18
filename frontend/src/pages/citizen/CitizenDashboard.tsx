@@ -12,9 +12,11 @@ import {
   AlertTriangle, 
   Copy, 
   Check, 
-  X, 
   PlusCircle,
-  Truck
+  Truck,
+  Compass,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
@@ -127,6 +129,7 @@ export type CitizenFilterType = 'all' | 'pending' | 'in_progress' | 'resolved';
 export default function CitizenDashboard() {
   const [reports, setReports] = useState<CitizenReportItem[]>(fallbackReports);
   const [selectedReport, setSelectedReport] = useState<CitizenReportItem | null>(null);
+  const [isImageFocused, setIsImageFocused] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<CitizenFilterType>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -779,13 +782,16 @@ export default function CitizenDashboard() {
       <AnimatePresence>
         {selectedReport && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto">
-            {/* Backdrop */}
+            {/* Soft Frosted Backdrop matching Cookie & Terms Policy */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedReport(null)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-md"
+              onClick={() => {
+                setSelectedReport(null);
+                setIsImageFocused(false);
+              }}
+              className="fixed inset-0 bg-app-bg/75 backdrop-blur-md cursor-pointer"
             />
 
             {/* Modal Card */}
@@ -800,7 +806,7 @@ export default function CitizenDashboard() {
 
               <div className="skew-x-1 sm:skew-x-2 p-5 sm:p-6">
                 
-                {/* Header */}
+                {/* Header (Cleaned: removed repetitive 'x' button) */}
                 <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-3 mb-4">
                   <div className="flex items-center gap-2">
                     <div className={twMerge(
@@ -812,16 +818,8 @@ export default function CitizenDashboard() {
                         {selectedReport.statusLabel}
                       </span>
                     </div>
-                    <span className="text-text-muted text-xs font-mono">{selectedReport.date}</span>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedReport(null)}
-                    className="p-1 rounded-sm text-text-muted hover:text-text-primary hover:bg-surface transition-colors cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <span className="text-text-muted text-xs font-mono">{selectedReport.date}</span>
                 </div>
 
                 {/* Tracking ID with Copy Button */}
@@ -852,25 +850,48 @@ export default function CitizenDashboard() {
                   </button>
                 </div>
 
-                {/* Evidence Image */}
-                <div className="w-full h-48 rounded-sm overflow-hidden border border-border-subtle mb-4 relative bg-black/50">
+                {/* Evidence Image (Clickable for High-Res Focus View) */}
+                <div 
+                  onClick={() => setIsImageFocused(true)}
+                  className="w-full h-48 rounded-sm overflow-hidden border border-border-subtle mb-4 relative bg-black/50 cursor-pointer group/img"
+                  title="Click to view high-resolution photo"
+                >
                   <img 
                     src={selectedReport.image} 
                     alt="Canal Condition"
-                    className="w-full h-full object-cover" 
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover/img:scale-105" 
                   />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-mono font-bold">
+                    <Maximize2 className="w-4 h-4" />
+                    <span>Click to Focus Photo</span>
+                  </div>
                 </div>
 
                 {/* Details Breakdown */}
                 <div className="flex flex-col gap-2.5 text-xs font-mono text-text-secondary mb-5">
-                  <div className="flex items-start gap-2 bg-app-bg/50 p-2.5 rounded-sm border border-border-subtle -skew-x-2">
-                    <MapPin className="w-4 h-4 text-brand-secondary shrink-0 mt-0.5 skew-x-2" />
-                    <div className="skew-x-2">
-                      <div className="text-[10px] text-text-muted uppercase">Canal Location</div>
-                      <div className="font-bold text-text-primary">{selectedReport.location}</div>
+                  {/* Canal Location Row with direct 'View on Map' Action */}
+                  <div className="flex items-center justify-between gap-2 bg-app-bg/50 p-2.5 sm:p-3 rounded-sm border border-border-subtle -skew-x-2">
+                    <div className="flex items-start gap-2 skew-x-2 min-w-0">
+                      <MapPin className="w-4 h-4 text-brand-secondary shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-text-muted uppercase">Canal Location</div>
+                        <div className="font-bold text-text-primary text-xs sm:text-sm truncate">{selectedReport.location}</div>
+                      </div>
                     </div>
+
+                    {typeof selectedReport.latitude === 'number' && typeof selectedReport.longitude === 'number' && (
+                      <Link
+                        to={`/citizen/public-map?lat=${selectedReport.latitude}&lng=${selectedReport.longitude}&ref=${selectedReport.trackingRef}`}
+                        className="skew-x-2 px-2.5 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black border border-brand-primary text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm flex items-center gap-1.5 shrink-0 transition-colors shadow-xs active:scale-95 whitespace-nowrap cursor-pointer"
+                        title="View on Live Basin Map"
+                      >
+                        <Compass className="w-3.5 h-3.5 shrink-0" />
+                        <span>View on Map</span>
+                      </Link>
+                    )}
                   </div>
 
+                  {/* Citizen Notes with Scroll Containment */}
                   {selectedReport.notes && (
                     <div className="bg-app-bg/50 p-2.5 sm:p-3 rounded-sm border border-border-subtle -skew-x-2">
                       <div className="skew-x-2">
@@ -888,12 +909,63 @@ export default function CitizenDashboard() {
                 {/* Close Button */}
                 <button
                   type="button"
-                  onClick={() => setSelectedReport(null)}
-                  className="w-full py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors rounded-sm text-xs font-bold uppercase tracking-wider flex items-center justify-center -skew-x-3 sm:-skew-x-6 cursor-pointer"
+                  onClick={() => {
+                    setSelectedReport(null);
+                    setIsImageFocused(false);
+                  }}
+                  className="w-full py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors rounded-sm text-xs font-bold uppercase tracking-wider flex items-center justify-center -skew-x-3 sm:-skew-x-6 cursor-pointer active:scale-95"
                 >
                   <span className="skew-x-3 sm:skew-x-6">Close Details</span>
                 </button>
 
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 7. Image Focus Lightbox Modal */}
+      <AnimatePresence>
+        {isImageFocused && selectedReport && (
+          <div className="fixed inset-0 z-[1100] flex items-center justify-center p-3 sm:p-6 overflow-hidden">
+            {/* Lightbox Soft Frosted Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsImageFocused(false)}
+              className="fixed inset-0 bg-app-bg/80 backdrop-blur-md cursor-pointer"
+            />
+
+            {/* Focused Image Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="relative z-20 max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3 p-3 sm:p-4 bg-surface/95 border-2 border-brand-primary rounded-sm shadow-2xl -skew-x-1 sm:-skew-x-2"
+            >
+              <div className="skew-x-1 sm:skew-x-2 w-full flex items-center justify-between pb-2 border-b border-border-subtle text-xs font-mono">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="font-bold text-text-primary truncate">{selectedReport.trackingRef}</span>
+                  <span className="text-text-muted hidden sm:inline">• High-Resolution Focus</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsImageFocused(false)}
+                  className="px-2.5 py-1 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                >
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span>Close Focus</span>
+                </button>
+              </div>
+
+              <div className="skew-x-1 sm:skew-x-2 w-full max-h-[75vh] overflow-hidden rounded-sm bg-black/60 flex items-center justify-center">
+                <img 
+                  src={selectedReport.image} 
+                  alt="Full canal evidence" 
+                  className="w-auto h-auto max-w-full max-h-[75vh] object-contain rounded-sm"
+                />
               </div>
             </motion.div>
           </div>

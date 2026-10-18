@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
 
@@ -342,10 +342,24 @@ interface PublicReportItem {
   createdAt: string;
 }
 
+function MapTargetFlyer({ targetLat, targetLng }: { targetLat: number | null; targetLng: number | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (targetLat !== null && targetLng !== null && !isNaN(targetLat) && !isNaN(targetLng)) {
+      map.flyTo([targetLat, targetLng], 16.5, { duration: 1.2 });
+    }
+  }, [targetLat, targetLng, map]);
+  return null;
+}
+
 export type StatusFilterType = 'all' | 'blocked' | 'dispatched' | 'resolved';
 
 export default function PublicEsteroStatusMap() {
   const { theme: globalTheme } = useTheme();
+  const [searchParams] = useSearchParams();
+  const targetLat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : null;
+  const targetLng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : null;
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mapTileType, setMapTileType] = useState<MapTileType>('detailed');
   const [isMapDark, setIsMapDark] = useState<boolean>(globalTheme === 'dark');
@@ -667,14 +681,16 @@ export default function PublicEsteroStatusMap() {
           isMapDark && "dark-map"
         )}>
           <MapContainer
-            center={[10.3157, 123.8854]}
-            zoom={13.5}
+            center={targetLat && targetLng ? [targetLat, targetLng] : [10.3157, 123.8854]}
+            zoom={targetLat && targetLng ? 16 : 13.5}
             scrollWheelZoom={true}
             zoomControl={false}
             attributionControl={false}
             className="w-full h-full z-0"
             ref={mapRef}
           >
+            <MapTargetFlyer targetLat={targetLat} targetLng={targetLng} />
+
             <TileLayer
               key={`${mapTileType}-${isMapDark ? 'dark' : 'light'}`}
               url={getTileUrl(mapTileType)}
