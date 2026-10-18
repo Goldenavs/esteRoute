@@ -375,7 +375,9 @@ export default function PublicEsteroStatusMap() {
 
   // Sync map dark mode when the global navbar theme changes
   useEffect(() => {
-    setIsMapDark(globalTheme === 'dark');
+    queueMicrotask(() => {
+      setIsMapDark(globalTheme === 'dark');
+    });
   }, [globalTheme]);
 
   // Fetch real reports from Supabase with graceful fallback

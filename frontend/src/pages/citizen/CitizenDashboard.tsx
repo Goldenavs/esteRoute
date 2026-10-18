@@ -155,10 +155,14 @@ export default function CitizenDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
 
-  // Reset pagination when filter or sort order changes
-  useEffect(() => {
+  const [prevFilter, setPrevFilter] = useState(filter);
+  const [prevSortOrder, setPrevSortOrder] = useState(sortOrder);
+
+  if (filter !== prevFilter || sortOrder !== prevSortOrder) {
+    setPrevFilter(filter);
+    setPrevSortOrder(sortOrder);
     setCurrentPage(1);
-  }, [filter, sortOrder]);
+  }
 
   // Load reports from Supabase & localStorage tracked references
   useEffect(() => {
@@ -308,7 +312,9 @@ export default function CitizenDashboard() {
       );
       if (matched) {
         hasAutoOpenedRef.current = targetReportRef;
-        setSelectedReport(matched);
+        queueMicrotask(() => {
+          setSelectedReport(matched);
+        });
       }
     }
   }, [targetReportRef, reports]);
