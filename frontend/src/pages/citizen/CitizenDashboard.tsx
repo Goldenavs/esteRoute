@@ -11,8 +11,7 @@ import {
   Check, 
   X, 
   PlusCircle,
-  Truck,
-  Eye
+  Truck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
@@ -366,16 +365,15 @@ export default function CitizenDashboard() {
         {kpiMetrics.map((metric) => {
           const isSelected = filter === metric.filter;
           return (
-            <motion.button
+            <button
               key={metric.label}
               type="button"
-              whileTap={{ scale: 0.98 }}
               onClick={() => setFilter(metric.filter)}
               className={twMerge(
-                "group relative overflow-hidden flex h-10 sm:min-h-[56px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 sm:-skew-x-6 cursor-pointer text-left",
+                "group relative overflow-hidden flex h-10 sm:min-h-[56px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 sm:-skew-x-6 cursor-pointer text-left active:opacity-90",
                 metric.border,
                 isSelected 
-                  ? "ring-1 sm:ring-2 ring-brand-primary opacity-100 z-10 scale-[1.02]" 
+                  ? "ring-1 sm:ring-2 ring-brand-primary opacity-100 z-10 bg-surface/95 shadow-md shadow-brand-primary/20" 
                   : "opacity-85 hover:opacity-100"
               )}
             >
@@ -415,7 +413,7 @@ export default function CitizenDashboard() {
                   {metric.value}
                 </span>
               </div>
-            </motion.button>
+            </button>
           );
         })}
       </motion.div>
@@ -423,13 +421,13 @@ export default function CitizenDashboard() {
       {/* 3. Main Content Area */}
       <div className="w-full flex flex-col gap-6 md:gap-8">
         
-        {/* Featured Case Card (Frosted Glass with BorderBeam Highlight) */}
+        {/* Featured Case Card (Frosted Glass Skewed Container with BorderBeam Highlight) */}
         {featuredReport && filter !== 'resolved' && (
           <motion.div
-            initial={{ opacity: 0, y: 15, scale: 0.99 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="w-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-4 sm:p-6 md:p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group"
+            className="w-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-4 sm:p-6 md:p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-1 sm:-skew-x-2"
           >
             {/* Traveling Highlight Beam */}
             <BorderBeam delay={0} color="#60A5FA" />
@@ -437,7 +435,7 @@ export default function CitizenDashboard() {
             {/* Industrial Left Accent Pillar */}
             <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
 
-            <div className="flex flex-col md:flex-row gap-5 md:gap-8 items-start md:items-center relative z-20">
+            <div className="flex flex-col md:flex-row gap-5 md:gap-8 items-start md:items-center relative z-20 skew-x-1 sm:skew-x-2">
               
               {/* Image Preview with Skewed Badge */}
               <div className="w-full md:w-56 h-48 md:h-40 rounded-sm border-2 border-border-subtle overflow-hidden shrink-0 relative shadow-inner bg-black/40">
@@ -478,15 +476,21 @@ export default function CitizenDashboard() {
                   {featuredReport.trackingRef}
                 </h2>
 
-                <div className="flex items-start gap-2 text-text-secondary mt-1">
-                  <MapPin className="w-4 h-4 text-brand-secondary shrink-0 mt-0.5" />
-                  <span className="font-medium text-xs sm:text-sm line-clamp-1">{featuredReport.location}</span>
+                {/* Skewed Location Box */}
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-bg/60 border border-border-subtle rounded-sm -skew-x-2 self-start mt-0.5">
+                  <MapPin className="w-3.5 h-3.5 text-brand-secondary skew-x-2 shrink-0" />
+                  <span className="skew-x-2 font-mono text-xs text-text-muted">
+                    GPS: {Number(featuredReport.latitude).toFixed(4)}, {Number(featuredReport.longitude).toFixed(4)}
+                  </span>
                 </div>
 
+                {/* Skewed Description Container */}
                 {featuredReport.notes && (
-                  <p className="text-text-muted text-xs line-clamp-2 mt-1 leading-relaxed italic">
-                    "{featuredReport.notes}"
-                  </p>
+                  <div className="mt-1.5 p-2.5 sm:p-3 bg-app-bg/60 border border-border-subtle rounded-sm -skew-x-2 sm:-skew-x-3">
+                    <p className="skew-x-2 sm:skew-x-3 text-text-muted text-xs line-clamp-2 leading-relaxed italic">
+                      "{featuredReport.notes}"
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -535,46 +539,76 @@ export default function CitizenDashboard() {
                     transition={{ duration: 0.35, delay: 0.05 + idx * 0.04 }}
                     whileHover={{ y: -4, transition: { duration: 0.2 } }}
                     onClick={() => setSelectedReport(report)}
-                    className="bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-sm hover:shadow-xl hover:shadow-brand-primary/10 flex flex-col group cursor-pointer relative overflow-hidden"
+                    className="bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-300 rounded-sm p-3.5 sm:p-4 shadow-sm hover:shadow-xl hover:shadow-brand-primary/10 flex flex-col group cursor-pointer relative overflow-hidden -skew-x-1 sm:-skew-x-2"
                   >
                     {/* Subtle Border highlight on hover */}
                     <BorderBeam delay={idx * 1.8} color="#3F72AF" />
 
-                    {/* Header Row */}
-                    <div className="flex items-start justify-between gap-2 mb-3 relative z-20">
-                      <span className={twMerge(
-                        "px-2.5 py-0.5 text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-wider rounded-sm -skew-x-6 border",
-                        getStatusColor(report.status)
-                      )}>
-                        <span className="skew-x-6 flex items-center gap-1.5">
-                          {getStatusIcon(report.status)}
-                          {report.statusLabel}
-                        </span>
-                      </span>
-                      <span className="text-text-muted text-[10px] font-mono">
-                        {report.date.split('•')[0].trim()}
-                      </span>
-                    </div>
+                    <div className="skew-x-1 sm:skew-x-2 flex flex-col flex-1">
+                      
+                      {/* Picture Thumbnail Preview */}
+                      <div className="w-full h-28 sm:h-32 mb-3 rounded-sm border border-border-subtle overflow-hidden relative bg-black/40 shrink-0">
+                        <img 
+                          src={report.image} 
+                          alt="Report preview" 
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/25" />
+                        
+                        {/* Status Pill Badge over Picture */}
+                        <div className="absolute top-2 left-2">
+                          <span className={twMerge(
+                            "px-2 py-0.5 text-[9px] font-mono font-black uppercase tracking-wider rounded-sm -skew-x-6 border shadow-sm backdrop-blur-sm",
+                            getStatusColor(report.status)
+                          )}>
+                            <span className="skew-x-6 flex items-center gap-1">
+                              {getStatusIcon(report.status)}
+                              {report.statusLabel}
+                            </span>
+                          </span>
+                        </div>
 
-                    {/* ID & Notes */}
-                    <div className="relative z-20 mb-3">
-                      <h4 className="text-lg sm:text-xl font-heading font-black tracking-tight text-text-primary group-hover:text-brand-primary transition-colors truncate">
-                        {report.trackingRef}
-                      </h4>
-                      {report.notes && (
-                        <p className="text-text-muted text-[11px] line-clamp-2 mt-1 leading-relaxed">
-                          {report.notes}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Location Pill */}
-                    <div className="mt-auto relative z-20 flex items-center justify-between text-xs text-text-secondary bg-app-bg/60 p-2.5 rounded-sm border border-border-subtle -skew-x-2 group-hover:border-border-strong transition-colors">
-                      <div className="skew-x-2 flex items-center gap-1.5 truncate">
-                        <MapPin className="w-3.5 h-3.5 shrink-0 text-brand-secondary" />
-                        <span className="font-mono text-[10px] truncate">{report.location}</span>
+                        {/* Short Date Badge on Image */}
+                        <div className="absolute bottom-1.5 right-2">
+                          <span className="text-[10px] font-mono text-white/90 bg-black/60 px-1.5 py-0.5 rounded-sm backdrop-blur-xs">
+                            {report.date.split(',')[0]}
+                          </span>
+                        </div>
                       </div>
-                      <Eye className="w-3.5 h-3.5 text-text-muted group-hover:text-brand-primary shrink-0 transition-colors ml-1" />
+
+                      {/* ID Header */}
+                      <div className="mb-2">
+                        <h4 className="text-base sm:text-lg font-heading font-black tracking-tight text-text-primary group-hover:text-brand-primary transition-colors truncate">
+                          {report.trackingRef}
+                        </h4>
+                      </div>
+
+                      {/* Skewed Description Container */}
+                      {report.notes && (
+                        <div className="mb-3 p-2 bg-app-bg/50 border border-border-subtle rounded-sm -skew-x-2">
+                          <p className="skew-x-2 text-text-muted text-[11px] line-clamp-2 leading-relaxed italic">
+                            "{report.notes}"
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Simplified Location & Action Footer */}
+                      <div className="mt-auto flex items-center justify-between text-xs text-text-secondary bg-app-bg/60 p-2 rounded-sm border border-border-subtle -skew-x-2 group-hover:border-border-strong transition-colors">
+                        <div className="skew-x-2 flex items-center gap-1.5 truncate">
+                          <MapPin className="w-3.5 h-3.5 shrink-0 text-brand-secondary" />
+                          <span className="font-mono text-[10px] truncate">
+                            {typeof report.latitude === 'number' && typeof report.longitude === 'number'
+                              ? `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}` 
+                              : report.location.replace('Canal Coordinates: ', '')}
+                          </span>
+                        </div>
+                        <div className="skew-x-2 flex items-center gap-1 text-text-muted group-hover:text-brand-primary text-[10px] font-mono font-bold uppercase transition-colors shrink-0 ml-1">
+                          <span>View</span>
+                          <ChevronRight className="w-3 h-3" />
+                        </div>
+                      </div>
+
                     </div>
                   </motion.div>
                 ))}
@@ -698,8 +732,8 @@ export default function CitizenDashboard() {
                 </div>
 
                 {/* Tracking ID with Copy Button */}
-                <div className="flex items-center justify-between gap-3 bg-app-bg/80 border border-border-subtle p-3 rounded-sm mb-4">
-                  <div>
+                <div className="flex items-center justify-between gap-3 bg-app-bg/80 border border-border-subtle p-3 rounded-sm mb-4 -skew-x-2">
+                  <div className="skew-x-2">
                     <div className="text-[9px] font-mono uppercase tracking-widest text-text-muted">Tracking Code</div>
                     <div className="text-lg sm:text-xl font-heading font-black tracking-wider text-text-primary">
                       {selectedReport.trackingRef}
@@ -709,7 +743,7 @@ export default function CitizenDashboard() {
                   <button
                     type="button"
                     onClick={() => handleCopy(selectedReport.trackingRef)}
-                    className="px-3 py-1.5 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95"
+                    className="skew-x-2 px-3 py-1.5 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95"
                   >
                     {copiedId === selectedReport.trackingRef ? (
                       <>
@@ -736,20 +770,22 @@ export default function CitizenDashboard() {
 
                 {/* Details Breakdown */}
                 <div className="flex flex-col gap-2.5 text-xs font-mono text-text-secondary mb-5">
-                  <div className="flex items-start gap-2 bg-app-bg/50 p-2.5 rounded-sm border border-border-subtle">
-                    <MapPin className="w-4 h-4 text-brand-secondary shrink-0 mt-0.5" />
-                    <div>
+                  <div className="flex items-start gap-2 bg-app-bg/50 p-2.5 rounded-sm border border-border-subtle -skew-x-2">
+                    <MapPin className="w-4 h-4 text-brand-secondary shrink-0 mt-0.5 skew-x-2" />
+                    <div className="skew-x-2">
                       <div className="text-[10px] text-text-muted uppercase">Canal Location</div>
                       <div className="font-bold text-text-primary">{selectedReport.location}</div>
                     </div>
                   </div>
 
                   {selectedReport.notes && (
-                    <div className="bg-app-bg/50 p-2.5 rounded-sm border border-border-subtle">
-                      <div className="text-[10px] text-text-muted uppercase mb-1">Citizen Notes</div>
-                      <p className="font-sans text-xs text-text-primary leading-relaxed italic">
-                        "{selectedReport.notes}"
-                      </p>
+                    <div className="bg-app-bg/50 p-2.5 rounded-sm border border-border-subtle -skew-x-2">
+                      <div className="skew-x-2">
+                        <div className="text-[10px] text-text-muted uppercase mb-1">Citizen Notes</div>
+                        <p className="font-sans text-xs text-text-primary leading-relaxed italic">
+                          "{selectedReport.notes}"
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

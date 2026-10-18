@@ -592,16 +592,15 @@ export default function PublicEsteroStatusMap() {
           {kpiMetrics.map((metric) => {
             const isSelected = statusFilter === metric.filter;
             return (
-              <motion.button
+              <button
                 key={metric.label}
                 type="button"
-                whileTap={{ scale: 0.98 }}
                 onClick={() => setStatusFilter(metric.filter)}
                 className={twMerge(
-                  "group relative overflow-hidden flex h-10 sm:min-h-[56px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 sm:-skew-x-6 cursor-pointer text-left",
+                  "group relative overflow-hidden flex h-10 sm:min-h-[56px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 sm:-skew-x-6 cursor-pointer text-left active:opacity-90",
                   metric.border,
                   isSelected 
-                    ? "ring-1 sm:ring-2 ring-brand-primary opacity-100 z-10 scale-[1.02]" 
+                    ? "ring-1 sm:ring-2 ring-brand-primary opacity-100 z-10 bg-surface/95 shadow-md shadow-brand-primary/20" 
                     : "opacity-85 hover:opacity-100"
                 )}
               >
@@ -641,7 +640,7 @@ export default function PublicEsteroStatusMap() {
                     {metric.value}
                   </span>
                 </div>
-              </motion.button>
+              </button>
             );
           })}
         </motion.div>
