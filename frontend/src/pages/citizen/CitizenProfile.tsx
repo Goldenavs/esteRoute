@@ -14,7 +14,11 @@ import {
   Check,
   Sparkles,
   Mail,
-  Cpu
+  Cpu,
+  X,
+  Eye,
+  EyeOff,
+  KeyRound
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
@@ -125,6 +129,15 @@ export default function CitizenProfile() {
   const [pushNotifications, setPushNotifications] = useState(() => {
     return localStorage.getItem('esteroute_pref_push') !== 'false';
   });
+
+  // Change Password Modal State
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   // Toast Notification State
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -429,7 +442,55 @@ export default function CitizenProfile() {
     }
   };
 
-  // 4. Handle Sign Out
+  // 4. Handle Change Password for Signed-in User
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    if (profile.isGuest) {
+      setPasswordError('Guest reporters cannot set or change passwords. Please register an account.');
+      return;
+    }
+
+    if (!newPassword || !confirmPassword) {
+      setPasswordError('Please fill in both password fields.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match. Please verify and try again.');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setIsPasswordModalOpen(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      showToast('Password updated successfully!', 'success');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to update password.';
+      console.error('Password update error:', err);
+      setPasswordError(errorMsg);
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  // 5. Handle Sign Out
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -481,6 +542,175 @@ export default function CitizenProfile() {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Change Password Modal */}
+      <AnimatePresence>
+        {isPasswordModalOpen && (
+          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => !isUpdatingPassword && setIsPasswordModalOpen(false)}
+              className="fixed inset-0 bg-black/75 backdrop-blur-xs"
+            />
+
+            {/* Modal Dialog */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="relative w-full max-w-md z-10 -skew-x-2 sm:-skew-x-3"
+            >
+              <div className="w-full bg-surface border-2 border-brand-primary/60 rounded-sm p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+                <BorderBeam delay={0} color="#60A5FA" />
+                <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
+                
+                {/* Upright Content Wrapper */}
+                <div className="skew-x-2 sm:skew-x-3 relative z-10 font-sans">
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-border-subtle">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
+                        <Lock className="w-4 h-4 skew-x-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-heading font-bold uppercase tracking-wider text-text-primary">
+                          Change Password
+                        </h3>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          Update credentials for your citizen account
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => !isUpdatingPassword && setIsPasswordModalOpen(false)}
+                      disabled={isUpdatingPassword}
+                      className="p-1 text-text-muted hover:text-text-primary rounded-sm transition-colors cursor-pointer hover:bg-app-bg"
+                      title="Close"
+                      aria-label="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Error Notification */}
+                  {passwordError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-4 p-3 rounded-sm bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-start gap-2"
+                    >
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{passwordError}</span>
+                    </motion.div>
+                  )}
+
+                  {/* Password Form */}
+                  <form onSubmit={handleChangePassword} className="space-y-4">
+                    {/* New Password */}
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="new-password" className="text-xs font-medium text-text-secondary">
+                        New Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="new-password"
+                          type={showNewPassword ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="At least 6 characters"
+                          required
+                          minLength={6}
+                          disabled={isUpdatingPassword}
+                          className="w-full bg-app-bg border border-border-strong rounded-sm pl-3.5 pr-10 py-2.5 text-text-primary text-sm font-sans focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                          title={showNewPassword ? 'Hide password' : 'Show password'}
+                          aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm New Password */}
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="confirm-new-password" className="text-xs font-medium text-text-secondary">
+                        Confirm New Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="confirm-new-password"
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Re-enter new password"
+                          required
+                          minLength={6}
+                          disabled={isUpdatingPassword}
+                          className="w-full bg-app-bg border border-border-strong rounded-sm pl-3.5 pr-10 py-2.5 text-text-primary text-sm font-sans focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                          title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                          aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-text-muted font-sans leading-normal">
+                      Must contain at least 6 characters. Your current session will remain authenticated.
+                    </p>
+
+                    {/* Modal Actions */}
+                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-border-subtle mt-5">
+                      <button
+                        type="button"
+                        onClick={() => setIsPasswordModalOpen(false)}
+                        disabled={isUpdatingPassword}
+                        className="px-4 py-2 border border-border-strong rounded-sm text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-app-bg transition-colors cursor-pointer -skew-x-3 sm:-skew-x-6"
+                      >
+                        <span className="skew-x-3 sm:skew-x-6 block">Cancel</span>
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={isUpdatingPassword}
+                        className="px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
+                      >
+                        {isUpdatingPassword ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin skew-x-3 sm:skew-x-6" />
+                            <span className="skew-x-3 sm:skew-x-6">Updating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3.5 h-3.5 skew-x-3 sm:skew-x-6" />
+                            <span className="skew-x-3 sm:skew-x-6">Update Password</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -1035,15 +1265,30 @@ export default function CitizenProfile() {
                     </div>
 
                     <div className="flex flex-col gap-3 font-sans">
-                      <Link 
-                        to="/recovery"
-                        className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary transition-colors bg-app-bg/60 text-left group/sec cursor-pointer shadow-xs"
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          if (profile.isGuest) {
+                            showToast('Guest accounts do not have a password. Please register an account.', 'error');
+                            return;
+                          }
+                          setPasswordError('');
+                          setNewPassword('');
+                          setConfirmPassword('');
+                          setShowNewPassword(false);
+                          setShowConfirmPassword(false);
+                          setIsPasswordModalOpen(true);
+                        }}
+                        className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary transition-colors bg-app-bg/60 text-left group/sec cursor-pointer shadow-xs w-full"
                       >
-                        <span className="text-xs sm:text-sm font-medium text-text-primary group-hover/sec:text-brand-primary transition-colors">
-                          Password Recovery
-                        </span>
+                        <div className="flex items-center gap-2.5">
+                          <KeyRound className="w-4 h-4 text-brand-primary/80 group-hover/sec:text-brand-primary transition-colors" />
+                          <span className="text-xs sm:text-sm font-medium text-text-primary group-hover/sec:text-brand-primary transition-colors">
+                            Change Password
+                          </span>
+                        </div>
                         <ChevronRight className="w-4 h-4 text-text-muted group-hover/sec:text-brand-primary transition-colors" />
-                      </Link>
+                      </button>
 
                       <button 
                         type="button"
