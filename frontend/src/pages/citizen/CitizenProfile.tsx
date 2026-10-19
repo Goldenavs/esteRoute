@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useId } from 'react';
 import { 
-  Shield, 
   Award, 
   User, 
   Camera, 
@@ -14,8 +13,6 @@ import {
   Check,
   Sparkles,
   Mail,
-  QrCode,
-  Wifi,
   Cpu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -416,7 +413,7 @@ export default function CitizenProfile() {
         className="hidden"
       />
 
-      {/* 1. Header (Standardized Hero with Natural Typography & Cyber Skews) */}
+      {/* 1. Header (Standardized Hero with Natural Typography matching other screens) */}
       <motion.div 
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -424,18 +421,10 @@ export default function CitizenProfile() {
         className="shrink-0 mb-4 sm:mb-6 flex items-center justify-between gap-3"
       >
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-mono font-bold uppercase tracking-wider -skew-x-6 shadow-xs">
-              <span className="skew-x-6 flex items-center gap-1">
-                <Shield className="w-3 h-3" />
-                Citizen Portal
-              </span>
-            </span>
-          </div>
-          <h1 className="text-xl sm:text-2xl md:text-4xl font-heading font-bold tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4 truncate">
+          <h1 className="text-xl sm:text-2xl md:text-5xl font-heading font-black tracking-tight text-text-primary mb-0 md:mb-3 border-l-4 border-brand-primary pl-3 md:pl-4 truncate">
             Account Profile
           </h1>
-          <p className="hidden md:block text-text-muted text-xs sm:text-sm pl-4 md:pl-5 mt-1 font-sans">
+          <p className="hidden md:block text-text-muted text-sm md:text-lg pl-4 md:pl-5 mt-1 font-sans">
             Manage your verified citizen credentials, civic credits, and notification settings.
           </p>
         </div>
@@ -566,19 +555,6 @@ export default function CitizenProfile() {
                 <p className="text-text-muted text-xs mt-1 font-sans text-center">
                   {profile.email ? profile.email : profile.isGuest ? 'Anonymous Session' : '+63 ' + (profile.phone || '9XX XXX XXXX')}
                 </p>
-                
-                {/* Reporter Status Badge */}
-                <div className={twMerge(
-                  "mt-4 w-full flex items-center justify-center gap-2 border px-3.5 py-1.5 rounded-sm -skew-x-3 transition-colors shadow-xs",
-                  profile.isGuest 
-                    ? "bg-amber-500/10 border-amber-500/30 text-amber-500" 
-                    : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                )}>
-                  <Shield className="w-3.5 h-3.5 skew-x-3" />
-                  <span className="skew-x-3 text-xs font-semibold uppercase tracking-wider font-sans">
-                    {profile.isGuest ? 'Guest Reporter' : 'Verified Civic Steward'}
-                  </span>
-                </div>
               </div>
             </div>
           </motion.div>
@@ -599,49 +575,33 @@ export default function CitizenProfile() {
               
               <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10 gap-5">
                 
-                {/* 1. Official Smart Card Header & Gold Microchip */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between border-b border-border-subtle/80 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-3.5 h-3.5 text-brand-primary" />
-                      <span className="text-[10px] font-mono font-bold tracking-widest text-text-secondary uppercase">
-                        CIVIC CREDENTIAL PASS
-                      </span>
+                {/* 1. Smart Microchip & Civic ID Header */}
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-3">
+                    {/* Realistic Metallic Gold Contact Pad / Smart Microchip */}
+                    <div className="w-11 h-8 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
+                      <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
+                        <div className="border-r border-b border-amber-800/50" />
+                        <div className="border-b border-amber-800/50" />
+                        <div className="border-r border-amber-800/50" />
+                        <div />
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none" />
                     </div>
-                    <div className="flex items-center gap-1.5 text-brand-secondary">
-                      <Wifi className="w-3.5 h-3.5 rotate-90 animate-pulse" />
-                      <span className="text-[9px] font-mono font-bold tracking-wider uppercase">NFC READY</span>
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted block">
+                        STEWARD REGISTRY ID
+                      </span>
+                      <p className="text-base sm:text-lg font-mono font-bold text-text-primary tracking-widest">
+                        {profile.isGuest 
+                          ? 'EST-GUEST-SYS' 
+                          : `EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Microchip Graphic & Civic ID */}
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center gap-3">
-                      {/* Realistic Metallic Gold Contact Pad / Smart Microchip */}
-                      <div className="w-11 h-8 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
-                        <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
-                          <div className="border-r border-b border-amber-800/50" />
-                          <div className="border-b border-amber-800/50" />
-                          <div className="border-r border-amber-800/50" />
-                          <div />
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted block">
-                          STEWARD REGISTRY ID
-                        </span>
-                        <p className="text-base sm:text-lg font-mono font-bold text-text-primary tracking-widest">
-                          {profile.isGuest 
-                            ? 'EST-GUEST-SYS' 
-                            : `EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="p-1.5 bg-brand-primary/10 border border-brand-primary/20 rounded-sm -skew-x-6 text-brand-primary shadow-xs">
-                      <Cpu className="w-4 h-4 skew-x-6" />
-                    </div>
+                  <div className="p-1.5 bg-brand-primary/10 border border-brand-primary/20 rounded-sm -skew-x-6 text-brand-primary shadow-xs">
+                    <Cpu className="w-4 h-4 skew-x-6" />
                   </div>
                 </div>
 
@@ -666,9 +626,6 @@ export default function CitizenProfile() {
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       Level 1 Contributor
                     </span>
-                    <span className="block text-[10px] font-mono text-text-muted mt-1">
-                      Civic Tier 1 • Verified
-                    </span>
                   </div>
                 </div>
 
@@ -689,19 +646,9 @@ export default function CitizenProfile() {
                   </div>
                 </div>
 
-                {/* 4. Digital Security Strip & Barcode Footer */}
-                <div className="pt-3 border-t border-border-subtle/70 flex flex-col gap-2 mt-auto">
-                  <div className="flex items-center justify-between text-[10px] font-mono text-text-muted">
-                    <span className="flex items-center gap-1.5 tracking-wider text-text-secondary">
-                      <QrCode className="w-3.5 h-3.5 text-brand-primary" />
-                      EST-ENCRYPTED-V2
-                    </span>
-                    <span className="text-brand-secondary font-medium uppercase tracking-wider">
-                      Municipal Verified
-                    </span>
-                  </div>
-
-                  {/* Micro Barcode Aesthetic Strip */}
+                {/* 4. Digital Security Strip Footer */}
+                <div className="pt-3 border-t border-border-subtle/70 mt-auto">
+                  {/* Micro Barcode Strip */}
                   <div className="w-full flex items-center justify-between h-3.5 opacity-60 overflow-hidden px-0.5">
                     {[4, 2, 6, 2, 8, 3, 5, 2, 7, 4, 3, 8, 2, 5, 3, 7, 2, 6, 4, 8, 2, 5, 3, 6, 2, 7, 4, 2, 5, 8, 3, 6, 2, 4, 7, 3, 5, 2, 6, 4, 8, 2].map((height, i) => (
                       <span 
@@ -743,11 +690,6 @@ export default function CitizenProfile() {
                       Personal Information
                     </h2>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-bg/60 border border-border-subtle rounded-sm -skew-x-3 shadow-xs">
-                    <span className="skew-x-3 text-xs text-text-muted font-sans">
-                      {profile.isGuest ? 'Guest Access' : 'Synchronized with Supabase'}
-                    </span>
-                  </div>
                 </div>
                 
                 <form onSubmit={handleSaveChanges}>
@@ -784,14 +726,9 @@ export default function CitizenProfile() {
 
                     {/* Email Address (Read-only / Auth-managed) */}
                     <div className="flex flex-col gap-1.5 md:col-span-2">
-                      <div className="flex items-center justify-between">
-                        <label htmlFor="profile-email" className="text-xs sm:text-sm font-medium text-text-secondary">
-                          Registered Email
-                        </label>
-                        <span className="text-[11px] font-mono text-text-muted bg-app-bg/80 px-2 py-0.5 rounded-sm border border-border-subtle -skew-x-3">
-                          <span className="skew-x-3 block">Managed via Auth</span>
-                        </span>
-                      </div>
+                      <label htmlFor="profile-email" className="text-xs sm:text-sm font-medium text-text-secondary">
+                        Registered Email
+                      </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted z-10">
                           <Mail className="w-4 h-4" />
@@ -880,9 +817,6 @@ export default function CitizenProfile() {
                         </div>
                         <span>Notifications</span>
                       </h2>
-                      <span className="text-[10px] font-mono font-bold text-brand-secondary bg-brand-secondary/10 px-2 py-0.5 rounded-sm border border-brand-secondary/20 -skew-x-3 shadow-xs">
-                        <span className="skew-x-3 block">Realtime</span>
-                      </span>
                     </div>
 
                     <div className="flex flex-col gap-3 font-sans">
@@ -913,14 +847,6 @@ export default function CitizenProfile() {
                       </label>
                     </div>
                   </div>
-
-                  <div className="mt-4 pt-3 border-t border-border-subtle/60 flex items-center justify-between text-xs font-sans text-text-muted">
-                    <span>Dispatch Alerts</span>
-                    <span className="text-emerald-400 font-medium flex items-center gap-1.5">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Active
-                    </span>
-                  </div>
                 </div>
               </div>
             </motion.div>
@@ -945,9 +871,6 @@ export default function CitizenProfile() {
                         </div>
                         <span>Security & Session</span>
                       </h2>
-                      <span className="text-[10px] font-mono font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-sm border border-brand-primary/20 -skew-x-3 shadow-xs">
-                        <span className="skew-x-3 block">TLS 256</span>
-                      </span>
                     </div>
 
                     <div className="flex flex-col gap-3 font-sans">
@@ -972,11 +895,6 @@ export default function CitizenProfile() {
                         <LogOut className="w-4 h-4 text-semantic-urgent/70 group-hover/sec:text-semantic-urgent transition-colors" />
                       </button>
                     </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-border-subtle/60 flex items-center justify-between text-xs font-sans text-text-muted">
-                    <span>esteRoute Public Portal v2.0</span>
-                    <span className="text-brand-primary font-medium">Encrypted Session</span>
                   </div>
                 </div>
               </div>
