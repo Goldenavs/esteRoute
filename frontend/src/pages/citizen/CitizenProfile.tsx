@@ -1,145 +1,851 @@
-import { Shield, Award, User, Camera, CheckCircle2, Bell, LogOut, Lock, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef, useId } from 'react';
+import { 
+  Shield, 
+  Award, 
+  User, 
+  Camera, 
+  CheckCircle2, 
+  Bell, 
+  LogOut, 
+  Lock, 
+  ChevronRight, 
+  Loader2, 
+  AlertCircle,
+  Check,
+  Sparkles,
+  Mail
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, Link } from 'react-router-dom';
+import { twMerge } from 'tailwind-merge';
+import { supabase } from '../../lib/supabase';
+
+// Subtle, eye-friendly traveling perimeter highlight matching esteRoute cards
+const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
+  const id = useId();
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-sm z-10">
+      <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#3F72AF" stopOpacity="0" />
+            <stop offset="50%" stopColor={color} stopOpacity="0.85" />
+            <stop offset="100%" stopColor="#3F72AF" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <motion.rect
+          x="1"
+          y="1"
+          width="calc(100% - 2px)"
+          height="calc(100% - 2px)"
+          rx="2"
+          fill="none"
+          stroke={`url(#${id})`}
+          strokeWidth="2.5"
+          strokeDasharray="140 1200"
+          animate={{
+            strokeDashoffset: [1340, 0],
+          }}
+          transition={{
+            duration: 9,
+            delay,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        />
+      </svg>
+    </div>
+  );
+};
+
+interface CitizenProfileData {
+  id: string;
+  fullName: string;
+  avatarUrl: string;
+  stewardshipScore: number;
+  role: string;
+  phone: string;
+  email: string;
+  totalReportsCount: number;
+  resolvedReportsCount: number;
+  isGuest: boolean;
+}
 
 export default function CitizenProfile() {
-  return (
-    <div className="w-full h-full flex flex-col pb-10">
-      
-      <div className="mb-8 md:mb-12 max-w-3xl">
-        <h1 className="text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary mb-3 border-l-4 border-brand-primary pl-4">Account Profile</h1>
-        <p className="text-text-muted text-sm md:text-lg pl-5">Manage your identity, settings, and civic stewardship score. Verified accounts help LGUs prioritize reports faster.</p>
-      </div>
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-      <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+  // Profile and Auth States
+  const [profile, setProfile] = useState<CitizenProfileData>({
+    id: '',
+    fullName: '',
+    avatarUrl: '',
+    stewardshipScore: 0,
+    role: 'citizen',
+    phone: '',
+    email: '',
+    totalReportsCount: 0,
+    resolvedReportsCount: 0,
+    isGuest: false,
+  });
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  // Form Fields
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+
+  // Preference Toggles (Local Storage Persisted)
+  const [smsUpdates, setSmsUpdates] = useState(() => {
+    return localStorage.getItem('esteroute_pref_sms') !== 'false';
+  });
+  const [pushNotifications, setPushNotifications] = useState(() => {
+    return localStorage.getItem('esteroute_pref_push') !== 'false';
+  });
+
+  // Toast Notification State
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
+
+  // 1. Fetch User Session & Profile Data from Supabase
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCitizenProfile() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // Count reports tracked by this user in localStorage and database
+        const savedTrackingRefs: string[] = JSON.parse(localStorage.getItem('esteroute_my_reports') || '[]');
+
+        if (!user) {
+          // Guest User State
+          let guestTotalReports = savedTrackingRefs.length;
+          let guestResolvedReports = 0;
+
+          if (savedTrackingRefs.length > 0) {
+            const { data: guestReports } = await supabase
+              .from('reports')
+              .select('status')
+              .in('tracking_reference', savedTrackingRefs);
+            
+            if (guestReports) {
+              guestTotalReports = guestReports.length;
+              guestResolvedReports = guestReports.filter(r => r.status === 'resolved').length;
+            }
+          }
+
+          if (isMounted) {
+            setProfile({
+              id: 'guest',
+              fullName: 'Guest Reporter',
+              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300',
+              stewardshipScore: guestResolvedReports * 50 + guestTotalReports * 10,
+              role: 'citizen',
+              phone: '',
+              email: '',
+              totalReportsCount: guestTotalReports,
+              resolvedReportsCount: guestResolvedReports,
+              isGuest: true,
+            });
+            setFirstName('Guest');
+            setLastName('Reporter');
+            setPhoneNumber('');
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        // Authenticated User State: Query 'profiles' table
+        const { data: profileRow, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url, stewardship_score, role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.warn('Profile fetch note:', profileError.message);
+        }
+
+        // Parse Name
+        const resolvedFullName = profileRow?.full_name || user.user_metadata?.full_name || 'Citizen Reporter';
+        const nameParts = resolvedFullName.trim().split(' ');
+        const initialFirst = nameParts[0] || '';
+        const initialLast = nameParts.slice(1).join(' ') || '';
+
+        // Extract Phone (from user metadata or auth)
+        const initialPhone = (user.phone || user.user_metadata?.phone || '').replace(/^\+?63/, '').trim();
+
+        // Query user's actual submitted reports from 'reports' table
+        let userTotalReports = 0;
+        let userResolvedReports = 0;
+
+        let reportsQuery = supabase
+          .from('reports')
+          .select('status, reporter_id, tracking_reference');
+
+        if (savedTrackingRefs.length > 0) {
+          reportsQuery = reportsQuery.or(`reporter_id.eq.${user.id},tracking_reference.in.(${savedTrackingRefs.map(ref => `"${ref}"`).join(',')})`);
+        } else {
+          reportsQuery = reportsQuery.eq('reporter_id', user.id);
+        }
+
+        const { data: userReports } = await reportsQuery;
+
+        if (userReports) {
+          userTotalReports = userReports.length;
+          userResolvedReports = userReports.filter(r => r.status === 'resolved').length;
+        }
+
+        const calculatedScore = profileRow?.stewardship_score ?? (userResolvedReports * 50 + userTotalReports * 15);
+
+        if (isMounted) {
+          setProfile({
+            id: user.id,
+            fullName: resolvedFullName,
+            avatarUrl: profileRow?.avatar_url || user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=300',
+            stewardshipScore: calculatedScore,
+            role: profileRow?.role || 'citizen',
+            phone: initialPhone,
+            email: user.email || '',
+            totalReportsCount: userTotalReports,
+            resolvedReportsCount: userResolvedReports,
+            isGuest: false,
+          });
+
+          setFirstName(initialFirst);
+          setLastName(initialLast);
+          setPhoneNumber(initialPhone);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error('Error loading profile:', err);
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadCitizenProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Save Personal Information to Supabase
+  const handleSaveChanges = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (profile.isGuest) {
+      showToast('Create a free account to persist and sync your profile information.', 'error');
+      return;
+    }
+
+    const compiledFullName = `${firstName.trim()} ${lastName.trim()}`.trim() || 'Citizen Reporter';
+
+    setIsSaving(true);
+    try {
+      // Update 'profiles' table
+      const { error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: compiledFullName,
+        })
+        .eq('id', profile.id);
+
+      if (profileUpdateError) {
+        throw profileUpdateError;
+      }
+
+      // Update user metadata in auth
+      await supabase.auth.updateUser({
+        data: {
+          full_name: compiledFullName,
+          phone: phoneNumber.trim() ? `+63${phoneNumber.trim()}` : '',
+        },
+      });
+
+      setProfile(prev => ({
+        ...prev,
+        fullName: compiledFullName,
+        phone: phoneNumber.trim(),
+      }));
+
+      showToast('Profile updated successfully!', 'success');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Could not save profile changes.';
+      console.error('Update profile error:', err);
+      showToast(errorMsg, 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 3. Upload & Update Avatar in Supabase Storage
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (profile.isGuest) {
+      showToast('Please sign in or register to customize your avatar.', 'error');
+      return;
+    }
+
+    // Limit image size to 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image file must be under 5MB.', 'error');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
+      const filePath = `user-avatars/${fileName}`;
+
+      // Upload to 'avatars' storage bucket
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const publicAvatarUrl = urlData.publicUrl;
+
+      // Update profiles table
+      const { error: updateProfileError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicAvatarUrl })
+        .eq('id', profile.id);
+
+      if (updateProfileError) {
+        throw updateProfileError;
+      }
+
+      setProfile(prev => ({ ...prev, avatarUrl: publicAvatarUrl }));
+      showToast('Profile photo updated successfully!', 'success');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to upload photo.';
+      console.error('Upload avatar error:', err);
+      showToast(errorMsg, 'error');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // 4. Handle Sign Out
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/login');
+    } catch (err) {
+      console.error('Sign out error:', err);
+      navigate('/login');
+    }
+  };
+
+  // 5. Toggle Notification Preferences
+  const handleToggleSms = (val: boolean) => {
+    setSmsUpdates(val);
+    localStorage.setItem('esteroute_pref_sms', String(val));
+    showToast(`SMS updates ${val ? 'enabled' : 'disabled'}.`);
+  };
+
+  const handleTogglePush = (val: boolean) => {
+    setPushNotifications(val);
+    localStorage.setItem('esteroute_pref_push', String(val));
+    showToast(`Push notifications ${val ? 'enabled' : 'disabled'}.`);
+  };
+
+  return (
+    <div className="w-full flex-1 flex flex-col pb-12">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: -20, x: "-50%" }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-6 left-1/2 z-[300] pointer-events-none"
+          >
+            <div className={twMerge(
+              "text-white px-5 py-3 rounded-sm shadow-2xl border-b-4 -skew-x-3 sm:-skew-x-6 flex items-center gap-3 font-mono font-bold tracking-wider text-xs sm:text-sm",
+              toast.type === 'success' 
+                ? "bg-brand-primary border-brand-secondary shadow-brand-primary/30" 
+                : "bg-semantic-urgent border-red-950 shadow-red-900/30"
+            )}>
+              <div className="skew-x-3 sm:skew-x-6 flex items-center gap-2">
+                {toast.type === 'success' ? (
+                  <Check className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-white" />
+                )}
+                <span>{toast.message}</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hidden File Input for Avatar Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleAvatarFileChange}
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+      />
+
+      {/* 1. Header (Exact Map & My Reports Standardized Hero) */}
+      <motion.div 
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="shrink-0 mb-4 sm:mb-6 flex items-center justify-between gap-3"
+      >
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4 truncate">
+            Account Profile
+          </h1>
+          <p className="hidden md:block text-text-muted text-xs md:text-sm pl-5 mt-1">
+            Manage your verified citizen credentials, civic credits, and notification settings.
+          </p>
+        </div>
+
+        {/* Quick Link to My Reports */}
+        <Link
+          to="/citizen/dashboard"
+          className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-3 sm:px-4 py-2 sm:py-2.5 rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-md shrink-0 active:scale-95 cursor-pointer whitespace-nowrap"
+        >
+          <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 skew-x-3 sm:skew-x-6 shrink-0" />
+          <span className="skew-x-3 sm:skew-x-6 hidden xs:inline">My Submissions</span>
+          <span className="skew-x-3 sm:skew-x-6 xs:hidden">Reports</span>
+        </Link>
+      </motion.div>
+
+      {/* Guest Notice Banner if Not Signed In */}
+      {profile.isGuest && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 bg-surface/85 backdrop-blur-md border border-brand-primary/40 rounded-sm p-4 sm:p-5 -skew-x-2 relative overflow-hidden shadow-md"
+        >
+          <div className="skew-x-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-brand-primary/20 text-brand-primary rounded-sm shrink-0">
+                <Sparkles className="w-5 h-5 text-brand-secondary" />
+              </div>
+              <div>
+                <h2 className="text-xs sm:text-sm font-heading font-bold text-text-primary uppercase tracking-wide">
+                  Guest Session Active
+                </h2>
+                <p className="text-xs text-text-muted mt-0.5 font-mono">
+                  You are browsing as a guest. Create a free account or sign in to save your personal details and sync civic rewards.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              <Link
+                to="/login"
+                className="w-full sm:w-auto px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-mono font-bold text-xs uppercase tracking-wider rounded-sm transition-colors text-center shadow-xs"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/register"
+                className="w-full sm:w-auto px-4 py-2 bg-surface hover:bg-surface/80 border border-border-strong text-text-primary font-mono font-bold text-xs uppercase tracking-wider rounded-sm transition-colors text-center"
+              >
+                Register
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* 2. Main Profile Grid */}
+      <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         
-        {/* Left Column (Identity & Civic ID) */}
+        {/* Left Column (Identity & Civic Credentials) */}
         <div className="lg:col-span-4 flex flex-col gap-6">
           
           {/* Identity Card */}
-          <div className="w-full bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-lg flex flex-col items-center text-center relative overflow-hidden group -skew-x-[2deg]">
-            <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-brand-primary/20 to-brand-secondary/10"></div>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.05 }}
+            className="w-full bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300 relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
+          >
+            <BorderBeam delay={0} color="#60A5FA" />
+            <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
+            <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-brand-primary/20 via-brand-secondary/10 to-transparent pointer-events-none" />
             
             {/* Unskew wrapper for content */}
-            <div className="skew-x-[2deg] flex flex-col items-center w-full z-10">
+            <div className="skew-x-2 sm:skew-x-3 flex flex-col items-center w-full z-10 relative">
               {/* Profile Picture */}
-              <div className="relative mt-6 mb-4">
-                <div className="w-32 h-32 rounded-full border-4 border-surface shadow-xl overflow-hidden relative z-10 bg-app-bg">
-                  <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=300')" }}></div>
+              <div className="relative mt-2 mb-4 group/avatar">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-surface shadow-2xl overflow-hidden relative z-10 bg-app-bg">
+                  {isLoading ? (
+                    <div className="w-full h-full flex items-center justify-center bg-surface">
+                      <Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
+                    </div>
+                  ) : (
+                    <img 
+                      src={profile.avatarUrl} 
+                      alt={profile.fullName}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover/avatar:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=300';
+                      }}
+                    />
+                  )}
+
+                  {isUploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-white">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  )}
                 </div>
-                <button className="absolute bottom-0 right-0 z-20 p-2.5 bg-brand-primary text-white rounded-full shadow-lg hover:scale-110 transition-transform">
+
+                {/* Change Avatar Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  className="absolute bottom-0 right-0 z-20 p-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer border-2 border-surface"
+                  title="Upload profile photo"
+                  aria-label="Upload profile photo"
+                >
                   <Camera className="w-4 h-4" />
                 </button>
               </div>
 
-              <h2 className="text-2xl font-heading font-black text-text-primary flex items-center gap-2 justify-center">
-                Aling Nena <CheckCircle2 className="w-5 h-5 text-brand-primary" />
+              {/* Citizen Name & Verification Badge */}
+              <h2 className="text-xl sm:text-2xl font-heading font-black text-text-primary flex items-center gap-2 justify-center text-center">
+                <span>{profile.fullName || 'Citizen Reporter'}</span>
+                {!profile.isGuest && (
+                  <span title="Verified Reporter" className="inline-flex items-center">
+                    <CheckCircle2 className="w-5 h-5 text-brand-primary shrink-0" />
+                  </span>
+                )}
               </h2>
-              <p className="text-text-muted font-mono mt-1 tracking-widest">+63 917 123 4567</p>
+
+              <p className="text-text-muted font-mono text-xs mt-1 tracking-wider text-center">
+                {profile.email ? profile.email : profile.isGuest ? 'Anonymous Session' : '+63 ' + (profile.phone || '9XX XXX XXXX')}
+              </p>
               
-              <div className="mt-6 w-full flex items-center justify-center gap-2 bg-green-500/10 border border-green-500/20 text-green-600 px-4 py-2 rounded-sm -skew-x-6">
-                <Shield className="w-4 h-4 skew-x-6" />
-                <span className="skew-x-6 text-xs font-bold uppercase tracking-widest">Verified Reporter</span>
+              {/* Reporter Status Badge */}
+              <div className={twMerge(
+                "mt-5 w-full flex items-center justify-center gap-2 border px-4 py-2 rounded-sm -skew-x-3 transition-colors",
+                profile.isGuest 
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-500" 
+                  : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+              )}>
+                <Shield className="w-4 h-4 skew-x-3" />
+                <span className="skew-x-3 text-xs font-mono font-bold uppercase tracking-widest">
+                  {profile.isGuest ? 'Guest Reporter' : 'Verified Civic Steward'}
+                </span>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Civic ID Card */}
-          <div className="w-full bg-surface border border-border-strong rounded-sm p-6 shadow-xl relative overflow-hidden -skew-x-[2deg]">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 rounded-bl-full pointer-events-none transition-transform duration-700 group-hover:scale-125"></div>
-            
-            <div className="skew-x-[2deg] flex flex-col gap-6 relative z-10">
-              <div className="flex items-center justify-between">
+          {/* Civic Stewardship & Stats Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.1 }}
+            className="w-full bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300 relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
+          >
+            <div className="skew-x-2 sm:skew-x-3 flex flex-col gap-5 relative z-10">
+              
+              {/* Civic ID Identifier */}
+              <div className="flex items-center justify-between border-b border-border-subtle pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-12 shadow-inner">
-                    <Award className="w-6 h-6 skew-x-12" />
+                  <div className="p-2.5 bg-brand-primary/15 text-brand-primary border border-brand-primary/30 rounded-sm -skew-x-6 shadow-inner">
+                    <Award className="w-5 h-5 skew-x-6" />
                   </div>
                   <div>
-                    <h2 className="text-[10px] font-black text-text-muted uppercase tracking-widest">Civic ID</h2>
-                    <p className="text-xl font-heading font-black text-text-primary">ER-8942-X</p>
+                    <h3 className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest">
+                      Civic Identifier
+                    </h3>
+                    <p className="text-lg font-heading font-black text-text-primary tracking-wide">
+                      {profile.isGuest 
+                        ? 'EST-GUEST-SYS' 
+                        : `EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-app-bg p-4 border border-border-subtle rounded-sm flex items-center justify-between -skew-x-[4deg] shadow-inner">
-                <div className="skew-x-[4deg] flex items-center gap-4">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Stewardship Credits</p>
-                    <p className="text-3xl font-mono font-black text-brand-primary">150</p>
+              {/* Stewardship Credits Box */}
+              <div className="bg-app-bg/70 p-4 border border-border-subtle rounded-sm flex items-center justify-between -skew-x-2 shadow-inner">
+                <div className="skew-x-2 flex flex-col">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted">
+                    Stewardship Credits
+                  </span>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-3xl font-mono font-black text-brand-primary">
+                      {profile.stewardshipScore}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold text-text-muted uppercase">PTS</span>
+                  </div>
+                </div>
+
+                <div className="skew-x-2 text-right">
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-sm">
+                    Level 1 Contributor
+                  </span>
+                </div>
+              </div>
+
+              {/* Community Impact Summary */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="bg-app-bg/50 p-3 rounded-sm border border-border-subtle -skew-x-2">
+                  <div className="skew-x-2">
+                    <span className="text-[10px] font-mono text-text-muted uppercase block">Total Reports</span>
+                    <span className="text-xl font-mono font-bold text-text-primary mt-1 block">
+                      {profile.totalReportsCount}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-app-bg/50 p-3 rounded-sm border border-border-subtle -skew-x-2">
+                  <div className="skew-x-2">
+                    <span className="text-[10px] font-mono text-text-muted uppercase block">Cleared Waterways</span>
+                    <span className="text-xl font-mono font-bold text-emerald-400 mt-1 block">
+                      {profile.resolvedReportsCount}
+                    </span>
                   </div>
                 </div>
               </div>
+
             </div>
-          </div>
+          </motion.div>
 
         </div>
 
-        {/* Right Column (Forms & Settings) */}
+        {/* Right Column (Personal Information Form & Preferences) */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           
           {/* Personal Information Form */}
-          <section className="w-full bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 md:p-8 shadow-sm">
-            <h3 className="text-sm font-black tracking-widest uppercase text-text-secondary mb-6 flex items-center gap-3">
-              <User className="w-5 h-5 text-brand-primary" /> Personal Information
-            </h3>
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.15 }}
+            className="w-full bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 sm:p-8 shadow-md transition-all duration-300"
+          >
+            <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-border-subtle">
+              <h2 className="text-sm font-heading font-black tracking-widest uppercase text-text-secondary flex items-center gap-2.5">
+                <User className="w-4 h-4 text-brand-primary" /> 
+                <span>Personal Information</span>
+              </h2>
+              <span className="text-[11px] font-mono text-text-muted">
+                {profile.isGuest ? 'Guest Access' : 'Synchronized with Supabase'}
+              </span>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-text-muted ml-1">First Name</label>
-                <input type="text" defaultValue="Elena" className="w-full bg-app-bg border border-border-strong rounded-sm px-4 py-3 text-text-primary font-medium focus:outline-none focus:border-brand-primary transition-colors" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-text-muted ml-1">Last Name</label>
-                <input type="text" defaultValue="Dela Cruz" className="w-full bg-app-bg border border-border-strong rounded-sm px-4 py-3 text-text-primary font-medium focus:outline-none focus:border-brand-primary transition-colors" />
-              </div>
-              <div className="flex flex-col gap-1.5 md:col-span-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-text-muted ml-1">Phone Number</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted font-mono font-bold">+63</span>
-                  <input type="tel" defaultValue="917 123 4567" className="w-full bg-app-bg border border-border-strong rounded-sm pl-12 pr-4 py-3 text-text-primary font-medium focus:outline-none focus:border-brand-primary transition-colors" />
+            <form onSubmit={handleSaveChanges}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* First Name */}
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="profile-first-name" className="text-xs font-mono font-bold uppercase tracking-wider text-text-muted">
+                    First Name
+                  </label>
+                  <input 
+                    id="profile-first-name"
+                    type="text" 
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Enter first name"
+                    className="w-full bg-app-bg/80 border border-border-strong rounded-sm px-4 py-2.5 text-text-primary text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                  />
+                </div>
+
+                {/* Last Name */}
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="profile-last-name" className="text-xs font-mono font-bold uppercase tracking-wider text-text-muted">
+                    Last Name
+                  </label>
+                  <input 
+                    id="profile-last-name"
+                    type="text" 
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Enter last name"
+                    className="w-full bg-app-bg/80 border border-border-strong rounded-sm px-4 py-2.5 text-text-primary text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                  />
+                </div>
+
+                {/* Email Address (Read-only / Auth-managed) */}
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label htmlFor="profile-email" className="text-xs font-mono font-bold uppercase tracking-wider text-text-muted flex items-center justify-between">
+                    <span>Registered Email</span>
+                    <span className="text-[10px] text-text-muted lowercase">Managed via Auth</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted">
+                      <Mail className="w-4 h-4" />
+                    </span>
+                    <input 
+                      id="profile-email"
+                      type="email" 
+                      value={profile.email || (profile.isGuest ? 'guest@esteroute.local' : 'citizen@esteroute.local')}
+                      readOnly
+                      disabled
+                      className="w-full bg-app-bg/40 border border-border-subtle rounded-sm pl-10 pr-4 py-2.5 text-text-muted text-sm font-mono cursor-not-allowed select-none" 
+                    />
+                  </div>
+                </div>
+
+                {/* Phone Number */}
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label htmlFor="profile-phone" className="text-xs font-mono font-bold uppercase tracking-wider text-text-muted">
+                    Mobile Phone Number
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted font-mono font-bold text-sm">
+                      +63
+                    </span>
+                    <input 
+                      id="profile-phone"
+                      type="tel" 
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="9XX XXX XXXX"
+                      maxLength={15}
+                      className="w-full bg-app-bg/80 border border-border-strong rounded-sm pl-13 pr-4 py-2.5 text-text-primary text-sm font-mono focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                    />
+                  </div>
+                  <span className="text-[10px] font-mono text-text-muted mt-0.5">
+                    Used for localized emergency waterway flood dispatch advisories.
+                  </span>
                 </div>
               </div>
-            </div>
-            
-            <div className="mt-8 flex justify-end pt-6 border-t border-border-subtle">
-              <button className="px-8 py-3 bg-brand-primary hover:bg-brand-secondary text-white font-bold uppercase tracking-widest text-sm rounded-sm transition-all -skew-x-12 shadow-md hover:shadow-lg">
-                <span className="skew-x-12 block">Save Changes</span>
-              </button>
-            </div>
-          </section>
+              
+              {/* Form Action Button */}
+              <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-border-subtle">
+                <button 
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-6 py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-mono font-bold uppercase tracking-widest text-xs rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin skew-x-3 sm:skew-x-6" />
+                      <span className="skew-x-3 sm:skew-x-6">Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 skew-x-3 sm:skew-x-6" />
+                      <span className="skew-x-3 sm:skew-x-6">Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.section>
 
-          {/* Settings Grid */}
+          {/* Settings & Security Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-sm">
-              <h3 className="text-sm font-black tracking-widest uppercase text-text-secondary mb-4 flex items-center gap-3">
-                <Bell className="w-5 h-5 text-brand-secondary" /> Notifications
-              </h3>
+            {/* Notification Preferences */}
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.2 }}
+              className="bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300"
+            >
+              <h2 className="text-sm font-heading font-black tracking-widest uppercase text-text-secondary mb-4 flex items-center gap-2.5">
+                <Bell className="w-4 h-4 text-brand-secondary" /> 
+                <span>Notifications</span>
+              </h2>
               <div className="flex flex-col gap-3">
-                <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg">
-                  <span className="text-sm font-bold text-text-primary">SMS Updates</span>
-                  <input type="checkbox" defaultChecked className="accent-brand-primary w-4 h-4" />
+                <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 -skew-x-2">
+                  <div className="skew-x-2 flex flex-col">
+                    <span className="text-xs font-mono font-bold text-text-primary">SMS Status Alerts</span>
+                    <span className="text-[10px] font-mono text-text-muted">Receive clearance updates on your reports</span>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    checked={smsUpdates}
+                    onChange={(e) => handleToggleSms(e.target.checked)}
+                    className="accent-brand-primary w-4 h-4 cursor-pointer skew-x-2" 
+                  />
                 </label>
-                <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg">
-                  <span className="text-sm font-bold text-text-primary">Push Notifications</span>
-                  <input type="checkbox" defaultChecked className="accent-brand-primary w-4 h-4" />
-                </label>
-              </div>
-            </section>
 
-            <section className="bg-surface/80 backdrop-blur-xl border border-border-subtle rounded-sm p-6 shadow-sm">
-              <h3 className="text-sm font-black tracking-widest uppercase text-text-secondary mb-4 flex items-center gap-3">
-                <Lock className="w-5 h-5 text-brand-secondary" /> Security
-              </h3>
-              <div className="flex flex-col gap-3">
-                <button className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-text-primary transition-colors bg-app-bg text-left group">
-                  <span className="text-sm font-bold text-text-primary">Change Password</span>
-                  <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-text-primary transition-colors" />
-                </button>
-                <button className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-semantic-urgent transition-colors bg-app-bg text-left group">
-                  <span className="text-sm font-bold text-semantic-urgent">Sign Out</span>
-                  <LogOut className="w-4 h-4 text-semantic-urgent/70 group-hover:text-semantic-urgent transition-colors" />
-                </button>
+                <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 -skew-x-2">
+                  <div className="skew-x-2 flex flex-col">
+                    <span className="text-xs font-mono font-bold text-text-primary">Basin Flood Alerts</span>
+                    <span className="text-[10px] font-mono text-text-muted">High water level waterway warnings</span>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    checked={pushNotifications}
+                    onChange={(e) => handleTogglePush(e.target.checked)}
+                    className="accent-brand-primary w-4 h-4 cursor-pointer skew-x-2" 
+                  />
+                </label>
               </div>
-            </section>
+            </motion.section>
+
+            {/* Account & Security Actions */}
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.25 }}
+              className="bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300 flex flex-col justify-between"
+            >
+              <div>
+                <h2 className="text-sm font-heading font-black tracking-widest uppercase text-text-secondary mb-4 flex items-center gap-2.5">
+                  <Lock className="w-4 h-4 text-brand-secondary" /> 
+                  <span>Security & Session</span>
+                </h2>
+                <div className="flex flex-col gap-3">
+                  <Link 
+                    to="/recovery"
+                    className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary transition-colors bg-app-bg/60 text-left group -skew-x-2 cursor-pointer"
+                  >
+                    <span className="skew-x-2 text-xs font-mono font-bold text-text-primary group-hover:text-brand-primary transition-colors">
+                      Password Recovery
+                    </span>
+                    <ChevronRight className="skew-x-2 w-4 h-4 text-text-muted group-hover:text-brand-primary transition-colors" />
+                  </Link>
+
+                  <button 
+                    type="button"
+                    onClick={handleSignOut}
+                    className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-semantic-urgent transition-colors bg-app-bg/60 text-left group -skew-x-2 cursor-pointer w-full"
+                  >
+                    <span className="skew-x-2 text-xs font-mono font-bold text-semantic-urgent">
+                      {profile.isGuest ? 'Leave Guest Session' : 'Sign Out of esteRoute'}
+                    </span>
+                    <LogOut className="skew-x-2 w-4 h-4 text-semantic-urgent/70 group-hover:text-semantic-urgent transition-colors" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-border-subtle/60 flex items-center justify-between text-[10px] font-mono text-text-muted">
+                <span>esteRoute Public Portal v2.0</span>
+                <span className="text-brand-primary font-bold">Encrypted Session</span>
+              </div>
+            </motion.section>
 
           </div>
 
