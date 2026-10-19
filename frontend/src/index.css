@@ -5,6 +5,7 @@
   /* Fonts */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Grotesk", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-data: "Space Grotesk", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Core Brand Colors */
