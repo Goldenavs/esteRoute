@@ -413,7 +413,7 @@ export default function CitizenProfile() {
         className="hidden"
       />
 
-      {/* 1. Header (Standardized Hero with Natural Typography) */}
+      {/* 1. Header (Standardized Hero with Natural Typography & Cyber Skews) */}
       <motion.div 
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -421,6 +421,14 @@ export default function CitizenProfile() {
         className="shrink-0 mb-4 sm:mb-6 flex items-center justify-between gap-3"
       >
         <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-mono font-bold uppercase tracking-wider -skew-x-6 shadow-xs">
+              <span className="skew-x-6 flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                Citizen Portal
+              </span>
+            </span>
+          </div>
           <h1 className="text-xl sm:text-2xl md:text-4xl font-heading font-bold tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4 truncate">
             Account Profile
           </h1>
@@ -445,12 +453,14 @@ export default function CitizenProfile() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 bg-surface/85 backdrop-blur-md border border-brand-primary/40 rounded-sm p-4 sm:p-5 -skew-x-2 relative overflow-hidden shadow-md"
+          className="mb-6 bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-brand-primary/40 hover:border-brand-primary rounded-sm p-4 sm:p-5 -skew-x-2 sm:-skew-x-3 relative overflow-hidden shadow-sm hover:shadow-xl hover:shadow-brand-primary/10 group transition-all duration-300"
         >
-          <div className="skew-x-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <BorderBeam delay={0.2} color="#60A5FA" />
+          <div className="absolute top-0 left-0 w-2 h-full bg-brand-secondary" />
+          <div className="skew-x-2 sm:skew-x-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-brand-primary/20 text-brand-primary rounded-sm shrink-0">
-                <Sparkles className="w-5 h-5 text-brand-secondary" />
+              <div className="p-2.5 bg-brand-primary/20 text-brand-primary rounded-sm shrink-0 -skew-x-6 shadow-xs">
+                <Sparkles className="w-5 h-5 text-brand-secondary skew-x-6" />
               </div>
               <div>
                 <h2 className="text-sm font-heading font-bold text-text-primary">
@@ -462,18 +472,18 @@ export default function CitizenProfile() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto font-sans">
+            <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto font-sans">
               <Link
                 to="/login"
-                className="w-full sm:w-auto px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-semibold text-xs rounded-sm transition-colors text-center shadow-xs"
+                className="w-full sm:w-auto px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-semibold text-xs rounded-sm transition-all text-center shadow-xs -skew-x-3 sm:-skew-x-6 cursor-pointer active:scale-95"
               >
-                Sign In
+                <span className="skew-x-3 sm:skew-x-6 block">Sign In</span>
               </Link>
               <Link
                 to="/register"
-                className="w-full sm:w-auto px-4 py-2 bg-surface hover:bg-surface/80 border border-border-strong text-text-primary font-semibold text-xs rounded-sm transition-colors text-center"
+                className="w-full sm:w-auto px-4 py-2 bg-surface hover:bg-surface/80 border border-border-strong text-text-primary font-semibold text-xs rounded-sm transition-all text-center -skew-x-3 sm:-skew-x-6 cursor-pointer active:scale-95"
               >
-                Register
+                <span className="skew-x-3 sm:skew-x-6 block">Register</span>
               </Link>
             </div>
           </div>
@@ -491,7 +501,7 @@ export default function CitizenProfile() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.05 }}
-            className="w-full bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300 relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
+            className="w-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 transition-all duration-500 relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
           >
             <BorderBeam delay={0} color="#60A5FA" />
             <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
@@ -553,7 +563,7 @@ export default function CitizenProfile() {
               
               {/* Reporter Status Badge */}
               <div className={twMerge(
-                "mt-4 w-full flex items-center justify-center gap-2 border px-3.5 py-1.5 rounded-sm -skew-x-3 transition-colors",
+                "mt-4 w-full flex items-center justify-center gap-2 border px-3.5 py-1.5 rounded-sm -skew-x-3 transition-colors shadow-xs",
                 profile.isGuest 
                   ? "bg-amber-500/10 border-amber-500/30 text-amber-500" 
                   : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
@@ -571,8 +581,11 @@ export default function CitizenProfile() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.1 }}
-            className="w-full bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300 relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
+            className="w-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 transition-all duration-500 relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
           >
+            <BorderBeam delay={1.4} color="#3F72AF" />
+            <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
+            
             <div className="skew-x-2 sm:skew-x-3 flex flex-col gap-4 relative z-10">
               
               {/* Civic ID Identifier */}
@@ -609,8 +622,8 @@ export default function CitizenProfile() {
                 </div>
 
                 <div className="skew-x-2 text-right">
-                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-sm font-sans">
-                    Level 1 Contributor
+                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-sm font-sans inline-block -skew-x-3 shadow-xs">
+                    <span className="skew-x-3 block">Level 1 Contributor</span>
                   </span>
                 </div>
               </div>
@@ -649,159 +662,201 @@ export default function CitizenProfile() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.15 }}
-            className="w-full bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 sm:p-8 shadow-md transition-all duration-300"
+            className="w-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 sm:p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
           >
-            <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-border-subtle">
-              <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
-                <User className="w-4 h-4 text-brand-primary" /> 
-                <span>Personal Information</span>
-              </h2>
-              <span className="text-xs text-text-muted font-sans">
-                {profile.isGuest ? 'Guest Access' : 'Synchronized with Supabase'}
-              </span>
-            </div>
-            
-            <form onSubmit={handleSaveChanges}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-sans">
-                {/* First Name */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="profile-first-name" className="text-xs sm:text-sm font-medium text-text-secondary">
-                    First Name
-                  </label>
-                  <input 
-                    id="profile-first-name"
-                    type="text" 
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="Enter first name"
-                    className="w-full bg-app-bg border border-border-strong rounded-sm px-3.5 py-2.5 text-text-primary text-sm font-sans focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
-                  />
-                </div>
+            <BorderBeam delay={0.7} color="#60A5FA" />
+            <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
 
-                {/* Last Name */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="profile-last-name" className="text-xs sm:text-sm font-medium text-text-secondary">
-                    Last Name
-                  </label>
-                  <input 
-                    id="profile-last-name"
-                    type="text" 
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Enter last name"
-                    className="w-full bg-app-bg border border-border-strong rounded-sm px-3.5 py-2.5 text-text-primary text-sm font-sans focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
-                  />
-                </div>
-
-                {/* Email Address (Read-only / Auth-managed) */}
-                <div className="flex flex-col gap-1.5 md:col-span-2">
-                  <label htmlFor="profile-email" className="text-xs sm:text-sm font-medium text-text-secondary flex items-center justify-between">
-                    <span>Registered Email</span>
-                    <span className="text-xs text-text-muted">Managed via Auth</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted">
-                      <Mail className="w-4 h-4" />
-                    </span>
-                    <input 
-                      id="profile-email"
-                      type="email" 
-                      value={profile.email || (profile.isGuest ? 'guest@esteroute.local' : 'citizen@esteroute.local')}
-                      readOnly
-                      disabled
-                      className="w-full bg-app-bg/40 border border-border-subtle rounded-sm pl-10 pr-4 py-2.5 text-text-muted text-sm font-sans cursor-not-allowed select-none" 
-                    />
+            <div className="skew-x-2 sm:skew-x-3 relative z-10">
+              <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-border-subtle">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 sm:p-2 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
+                    <User className="w-4 h-4 skew-x-6" />
                   </div>
+                  <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary">
+                    Personal Information
+                  </h2>
                 </div>
-
-                {/* Phone Number */}
-                <div className="flex flex-col gap-1.5 md:col-span-2">
-                  <label htmlFor="profile-phone" className="text-xs sm:text-sm font-medium text-text-secondary">
-                    Mobile Phone Number
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted font-mono font-medium text-sm">
-                      +63
-                    </span>
-                    <input 
-                      id="profile-phone"
-                      type="tel" 
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="9XX XXX XXXX"
-                      maxLength={15}
-                      className="w-full bg-app-bg border border-border-strong rounded-sm pl-13 pr-4 py-2.5 text-text-primary text-sm font-mono focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
-                    />
-                  </div>
-                  <span className="text-xs text-text-muted mt-0.5 font-sans leading-normal">
-                    Used for localized emergency waterway flood dispatch advisories.
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-bg/60 border border-border-subtle rounded-sm -skew-x-3 shadow-xs">
+                  <span className="skew-x-3 text-xs text-text-muted font-sans">
+                    {profile.isGuest ? 'Guest Access' : 'Synchronized with Supabase'}
                   </span>
                 </div>
               </div>
               
-              {/* Form Action Button */}
-              <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-border-subtle">
-                <button 
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-6 py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs sm:text-sm rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin skew-x-3 sm:skew-x-6" />
-                      <span className="skew-x-3 sm:skew-x-6">Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4 skew-x-3 sm:skew-x-6" />
-                      <span className="skew-x-3 sm:skew-x-6">Save Changes</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+              <form onSubmit={handleSaveChanges}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-sans">
+                  {/* First Name */}
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="profile-first-name" className="text-xs sm:text-sm font-medium text-text-secondary">
+                      First Name
+                    </label>
+                    <div className="-skew-x-2 relative transition-all">
+                      <input 
+                        id="profile-first-name"
+                        type="text" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="Enter first name"
+                        className="w-full bg-app-bg border border-border-strong rounded-sm px-3.5 py-2.5 text-text-primary text-sm font-sans skew-x-2 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Last Name */}
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="profile-last-name" className="text-xs sm:text-sm font-medium text-text-secondary">
+                      Last Name
+                    </label>
+                    <div className="-skew-x-2 relative transition-all">
+                      <input 
+                        id="profile-last-name"
+                        type="text" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Enter last name"
+                        className="w-full bg-app-bg border border-border-strong rounded-sm px-3.5 py-2.5 text-text-primary text-sm font-sans skew-x-2 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email Address (Read-only / Auth-managed) */}
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="profile-email" className="text-xs sm:text-sm font-medium text-text-secondary">
+                        Registered Email
+                      </label>
+                      <span className="text-[11px] font-mono text-text-muted bg-app-bg/80 px-2 py-0.5 rounded-sm border border-border-subtle -skew-x-3">
+                        <span className="skew-x-3 block">Managed via Auth</span>
+                      </span>
+                    </div>
+                    <div className="relative -skew-x-2">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted skew-x-2 z-10">
+                        <Mail className="w-4 h-4" />
+                      </span>
+                      <input 
+                        id="profile-email"
+                        type="email" 
+                        value={profile.email || (profile.isGuest ? 'guest@esteroute.local' : 'citizen@esteroute.local')}
+                        readOnly
+                        disabled
+                        className="w-full bg-app-bg/40 border border-border-subtle rounded-sm pl-10 pr-4 py-2.5 text-text-muted text-sm font-sans skew-x-2 cursor-not-allowed select-none" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phone Number */}
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
+                    <label htmlFor="profile-phone" className="text-xs sm:text-sm font-medium text-text-secondary">
+                      Mobile Phone Number
+                    </label>
+                    <div className="relative -skew-x-2">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted font-mono font-medium text-sm skew-x-2 z-10">
+                        +63
+                      </span>
+                      <input 
+                        id="profile-phone"
+                        type="tel" 
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="9XX XXX XXXX"
+                        maxLength={15}
+                        className="w-full bg-app-bg border border-border-strong rounded-sm pl-13 pr-4 py-2.5 text-text-primary text-sm font-mono skew-x-2 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                      />
+                    </div>
+                    <span className="text-xs text-text-muted mt-0.5 font-sans leading-normal">
+                      Used for localized emergency waterway flood dispatch advisories.
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Form Action Button */}
+                <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-border-subtle">
+                  <button 
+                    type="submit"
+                    disabled={isSaving}
+                    className="px-6 py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs sm:text-sm rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin skew-x-3 sm:skew-x-6" />
+                        <span className="skew-x-3 sm:skew-x-6">Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 skew-x-3 sm:skew-x-6" />
+                        <span className="skew-x-3 sm:skew-x-6">Save Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </motion.section>
 
           {/* Settings & Security Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
             
             {/* Notification Preferences */}
             <motion.section
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.2 }}
-              className="bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300"
+              className="w-full h-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3 flex flex-col justify-between"
             >
-              <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary mb-4 flex items-center gap-2.5">
-                <Bell className="w-4 h-4 text-brand-secondary" /> 
-                <span>Notifications</span>
-              </h2>
-              <div className="flex flex-col gap-3 font-sans">
-                <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 -skew-x-2">
-                  <div className="skew-x-2 flex flex-col pr-2">
-                    <span className="text-xs sm:text-sm font-medium text-text-primary">SMS Status Alerts</span>
-                    <span className="text-xs text-text-muted mt-0.5">Receive clearance updates on your reports</span>
-                  </div>
-                  <input 
-                    type="checkbox" 
-                    checked={smsUpdates}
-                    onChange={(e) => handleToggleSms(e.target.checked)}
-                    className="accent-brand-primary w-4 h-4 cursor-pointer skew-x-2" 
-                  />
-                </label>
+              <BorderBeam delay={2.1} color="#60A5FA" />
+              <div className="absolute top-0 left-0 w-2 h-full bg-brand-secondary" />
 
-                <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 -skew-x-2">
-                  <div className="skew-x-2 flex flex-col pr-2">
-                    <span className="text-xs sm:text-sm font-medium text-text-primary">Basin Flood Alerts</span>
-                    <span className="text-xs text-text-muted mt-0.5">High water level waterway warnings</span>
+              <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10">
+                <div>
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-subtle">
+                    <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
+                      <div className="p-1.5 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-6 shadow-xs">
+                        <Bell className="w-4 h-4 skew-x-6" />
+                      </div>
+                      <span>Notifications</span>
+                    </h2>
+                    <span className="text-[10px] font-mono font-bold text-brand-secondary bg-brand-secondary/10 px-2 py-0.5 rounded-sm border border-brand-secondary/20 -skew-x-3 shadow-xs">
+                      <span className="skew-x-3 block">Realtime</span>
+                    </span>
                   </div>
-                  <input 
-                    type="checkbox" 
-                    checked={pushNotifications}
-                    onChange={(e) => handleTogglePush(e.target.checked)}
-                    className="accent-brand-primary w-4 h-4 cursor-pointer skew-x-2" 
-                  />
-                </label>
+
+                  <div className="flex flex-col gap-3 font-sans">
+                    <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 -skew-x-2 shadow-xs">
+                      <div className="skew-x-2 flex flex-col pr-2">
+                        <span className="text-xs sm:text-sm font-medium text-text-primary">SMS Status Alerts</span>
+                        <span className="text-xs text-text-muted mt-0.5">Receive clearance updates on your reports</span>
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        checked={smsUpdates}
+                        onChange={(e) => handleToggleSms(e.target.checked)}
+                        className="accent-brand-primary w-4 h-4 cursor-pointer skew-x-2" 
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 -skew-x-2 shadow-xs">
+                      <div className="skew-x-2 flex flex-col pr-2">
+                        <span className="text-xs sm:text-sm font-medium text-text-primary">Basin Flood Alerts</span>
+                        <span className="text-xs text-text-muted mt-0.5">High water level waterway warnings</span>
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        checked={pushNotifications}
+                        onChange={(e) => handleTogglePush(e.target.checked)}
+                        className="accent-brand-primary w-4 h-4 cursor-pointer skew-x-2" 
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-border-subtle/60 flex items-center justify-between text-xs font-sans text-text-muted">
+                  <span>Dispatch Alerts</span>
+                  <span className="text-emerald-400 font-medium flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Active
+                  </span>
+                </div>
               </div>
             </motion.section>
 
@@ -810,40 +865,53 @@ export default function CitizenProfile() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.25 }}
-              className="bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300 flex flex-col justify-between"
+              className="w-full h-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3 flex flex-col justify-between"
             >
-              <div>
-                <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary mb-4 flex items-center gap-2.5">
-                  <Lock className="w-4 h-4 text-brand-secondary" /> 
-                  <span>Security & Session</span>
-                </h2>
-                <div className="flex flex-col gap-3 font-sans">
-                  <Link 
-                    to="/recovery"
-                    className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary transition-colors bg-app-bg/60 text-left group -skew-x-2 cursor-pointer"
-                  >
-                    <span className="skew-x-2 text-xs sm:text-sm font-medium text-text-primary group-hover:text-brand-primary transition-colors">
-                      Password Recovery
-                    </span>
-                    <ChevronRight className="skew-x-2 w-4 h-4 text-text-muted group-hover:text-brand-primary transition-colors" />
-                  </Link>
+              <BorderBeam delay={2.8} color="#60A5FA" />
+              <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
 
-                  <button 
-                    type="button"
-                    onClick={handleSignOut}
-                    className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-semantic-urgent transition-colors bg-app-bg/60 text-left group -skew-x-2 cursor-pointer w-full"
-                  >
-                    <span className="skew-x-2 text-xs sm:text-sm font-medium text-semantic-urgent">
-                      {profile.isGuest ? 'Leave Guest Session' : 'Sign Out of esteRoute'}
+              <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10">
+                <div>
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-subtle">
+                    <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
+                      <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
+                        <Lock className="w-4 h-4 skew-x-6" />
+                      </div>
+                      <span>Security & Session</span>
+                    </h2>
+                    <span className="text-[10px] font-mono font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-sm border border-brand-primary/20 -skew-x-3 shadow-xs">
+                      <span className="skew-x-3 block">TLS 256</span>
                     </span>
-                    <LogOut className="skew-x-2 w-4 h-4 text-semantic-urgent/70 group-hover:text-semantic-urgent transition-colors" />
-                  </button>
+                  </div>
+
+                  <div className="flex flex-col gap-3 font-sans">
+                    <Link 
+                      to="/recovery"
+                      className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary transition-colors bg-app-bg/60 text-left group/sec -skew-x-2 cursor-pointer shadow-xs"
+                    >
+                      <span className="skew-x-2 text-xs sm:text-sm font-medium text-text-primary group-hover/sec:text-brand-primary transition-colors">
+                        Password Recovery
+                      </span>
+                      <ChevronRight className="skew-x-2 w-4 h-4 text-text-muted group-hover/sec:text-brand-primary transition-colors" />
+                    </Link>
+
+                    <button 
+                      type="button"
+                      onClick={handleSignOut}
+                      className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-semantic-urgent transition-colors bg-app-bg/60 text-left group/sec -skew-x-2 cursor-pointer w-full shadow-xs"
+                    >
+                      <span className="skew-x-2 text-xs sm:text-sm font-medium text-semantic-urgent">
+                        {profile.isGuest ? 'Leave Guest Session' : 'Sign Out of esteRoute'}
+                      </span>
+                      <LogOut className="skew-x-2 w-4 h-4 text-semantic-urgent/70 group-hover/sec:text-semantic-urgent transition-colors" />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-4 pt-3 border-t border-border-subtle/60 flex items-center justify-between text-xs font-sans text-text-muted">
-                <span>esteRoute Public Portal v2.0</span>
-                <span className="text-brand-primary font-medium">Encrypted Session</span>
+                <div className="mt-4 pt-3 border-t border-border-subtle/60 flex items-center justify-between text-xs font-sans text-text-muted">
+                  <span>esteRoute Public Portal v2.0</span>
+                  <span className="text-brand-primary font-medium">Encrypted Session</span>
+                </div>
               </div>
             </motion.section>
 
