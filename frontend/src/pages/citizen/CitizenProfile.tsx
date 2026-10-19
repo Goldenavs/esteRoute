@@ -7,6 +7,7 @@ import {
   Bell, 
   LogOut, 
   Lock, 
+  ChevronLeft,
   ChevronRight, 
   Loader2, 
   AlertCircle,
@@ -19,6 +20,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
+
+// Built-in adventurer avatar options matching the mobile app
+const AVATAR_OPTIONS = [
+  'CUSTOM',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tuklas1&backgroundColor=b6e3f4',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tuklas2&backgroundColor=c0aede',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tuklas3&backgroundColor=d1d4f9',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tuklas4&backgroundColor=ffd5dc',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tuklas5&backgroundColor=ffdfbf',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tuklas6&backgroundColor=b6e3f4',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tuklas7&backgroundColor=c0aede',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tuklas8&backgroundColor=d1d4f9',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tuklas9&backgroundColor=ffd5dc',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tuklas10&backgroundColor=ffdfbf',
+];
 
 // Subtle, eye-friendly traveling perimeter highlight matching esteRoute cards
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
@@ -94,9 +110,13 @@ export default function CitizenProfile() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Form Fields
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+
+  // Avatar Swiper / Selection State
+  const [selectedAvatarIndex, setSelectedAvatarIndex] = useState<number>(1);
+  const [customProfileImage, setCustomProfileImage] = useState<string | null>(null);
+  const avatarSliderRef = useRef<HTMLDivElement>(null);
 
   // Preference Toggles (Local Storage Persisted)
   const [smsUpdates, setSmsUpdates] = useState(() => {
@@ -145,10 +165,11 @@ export default function CitizenProfile() {
           }
 
           if (isMounted) {
+            const defaultGuestAvatar = AVATAR_OPTIONS[1];
             setProfile({
               id: 'guest',
               fullName: 'Guest Reporter',
-              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300',
+              avatarUrl: defaultGuestAvatar,
               stewardshipScore: guestResolvedReports * 50 + guestTotalReports * 10,
               role: 'citizen',
               phone: '',
@@ -157,9 +178,9 @@ export default function CitizenProfile() {
               resolvedReportsCount: guestResolvedReports,
               isGuest: true,
             });
-            setFirstName('Guest');
-            setLastName('Reporter');
+            setFullName('Guest Reporter');
             setPhoneNumber('');
+            setSelectedAvatarIndex(1);
             setIsLoading(false);
           }
           return;
@@ -176,14 +197,23 @@ export default function CitizenProfile() {
           console.warn('Profile fetch note:', profileError.message);
         }
 
-        // Parse Name
+        // Parse Name (single full_name field)
         const resolvedFullName = profileRow?.full_name || user.user_metadata?.full_name || 'Citizen Reporter';
-        const nameParts = resolvedFullName.trim().split(' ');
-        const initialFirst = nameParts[0] || '';
-        const initialLast = nameParts.slice(1).join(' ') || '';
 
         // Extract Phone (from user metadata or auth)
         const initialPhone = (user.phone || user.user_metadata?.phone || '').replace(/^\+?63/, '').trim();
+
+        // Determine avatar selection & custom image state
+        const initialAvatarUrl = profileRow?.avatar_url || user.user_metadata?.avatar_url || AVATAR_OPTIONS[1];
+        const matchedIndex = AVATAR_OPTIONS.indexOf(initialAvatarUrl);
+        if (matchedIndex > 0) {
+          setSelectedAvatarIndex(matchedIndex);
+        } else if (initialAvatarUrl) {
+          setSelectedAvatarIndex(0);
+          setCustomProfileImage(initialAvatarUrl);
+        } else {
+          setSelectedAvatarIndex(1);
+        }
 
         // Query user's actual submitted reports from 'reports' table
         let userTotalReports = 0;
@@ -212,7 +242,7 @@ export default function CitizenProfile() {
           setProfile({
             id: user.id,
             fullName: resolvedFullName,
-            avatarUrl: profileRow?.avatar_url || user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=300',
+            avatarUrl: initialAvatarUrl,
             stewardshipScore: calculatedScore,
             role: profileRow?.role || 'citizen',
             phone: initialPhone,
@@ -222,8 +252,7 @@ export default function CitizenProfile() {
             isGuest: false,
           });
 
-          setFirstName(initialFirst);
-          setLastName(initialLast);
+          setFullName(resolvedFullName);
           setPhoneNumber(initialPhone);
           setIsLoading(false);
         }
@@ -249,7 +278,7 @@ export default function CitizenProfile() {
       return;
     }
 
-    const compiledFullName = `${firstName.trim()} ${lastName.trim()}`.trim() || 'Citizen Reporter';
+    const trimmedFullName = fullName.trim() || 'Citizen Reporter';
 
     setIsSaving(true);
     try {
@@ -257,7 +286,7 @@ export default function CitizenProfile() {
       const { error: profileUpdateError } = await supabase
         .from('profiles')
         .update({
-          full_name: compiledFullName,
+          full_name: trimmedFullName,
         })
         .eq('id', profile.id);
 
@@ -268,14 +297,14 @@ export default function CitizenProfile() {
       // Update user metadata in auth
       await supabase.auth.updateUser({
         data: {
-          full_name: compiledFullName,
+          full_name: trimmedFullName,
           phone: phoneNumber.trim() ? `+63${phoneNumber.trim()}` : '',
         },
       });
 
       setProfile(prev => ({
         ...prev,
-        fullName: compiledFullName,
+        fullName: trimmedFullName,
         phone: phoneNumber.trim(),
       }));
 
@@ -289,19 +318,69 @@ export default function CitizenProfile() {
     }
   };
 
-  // 3. Upload & Update Avatar in Supabase Storage
+  // 3. Avatar Swiper & Selection Logic
+  const handleSelectAvatar = async (index: number) => {
+    if (index === 0) {
+      // Slot 0: Custom device image
+      if (!customProfileImage || selectedAvatarIndex === 0) {
+        fileInputRef.current?.click();
+      } else {
+        setSelectedAvatarIndex(0);
+        setProfile(prev => ({ ...prev, avatarUrl: customProfileImage }));
+        if (!profile.isGuest) {
+          try {
+            await supabase.from('profiles').update({ avatar_url: customProfileImage }).eq('id', profile.id);
+            showToast('Custom photo selected!', 'success');
+          } catch (e) {
+            console.error('Avatar sync note:', e);
+          }
+        }
+      }
+      return;
+    }
+
+    setSelectedAvatarIndex(index);
+    const chosenUrl = AVATAR_OPTIONS[index];
+    setProfile(prev => ({ ...prev, avatarUrl: chosenUrl }));
+
+    if (!profile.isGuest) {
+      try {
+        await supabase.from('profiles').update({ avatar_url: chosenUrl }).eq('id', profile.id);
+        showToast('Avatar updated!', 'success');
+      } catch (err) {
+        console.error('Failed to update avatar:', err);
+      }
+    } else {
+      showToast('Avatar preview selected (Register to sync permanently).', 'success');
+    }
+  };
+
+  const scrollAvatars = (direction: 'left' | 'right') => {
+    if (avatarSliderRef.current) {
+      const scrollAmount = direction === 'left' ? -160 : 160;
+      avatarSliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  // 4. Upload & Update Custom Avatar in Supabase Storage
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (profile.isGuest) {
-      showToast('Please sign in or register to customize your avatar.', 'error');
-      return;
-    }
-
     // Limit image size to 5MB
     if (file.size > 5 * 1024 * 1024) {
       showToast('Image file must be under 5MB.', 'error');
+      return;
+    }
+
+    const localPreviewUrl = URL.createObjectURL(file);
+    setCustomProfileImage(localPreviewUrl);
+    setSelectedAvatarIndex(0);
+    setProfile(prev => ({ ...prev, avatarUrl: localPreviewUrl }));
+
+    if (profile.isGuest) {
+      showToast('Custom photo set locally. Sign in to save permanently!', 'success');
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -337,8 +416,9 @@ export default function CitizenProfile() {
         throw updateProfileError;
       }
 
+      setCustomProfileImage(publicAvatarUrl);
       setProfile(prev => ({ ...prev, avatarUrl: publicAvatarUrl }));
-      showToast('Profile photo updated successfully!', 'success');
+      showToast('Profile photo uploaded and saved!', 'success');
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to upload photo.';
       console.error('Upload avatar error:', err);
@@ -505,8 +585,8 @@ export default function CitizenProfile() {
               {/* Unskew wrapper for upright content */}
               <div className="skew-x-2 sm:skew-x-3 flex flex-col items-center w-full z-10 relative">
                 {/* Profile Picture */}
-                <div className="relative mt-2 mb-4 group/avatar">
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-surface shadow-2xl overflow-hidden relative z-10 bg-app-bg">
+                <div className="relative mt-2 mb-3 group/avatar">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-surface shadow-2xl overflow-hidden relative z-10 bg-app-bg ring-2 ring-brand-primary/30">
                     {isLoading ? (
                       <div className="w-full h-full flex items-center justify-center bg-surface">
                         <Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
@@ -534,11 +614,11 @@ export default function CitizenProfile() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploadingAvatar}
-                    className="absolute bottom-0 right-0 z-20 p-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer border-2 border-surface"
-                    title="Upload profile photo"
-                    aria-label="Upload profile photo"
+                    className="absolute bottom-0 right-0 z-20 p-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer border-2 border-surface"
+                    title="Upload profile photo from device"
+                    aria-label="Upload profile photo from device"
                   >
-                    <Camera className="w-4 h-4" />
+                    <Camera className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
@@ -552,9 +632,105 @@ export default function CitizenProfile() {
                   )}
                 </h2>
 
-                <p className="text-text-muted text-xs mt-1 font-sans text-center">
+                <p className="text-text-muted text-xs mt-0.5 font-sans text-center">
                   {profile.email ? profile.email : profile.isGuest ? 'Anonymous Session' : '+63 ' + (profile.phone || '9XX XXX XXXX')}
                 </p>
+
+                {/* Avatar Presets Swiper & Device Upload Scroller */}
+                <div className="w-full mt-4 pt-3 border-t border-border-subtle/70">
+                  <div className="flex items-center justify-between mb-2 px-0.5">
+                    <span className="text-[11px] font-heading font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3 text-brand-primary" />
+                      Select Avatar Preset
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => scrollAvatars('left')}
+                        className="p-1 rounded-sm bg-app-bg hover:bg-brand-primary/20 text-text-muted hover:text-text-primary transition-colors cursor-pointer border border-border-subtle active:scale-95"
+                        title="Scroll left"
+                        aria-label="Scroll left"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => scrollAvatars('right')}
+                        className="p-1 rounded-sm bg-app-bg hover:bg-brand-primary/20 text-text-muted hover:text-text-primary transition-colors cursor-pointer border border-border-subtle active:scale-95"
+                        title="Scroll right"
+                        aria-label="Scroll right"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Horizontal Scroll / Swipe Container */}
+                  <div 
+                    ref={avatarSliderRef}
+                    className="w-full flex items-center gap-2.5 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory select-none"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                  >
+                    {/* Slot 0: Custom Device Upload */}
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAvatar(0)}
+                      className={twMerge(
+                        "snap-center shrink-0 w-12 h-12 rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer relative overflow-hidden group/custom",
+                        selectedAvatarIndex === 0
+                          ? "border-2 border-brand-primary shadow-lg shadow-brand-primary/30 ring-2 ring-brand-primary/20 scale-105"
+                          : "border-2 border-dashed border-border-strong hover:border-brand-primary/70 bg-app-bg/60 opacity-80 hover:opacity-100"
+                      )}
+                      title={customProfileImage ? "Custom Device Photo (Click to re-select or change)" : "Upload from Device"}
+                    >
+                      {customProfileImage ? (
+                        <img 
+                          src={customProfileImage} 
+                          alt="Custom device avatar" 
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-text-muted group-hover/custom:text-brand-primary">
+                          <Camera className="w-4 h-4" />
+                        </div>
+                      )}
+                      <span className="absolute bottom-0 inset-x-0 bg-black/65 text-[7.5px] font-mono font-bold text-white text-center py-0.5 uppercase tracking-tighter">
+                        {customProfileImage ? 'Device' : 'Upload'}
+                      </span>
+                    </button>
+
+                    {/* Slots 1..10: Built-in Adventurer Avatars */}
+                    {AVATAR_OPTIONS.slice(1).map((avatarUrl, idx) => {
+                      const realIndex = idx + 1;
+                      const isSelected = selectedAvatarIndex === realIndex;
+                      return (
+                        <button
+                          key={avatarUrl}
+                          type="button"
+                          onClick={() => handleSelectAvatar(realIndex)}
+                          className={twMerge(
+                            "snap-center shrink-0 w-12 h-12 rounded-full transition-all duration-200 cursor-pointer relative overflow-hidden bg-app-bg",
+                            isSelected 
+                              ? "border-2 border-brand-primary shadow-lg shadow-brand-primary/30 ring-2 ring-brand-primary/20 scale-105" 
+                              : "border-2 border-border-subtle hover:border-brand-primary/50 opacity-70 hover:opacity-100 hover:scale-102"
+                          )}
+                          title={`Avatar Preset ${realIndex}`}
+                        >
+                          <img 
+                            src={avatarUrl} 
+                            alt={`Avatar ${realIndex}`}
+                            className="w-full h-full object-cover rounded-full pointer-events-none"
+                            loading="lazy"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-[10px] text-text-muted text-center font-sans mt-1">
+                    Swipe or click to choose a preset, or upload your own.
+                  </p>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -694,32 +870,17 @@ export default function CitizenProfile() {
                 
                 <form onSubmit={handleSaveChanges}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-sans">
-                    {/* First Name */}
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="profile-first-name" className="text-xs sm:text-sm font-medium text-text-secondary">
-                        First Name
+                    {/* Full Name */}
+                    <div className="flex flex-col gap-1.5 md:col-span-2">
+                      <label htmlFor="profile-full-name" className="text-xs sm:text-sm font-medium text-text-secondary">
+                        Full Name
                       </label>
                       <input 
-                        id="profile-first-name"
+                        id="profile-full-name"
                         type="text" 
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="Enter first name"
-                        className="w-full bg-app-bg border border-border-strong rounded-sm px-3.5 py-2.5 text-text-primary text-sm font-sans focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
-                      />
-                    </div>
-
-                    {/* Last Name */}
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="profile-last-name" className="text-xs sm:text-sm font-medium text-text-secondary">
-                        Last Name
-                      </label>
-                      <input 
-                        id="profile-last-name"
-                        type="text" 
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Enter last name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Enter your full name"
                         className="w-full bg-app-bg border border-border-strong rounded-sm px-3.5 py-2.5 text-text-primary text-sm font-sans focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
                       />
                     </div>
