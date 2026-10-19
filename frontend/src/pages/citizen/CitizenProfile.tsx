@@ -374,7 +374,7 @@ export default function CitizenProfile() {
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col pb-12">
+    <div className="w-full flex-1 flex flex-col pb-12 font-sans">
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
@@ -386,7 +386,7 @@ export default function CitizenProfile() {
             className="fixed top-6 left-1/2 z-[300] pointer-events-none"
           >
             <div className={twMerge(
-              "text-white px-5 py-3 rounded-sm shadow-2xl border-b-4 -skew-x-3 sm:-skew-x-6 flex items-center gap-3 font-mono font-bold tracking-wider text-xs sm:text-sm",
+              "text-white px-5 py-3 rounded-sm shadow-2xl border-b-4 -skew-x-3 sm:-skew-x-6 flex items-center gap-3 font-medium text-xs sm:text-sm",
               toast.type === 'success' 
                 ? "bg-brand-primary border-brand-secondary shadow-brand-primary/30" 
                 : "bg-semantic-urgent border-red-950 shadow-red-900/30"
@@ -413,7 +413,7 @@ export default function CitizenProfile() {
         className="hidden"
       />
 
-      {/* 1. Header (Exact Map & My Reports Standardized Hero) */}
+      {/* 1. Header (Standardized Hero with Natural Typography) */}
       <motion.div 
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -421,10 +421,10 @@ export default function CitizenProfile() {
         className="shrink-0 mb-4 sm:mb-6 flex items-center justify-between gap-3"
       >
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4 truncate">
+          <h1 className="text-xl sm:text-2xl md:text-4xl font-heading font-bold tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4 truncate">
             Account Profile
           </h1>
-          <p className="hidden md:block text-text-muted text-xs md:text-sm pl-5 mt-1">
+          <p className="hidden md:block text-text-muted text-xs sm:text-sm pl-4 md:pl-5 mt-1 font-sans">
             Manage your verified citizen credentials, civic credits, and notification settings.
           </p>
         </div>
@@ -432,7 +432,7 @@ export default function CitizenProfile() {
         {/* Quick Link to My Reports */}
         <Link
           to="/citizen/dashboard"
-          className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-3 sm:px-4 py-2 sm:py-2.5 rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-md shrink-0 active:scale-95 cursor-pointer whitespace-nowrap"
+          className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-3 sm:px-4 py-2 sm:py-2.5 rounded-sm -skew-x-3 sm:-skew-x-6 flex items-center gap-1.5 sm:gap-2 text-xs font-heading font-semibold uppercase tracking-wide shadow-md shrink-0 active:scale-95 cursor-pointer whitespace-nowrap"
         >
           <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 skew-x-3 sm:skew-x-6 shrink-0" />
           <span className="skew-x-3 sm:skew-x-6 hidden xs:inline">My Submissions</span>
@@ -453,25 +453,25 @@ export default function CitizenProfile() {
                 <Sparkles className="w-5 h-5 text-brand-secondary" />
               </div>
               <div>
-                <h2 className="text-xs sm:text-sm font-heading font-bold text-text-primary uppercase tracking-wide">
+                <h2 className="text-sm font-heading font-bold text-text-primary">
                   Guest Session Active
                 </h2>
-                <p className="text-xs text-text-muted mt-0.5 font-mono">
+                <p className="text-xs text-text-muted mt-0.5 font-sans leading-relaxed">
                   You are browsing as a guest. Create a free account or sign in to save your personal details and sync civic rewards.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto font-sans">
               <Link
                 to="/login"
-                className="w-full sm:w-auto px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-mono font-bold text-xs uppercase tracking-wider rounded-sm transition-colors text-center shadow-xs"
+                className="w-full sm:w-auto px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-semibold text-xs rounded-sm transition-colors text-center shadow-xs"
               >
                 Sign In
               </Link>
               <Link
                 to="/register"
-                className="w-full sm:w-auto px-4 py-2 bg-surface hover:bg-surface/80 border border-border-strong text-text-primary font-mono font-bold text-xs uppercase tracking-wider rounded-sm transition-colors text-center"
+                className="w-full sm:w-auto px-4 py-2 bg-surface hover:bg-surface/80 border border-border-strong text-text-primary font-semibold text-xs rounded-sm transition-colors text-center"
               >
                 Register
               </Link>
@@ -538,28 +538,28 @@ export default function CitizenProfile() {
               </div>
 
               {/* Citizen Name & Verification Badge */}
-              <h2 className="text-xl sm:text-2xl font-heading font-black text-text-primary flex items-center gap-2 justify-center text-center">
+              <h2 className="text-lg sm:text-xl font-heading font-bold text-text-primary flex items-center gap-2 justify-center text-center">
                 <span>{profile.fullName || 'Citizen Reporter'}</span>
                 {!profile.isGuest && (
                   <span title="Verified Reporter" className="inline-flex items-center">
-                    <CheckCircle2 className="w-5 h-5 text-brand-primary shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-brand-primary shrink-0" />
                   </span>
                 )}
               </h2>
 
-              <p className="text-text-muted font-mono text-xs mt-1 tracking-wider text-center">
+              <p className="text-text-muted text-xs mt-1 font-sans text-center">
                 {profile.email ? profile.email : profile.isGuest ? 'Anonymous Session' : '+63 ' + (profile.phone || '9XX XXX XXXX')}
               </p>
               
               {/* Reporter Status Badge */}
               <div className={twMerge(
-                "mt-5 w-full flex items-center justify-center gap-2 border px-4 py-2 rounded-sm -skew-x-3 transition-colors",
+                "mt-4 w-full flex items-center justify-center gap-2 border px-3.5 py-1.5 rounded-sm -skew-x-3 transition-colors",
                 profile.isGuest 
                   ? "bg-amber-500/10 border-amber-500/30 text-amber-500" 
                   : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
               )}>
-                <Shield className="w-4 h-4 skew-x-3" />
-                <span className="skew-x-3 text-xs font-mono font-bold uppercase tracking-widest">
+                <Shield className="w-3.5 h-3.5 skew-x-3" />
+                <span className="skew-x-3 text-xs font-semibold uppercase tracking-wider font-sans">
                   {profile.isGuest ? 'Guest Reporter' : 'Verified Civic Steward'}
                 </span>
               </div>
@@ -573,19 +573,19 @@ export default function CitizenProfile() {
             transition={{ duration: 0.35, delay: 0.1 }}
             className="w-full bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300 relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
           >
-            <div className="skew-x-2 sm:skew-x-3 flex flex-col gap-5 relative z-10">
+            <div className="skew-x-2 sm:skew-x-3 flex flex-col gap-4 relative z-10">
               
               {/* Civic ID Identifier */}
-              <div className="flex items-center justify-between border-b border-border-subtle pb-4">
+              <div className="flex items-center justify-between border-b border-border-subtle pb-3.5">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-brand-primary/15 text-brand-primary border border-brand-primary/30 rounded-sm -skew-x-6 shadow-inner">
-                    <Award className="w-5 h-5 skew-x-6" />
+                  <div className="p-2 bg-brand-primary/15 text-brand-primary border border-brand-primary/30 rounded-sm -skew-x-6 shadow-inner">
+                    <Award className="w-4 h-4 skew-x-6" />
                   </div>
                   <div>
-                    <h3 className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest">
+                    <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider font-sans">
                       Civic Identifier
                     </h3>
-                    <p className="text-lg font-heading font-black text-text-primary tracking-wide">
+                    <p className="text-base font-mono font-bold text-text-primary tracking-wide mt-0.5">
                       {profile.isGuest 
                         ? 'EST-GUEST-SYS' 
                         : `EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
@@ -597,19 +597,19 @@ export default function CitizenProfile() {
               {/* Stewardship Credits Box */}
               <div className="bg-app-bg/70 p-4 border border-border-subtle rounded-sm flex items-center justify-between -skew-x-2 shadow-inner">
                 <div className="skew-x-2 flex flex-col">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-text-muted font-sans">
                     Stewardship Credits
                   </span>
                   <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <span className="text-3xl font-mono font-black text-brand-primary">
+                    <span className="text-2xl sm:text-3xl font-mono font-bold text-brand-primary">
                       {profile.stewardshipScore}
                     </span>
-                    <span className="text-[10px] font-mono font-bold text-text-muted uppercase">PTS</span>
+                    <span className="text-xs font-bold text-text-muted uppercase">PTS</span>
                   </div>
                 </div>
 
                 <div className="skew-x-2 text-right">
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-sm">
+                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-sm font-sans">
                     Level 1 Contributor
                   </span>
                 </div>
@@ -619,7 +619,7 @@ export default function CitizenProfile() {
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="bg-app-bg/50 p-3 rounded-sm border border-border-subtle -skew-x-2">
                   <div className="skew-x-2">
-                    <span className="text-[10px] font-mono text-text-muted uppercase block">Total Reports</span>
+                    <span className="text-xs font-medium text-text-muted block font-sans">Total Reports</span>
                     <span className="text-xl font-mono font-bold text-text-primary mt-1 block">
                       {profile.totalReportsCount}
                     </span>
@@ -628,7 +628,7 @@ export default function CitizenProfile() {
 
                 <div className="bg-app-bg/50 p-3 rounded-sm border border-border-subtle -skew-x-2">
                   <div className="skew-x-2">
-                    <span className="text-[10px] font-mono text-text-muted uppercase block">Cleared Waterways</span>
+                    <span className="text-xs font-medium text-text-muted block font-sans">Cleared Waterways</span>
                     <span className="text-xl font-mono font-bold text-emerald-400 mt-1 block">
                       {profile.resolvedReportsCount}
                     </span>
@@ -652,20 +652,20 @@ export default function CitizenProfile() {
             className="w-full bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 sm:p-8 shadow-md transition-all duration-300"
           >
             <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-border-subtle">
-              <h2 className="text-sm font-heading font-black tracking-widest uppercase text-text-secondary flex items-center gap-2.5">
+              <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
                 <User className="w-4 h-4 text-brand-primary" /> 
                 <span>Personal Information</span>
               </h2>
-              <span className="text-[11px] font-mono text-text-muted">
+              <span className="text-xs text-text-muted font-sans">
                 {profile.isGuest ? 'Guest Access' : 'Synchronized with Supabase'}
               </span>
             </div>
             
             <form onSubmit={handleSaveChanges}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-sans">
                 {/* First Name */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="profile-first-name" className="text-xs font-mono font-bold uppercase tracking-wider text-text-muted">
+                  <label htmlFor="profile-first-name" className="text-xs sm:text-sm font-medium text-text-secondary">
                     First Name
                   </label>
                   <input 
@@ -674,13 +674,13 @@ export default function CitizenProfile() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="Enter first name"
-                    className="w-full bg-app-bg/80 border border-border-strong rounded-sm px-4 py-2.5 text-text-primary text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                    className="w-full bg-app-bg border border-border-strong rounded-sm px-3.5 py-2.5 text-text-primary text-sm font-sans focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
                   />
                 </div>
 
                 {/* Last Name */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="profile-last-name" className="text-xs font-mono font-bold uppercase tracking-wider text-text-muted">
+                  <label htmlFor="profile-last-name" className="text-xs sm:text-sm font-medium text-text-secondary">
                     Last Name
                   </label>
                   <input 
@@ -689,15 +689,15 @@ export default function CitizenProfile() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="Enter last name"
-                    className="w-full bg-app-bg/80 border border-border-strong rounded-sm px-4 py-2.5 text-text-primary text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                    className="w-full bg-app-bg border border-border-strong rounded-sm px-3.5 py-2.5 text-text-primary text-sm font-sans focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
                   />
                 </div>
 
                 {/* Email Address (Read-only / Auth-managed) */}
                 <div className="flex flex-col gap-1.5 md:col-span-2">
-                  <label htmlFor="profile-email" className="text-xs font-mono font-bold uppercase tracking-wider text-text-muted flex items-center justify-between">
+                  <label htmlFor="profile-email" className="text-xs sm:text-sm font-medium text-text-secondary flex items-center justify-between">
                     <span>Registered Email</span>
-                    <span className="text-[10px] text-text-muted lowercase">Managed via Auth</span>
+                    <span className="text-xs text-text-muted">Managed via Auth</span>
                   </label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted">
@@ -709,18 +709,18 @@ export default function CitizenProfile() {
                       value={profile.email || (profile.isGuest ? 'guest@esteroute.local' : 'citizen@esteroute.local')}
                       readOnly
                       disabled
-                      className="w-full bg-app-bg/40 border border-border-subtle rounded-sm pl-10 pr-4 py-2.5 text-text-muted text-sm font-mono cursor-not-allowed select-none" 
+                      className="w-full bg-app-bg/40 border border-border-subtle rounded-sm pl-10 pr-4 py-2.5 text-text-muted text-sm font-sans cursor-not-allowed select-none" 
                     />
                   </div>
                 </div>
 
                 {/* Phone Number */}
                 <div className="flex flex-col gap-1.5 md:col-span-2">
-                  <label htmlFor="profile-phone" className="text-xs font-mono font-bold uppercase tracking-wider text-text-muted">
+                  <label htmlFor="profile-phone" className="text-xs sm:text-sm font-medium text-text-secondary">
                     Mobile Phone Number
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted font-mono font-bold text-sm">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted font-mono font-medium text-sm">
                       +63
                     </span>
                     <input 
@@ -730,10 +730,10 @@ export default function CitizenProfile() {
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       placeholder="9XX XXX XXXX"
                       maxLength={15}
-                      className="w-full bg-app-bg/80 border border-border-strong rounded-sm pl-13 pr-4 py-2.5 text-text-primary text-sm font-mono focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                      className="w-full bg-app-bg border border-border-strong rounded-sm pl-13 pr-4 py-2.5 text-text-primary text-sm font-mono focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
                     />
                   </div>
-                  <span className="text-[10px] font-mono text-text-muted mt-0.5">
+                  <span className="text-xs text-text-muted mt-0.5 font-sans leading-normal">
                     Used for localized emergency waterway flood dispatch advisories.
                   </span>
                 </div>
@@ -744,7 +744,7 @@ export default function CitizenProfile() {
                 <button 
                   type="submit"
                   disabled={isSaving}
-                  className="px-6 py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-mono font-bold uppercase tracking-widest text-xs rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
+                  className="px-6 py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs sm:text-sm rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
                 >
                   {isSaving ? (
                     <>
@@ -772,15 +772,15 @@ export default function CitizenProfile() {
               transition={{ duration: 0.35, delay: 0.2 }}
               className="bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300"
             >
-              <h2 className="text-sm font-heading font-black tracking-widest uppercase text-text-secondary mb-4 flex items-center gap-2.5">
+              <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary mb-4 flex items-center gap-2.5">
                 <Bell className="w-4 h-4 text-brand-secondary" /> 
                 <span>Notifications</span>
               </h2>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 font-sans">
                 <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 -skew-x-2">
-                  <div className="skew-x-2 flex flex-col">
-                    <span className="text-xs font-mono font-bold text-text-primary">SMS Status Alerts</span>
-                    <span className="text-[10px] font-mono text-text-muted">Receive clearance updates on your reports</span>
+                  <div className="skew-x-2 flex flex-col pr-2">
+                    <span className="text-xs sm:text-sm font-medium text-text-primary">SMS Status Alerts</span>
+                    <span className="text-xs text-text-muted mt-0.5">Receive clearance updates on your reports</span>
                   </div>
                   <input 
                     type="checkbox" 
@@ -791,9 +791,9 @@ export default function CitizenProfile() {
                 </label>
 
                 <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 -skew-x-2">
-                  <div className="skew-x-2 flex flex-col">
-                    <span className="text-xs font-mono font-bold text-text-primary">Basin Flood Alerts</span>
-                    <span className="text-[10px] font-mono text-text-muted">High water level waterway warnings</span>
+                  <div className="skew-x-2 flex flex-col pr-2">
+                    <span className="text-xs sm:text-sm font-medium text-text-primary">Basin Flood Alerts</span>
+                    <span className="text-xs text-text-muted mt-0.5">High water level waterway warnings</span>
                   </div>
                   <input 
                     type="checkbox" 
@@ -813,16 +813,16 @@ export default function CitizenProfile() {
               className="bg-surface/35 hover:bg-surface/80 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary rounded-sm p-6 shadow-md transition-all duration-300 flex flex-col justify-between"
             >
               <div>
-                <h2 className="text-sm font-heading font-black tracking-widest uppercase text-text-secondary mb-4 flex items-center gap-2.5">
+                <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary mb-4 flex items-center gap-2.5">
                   <Lock className="w-4 h-4 text-brand-secondary" /> 
                   <span>Security & Session</span>
                 </h2>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 font-sans">
                   <Link 
                     to="/recovery"
                     className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary transition-colors bg-app-bg/60 text-left group -skew-x-2 cursor-pointer"
                   >
-                    <span className="skew-x-2 text-xs font-mono font-bold text-text-primary group-hover:text-brand-primary transition-colors">
+                    <span className="skew-x-2 text-xs sm:text-sm font-medium text-text-primary group-hover:text-brand-primary transition-colors">
                       Password Recovery
                     </span>
                     <ChevronRight className="skew-x-2 w-4 h-4 text-text-muted group-hover:text-brand-primary transition-colors" />
@@ -833,7 +833,7 @@ export default function CitizenProfile() {
                     onClick={handleSignOut}
                     className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-semantic-urgent transition-colors bg-app-bg/60 text-left group -skew-x-2 cursor-pointer w-full"
                   >
-                    <span className="skew-x-2 text-xs font-mono font-bold text-semantic-urgent">
+                    <span className="skew-x-2 text-xs sm:text-sm font-medium text-semantic-urgent">
                       {profile.isGuest ? 'Leave Guest Session' : 'Sign Out of esteRoute'}
                     </span>
                     <LogOut className="skew-x-2 w-4 h-4 text-semantic-urgent/70 group-hover:text-semantic-urgent transition-colors" />
@@ -841,9 +841,9 @@ export default function CitizenProfile() {
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-border-subtle/60 flex items-center justify-between text-[10px] font-mono text-text-muted">
+              <div className="mt-4 pt-3 border-t border-border-subtle/60 flex items-center justify-between text-xs font-sans text-text-muted">
                 <span>esteRoute Public Portal v2.0</span>
-                <span className="text-brand-primary font-bold">Encrypted Session</span>
+                <span className="text-brand-primary font-medium">Encrypted Session</span>
               </div>
             </motion.section>
 
