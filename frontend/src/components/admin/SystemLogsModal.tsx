@@ -46,7 +46,7 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-app-bg w-full max-w-4xl h-[70vh] flex flex-col border border-border-strong rounded-sm shadow-2xl overflow-hidden -skew-x-[2deg]">
+      <div className="bg-app-bg w-full max-w-4xl h-[70vh] flex flex-col border border-border-subtle rounded-sm shadow-2xl overflow-hidden -skew-x-[2deg]">
         
         {/* Header */}
         <div className="bg-surface border-b border-border-subtle p-4 flex justify-between items-center skew-x-[2deg]">

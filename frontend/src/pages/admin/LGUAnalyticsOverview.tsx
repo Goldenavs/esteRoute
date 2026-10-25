@@ -268,15 +268,6 @@ export default function LGUAnalyticsOverview() {
         className="mb-6 sm:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4"
       >
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-widest uppercase bg-brand-primary/20 text-brand-primary border border-brand-primary/40 rounded-sm">
-              LGU Command Telemetry
-            </span>
-            <span className="flex items-center gap-1 text-[10px] text-text-muted font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Real-time DB Sync
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4">
             Waterway Analytics
           </h1>
@@ -287,7 +278,7 @@ export default function LGUAnalyticsOverview() {
         
         {/* Time Filters & Refresh */}
         <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
-          <div className="flex items-center bg-surface/85 backdrop-blur-md border border-border-strong rounded-sm p-0.5 shadow-xs">
+          <div className="flex items-center bg-surface/85 backdrop-blur-md border border-border-subtle rounded-sm p-0.5 shadow-xs -skew-x-3 sm:-skew-x-6">
             {(['ALL', '30', '14'] as const).map((filterKey) => (
               <button
                 key={filterKey}
@@ -300,7 +291,7 @@ export default function LGUAnalyticsOverview() {
                     : "text-text-muted hover:text-text-primary hover:bg-surface-subtle"
                 )}
               >
-                <span>
+                <span className="skew-x-3 sm:skew-x-6 inline-block">
                   {filterKey === 'ALL' ? 'All Time' : `${filterKey} Days`}
                 </span>
               </button>
@@ -311,10 +302,10 @@ export default function LGUAnalyticsOverview() {
             type="button"
             onClick={handleRefresh}
             disabled={isLoading}
-            className="p-2 bg-surface/85 hover:bg-surface border border-border-strong rounded-sm text-text-muted hover:text-brand-primary transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+            className="p-2 bg-surface/85 hover:bg-surface border border-border-subtle rounded-sm text-text-muted hover:text-brand-primary transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center shrink-0 -skew-x-3 sm:-skew-x-6"
             title="Refresh Live Analytics"
           >
-            <RefreshCw className={twMerge("w-4 h-4", isLoading && "animate-spin text-brand-primary")} />
+            <RefreshCw className={twMerge("w-4 h-4 skew-x-3 sm:skew-x-6", isLoading && "animate-spin text-brand-primary")} />
           </button>
         </div>
       </motion.div>
@@ -474,7 +465,7 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.25 }}
-          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-strong hover:border-brand-primary/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col h-[380px] overflow-hidden group"
+          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-subtle hover:border-brand-primary/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col h-[380px] overflow-hidden group"
         >
           <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-primary" />
           <div className="h-full flex flex-col relative z-10">
@@ -545,7 +536,7 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.3 }}
-          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-strong hover:border-brand-secondary/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col h-[380px] overflow-hidden group"
+          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-subtle hover:border-brand-secondary/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col h-[380px] overflow-hidden group"
         >
           <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-secondary" />
           <div className="h-full flex flex-col relative z-10">
@@ -606,7 +597,7 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.35 }}
-          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-strong hover:border-brand-primary/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col overflow-hidden group"
+          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-subtle hover:border-brand-primary/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col overflow-hidden group"
         >
           <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500" />
           <div className="flex flex-col h-full relative z-10">
@@ -662,7 +653,7 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.4 }}
-          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-strong hover:border-emerald-500/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col overflow-hidden group"
+          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-subtle hover:border-emerald-500/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col overflow-hidden group"
         >
           <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" />
           <div className="flex flex-col h-full relative z-10">

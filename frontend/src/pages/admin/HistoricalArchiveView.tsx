@@ -329,15 +329,6 @@ export default function HistoricalArchiveView() {
         className="mb-4 sm:mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4"
       >
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-widest uppercase bg-brand-primary/20 text-brand-primary border border-brand-primary/40 rounded-sm">
-              LGU Central Repository
-            </span>
-            <span className="flex items-center gap-1 text-[10px] text-text-muted font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Verified Telemetry
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4">
             Historical Archive
           </h1>
@@ -352,21 +343,25 @@ export default function HistoricalArchiveView() {
             type="button"
             onClick={handleExportCSV}
             disabled={archiveData.length === 0}
-            className="px-4 py-2 bg-surface/85 hover:bg-brand-primary hover:text-white border border-border-strong rounded-sm text-text-primary text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer flex items-center gap-2 shrink-0 disabled:opacity-50"
+            className="px-4 py-2 bg-surface/85 hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-text-primary text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer flex items-center gap-2 shrink-0 disabled:opacity-50 -skew-x-3 sm:-skew-x-6"
             title="Export CSV Dataset"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
+            <div className="flex items-center gap-2 skew-x-3 sm:skew-x-6">
+              <Download className="w-3.5 h-3.5" />
+              <span>Export CSV</span>
+            </div>
           </button>
 
           <button
             type="button"
             onClick={fetchArchiveData}
             disabled={isLoading}
-            className="p-2 bg-surface/85 hover:bg-surface border border-border-strong rounded-sm text-text-muted hover:text-brand-primary transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+            className="p-2 bg-surface/85 hover:bg-surface border border-border-subtle rounded-sm text-text-muted hover:text-brand-primary transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center shrink-0 -skew-x-3 sm:-skew-x-6"
             title="Refresh Archive"
           >
-            <RefreshCw className={twMerge("w-4 h-4", isLoading && "animate-spin text-brand-primary")} />
+            <div className="flex items-center justify-center skew-x-3 sm:skew-x-6">
+              <RefreshCw className={twMerge("w-4 h-4", isLoading && "animate-spin text-brand-primary")} />
+            </div>
           </button>
         </div>
       </motion.div>
@@ -389,7 +384,7 @@ export default function HistoricalArchiveView() {
                 setCurrentPage(1);
               }}
               className={twMerge(
-                "group relative overflow-hidden flex h-14 sm:h-16 items-center border bg-surface/75 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-brand-primary cursor-pointer text-left rounded-sm active:opacity-90",
+                "group relative overflow-hidden flex h-14 sm:h-16 items-center border bg-surface/75 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-brand-primary cursor-pointer text-left rounded-sm active:opacity-90 -skew-x-2 sm:-skew-x-6",
                 metric.border,
                 isSelected 
                   ? "ring-2 ring-brand-primary opacity-100 z-10 bg-surface/95 shadow-md shadow-brand-primary/20" 
@@ -414,7 +409,7 @@ export default function HistoricalArchiveView() {
               </div>
 
               {/* Card Content */}
-              <div className="relative z-10 flex w-full items-center justify-between gap-1.5 px-3 sm:px-4 py-2">
+              <div className="relative z-10 flex w-full items-center justify-between gap-1.5 px-3 sm:px-4 py-2 skew-x-2 sm:skew-x-6">
                 <div className="flex flex-col min-w-0">
                   <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase text-text-secondary group-hover:text-brand-primary transition-colors truncate">
                     <span className="sm:hidden">{metric.shortLabel}</span>
@@ -452,24 +447,26 @@ export default function HistoricalArchiveView() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-surface/85 backdrop-blur-md border border-border-strong rounded-sm py-2 pl-9 pr-4 text-xs font-mono focus:outline-none focus:border-brand-primary text-text-primary placeholder:text-text-muted transition-colors shadow-xs"
+              className="w-full bg-surface/85 backdrop-blur-md border border-border-subtle rounded-sm py-2 pl-9 pr-4 text-xs font-mono focus:outline-none focus:border-brand-primary text-text-primary placeholder:text-text-muted transition-colors shadow-xs"
             />
           </div>
 
           {/* Waste Category Filter */}
-          <div className="relative bg-surface/85 backdrop-blur-md border border-border-strong flex items-center gap-1.5 rounded-sm hover:border-brand-primary transition-colors px-2.5 shadow-xs shrink-0">
-            <Trash2 className="w-3.5 h-3.5 text-text-muted" />
-            <select
-              value={categoryFilter}
-              onChange={e => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
-              className="bg-transparent py-2 pr-2 outline-none appearance-none cursor-pointer uppercase tracking-wider text-[10px] font-mono font-bold text-text-secondary"
-            >
-              <option value="ALL" className="bg-surface text-text-primary">All Waste Types</option>
-              <option value="plastic" className="bg-surface text-text-primary">Plastic Debris</option>
-              <option value="organic" className="bg-surface text-text-primary">Organic Matter</option>
-              <option value="styrofoam" className="bg-surface text-text-primary">Styrofoam</option>
-              <option value="silt" className="bg-surface text-text-primary">Silt / Sediment</option>
-            </select>
+          <div className="relative bg-surface/85 backdrop-blur-md border border-border-subtle flex items-center gap-1.5 rounded-sm hover:border-brand-primary transition-colors px-2.5 shadow-xs shrink-0 -skew-x-3">
+            <div className="flex items-center gap-1.5 skew-x-3">
+              <Trash2 className="w-3.5 h-3.5 text-text-muted" />
+              <select
+                value={categoryFilter}
+                onChange={e => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+                className="bg-transparent py-2 pr-2 outline-none appearance-none cursor-pointer uppercase tracking-wider text-[10px] font-mono font-bold text-text-secondary"
+              >
+                <option value="ALL" className="bg-surface text-text-primary">All Waste Types</option>
+                <option value="plastic" className="bg-surface text-text-primary">Plastic Debris</option>
+                <option value="organic" className="bg-surface text-text-primary">Organic Matter</option>
+                <option value="styrofoam" className="bg-surface text-text-primary">Styrofoam</option>
+                <option value="silt" className="bg-surface text-text-primary">Silt / Sediment</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -479,53 +476,55 @@ export default function HistoricalArchiveView() {
             ({archiveData.length} matching {archiveData.length === 1 ? 'record' : 'records'})
           </span>
 
-          <div className="flex items-center gap-1 bg-surface/85 border border-border-strong p-1 rounded-sm shadow-xs">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted px-1.5 flex items-center gap-1 shrink-0">
-              <ArrowUpDown className="w-3 h-3 text-brand-primary" />
-              <span className="hidden sm:inline">Sort:</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setSortOrder('newest');
-                setCurrentPage(1);
-              }}
-              className={twMerge(
-                "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
-                sortOrder === 'newest'
-                  ? "bg-brand-primary text-white shadow-xs"
-                  : "text-text-secondary hover:text-text-primary hover:bg-surface"
-              )}
-              title="Sort by Newest First"
-            >
-              Newest
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSortOrder('oldest');
-                setCurrentPage(1);
-              }}
-              className={twMerge(
-                "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
-                sortOrder === 'oldest'
-                  ? "bg-brand-primary text-white shadow-xs"
-                  : "text-text-secondary hover:text-text-primary hover:bg-surface"
-              )}
-              title="Sort by Oldest First"
-            >
-              Oldest
-            </button>
+          <div className="flex items-center gap-1 bg-surface/85 border border-border-subtle p-1 rounded-sm shadow-xs -skew-x-3 sm:-skew-x-6">
+            <div className="flex items-center gap-1 skew-x-3 sm:skew-x-6">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted px-1.5 flex items-center gap-1 shrink-0">
+                <ArrowUpDown className="w-3 h-3 text-brand-primary" />
+                <span className="hidden sm:inline">Sort:</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSortOrder('newest');
+                  setCurrentPage(1);
+                }}
+                className={twMerge(
+                  "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
+                  sortOrder === 'newest'
+                    ? "bg-brand-primary text-white shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface"
+                )}
+                title="Sort by Newest First"
+              >
+                Newest
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSortOrder('oldest');
+                  setCurrentPage(1);
+                }}
+                className={twMerge(
+                  "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
+                  sortOrder === 'oldest'
+                    ? "bg-brand-primary text-white shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface"
+                )}
+                title="Sort by Oldest First"
+              >
+                Oldest
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* 4. Historical Data Table */}
-      <div className="w-full bg-surface/40 hover:bg-surface/65 backdrop-blur-xl border border-border-strong rounded-sm shadow-md flex flex-col flex-1 overflow-hidden transition-all duration-300">
+      <div className="w-full bg-surface/40 hover:bg-surface/65 backdrop-blur-xl border border-border-subtle rounded-sm shadow-md flex flex-col flex-1 overflow-hidden transition-all duration-300">
         <div className="w-full overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[850px]">
             <thead>
-              <tr className="bg-surface-subtle/80 border-b border-border-strong text-[10px] uppercase font-mono font-bold tracking-widest text-text-muted">
+              <tr className="bg-surface-subtle/80 border-b border-border-subtle text-[10px] uppercase font-mono font-bold tracking-widest text-text-muted">
                 <th className="p-3.5 pl-5">Tracking Reference</th>
                 <th className="p-3.5">Date & Time Logged</th>
                 <th className="p-3.5">Waterway Coordinates</th>
@@ -653,14 +652,16 @@ export default function HistoricalArchiveView() {
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(1)}
             className={twMerge(
-              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all flex items-center justify-center border",
+              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center justify-center border",
               currentPage === 1
                 ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
                 : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
             )}
             title="First Page (<<)"
           >
-            <ChevronsLeft className="w-3.5 h-3.5" />
+            <span className="skew-x-3">
+              <ChevronsLeft className="w-3.5 h-3.5" />
+            </span>
           </button>
 
           {/* Previous Page (<) */}
@@ -669,14 +670,16 @@ export default function HistoricalArchiveView() {
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             className={twMerge(
-              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all flex items-center justify-center border",
+              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center justify-center border",
               currentPage === 1
                 ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
                 : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
             )}
             title="Previous Page (<)"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
+            <span className="skew-x-3">
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </span>
           </button>
 
           {/* Numbered Page Buttons */}
@@ -686,13 +689,13 @@ export default function HistoricalArchiveView() {
               type="button"
               onClick={() => setCurrentPage(pageNum)}
               className={twMerge(
-                "w-7 h-7 rounded-sm text-xs font-mono font-bold transition-all flex items-center justify-center border cursor-pointer active:scale-95",
+                "w-7 h-7 rounded-sm text-xs font-mono font-bold transition-all -skew-x-3 flex items-center justify-center border cursor-pointer active:scale-95",
                 currentPage === pageNum
                   ? "bg-brand-primary text-white border-brand-primary shadow-xs shadow-brand-primary/30"
                   : "bg-surface/60 border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface"
               )}
             >
-              <span>{pageNum}</span>
+              <span className="skew-x-3">{pageNum}</span>
             </button>
           ))}
 
@@ -702,14 +705,16 @@ export default function HistoricalArchiveView() {
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
             className={twMerge(
-              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all flex items-center justify-center border",
+              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center justify-center border",
               currentPage === totalPages
                 ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
                 : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
             )}
             title="Next Page (>)"
           >
-            <ChevronRight className="w-3.5 h-3.5" />
+            <span className="skew-x-3">
+              <ChevronRight className="w-3.5 h-3.5" />
+            </span>
           </button>
 
           {/* Last Page (>>) */}
@@ -718,14 +723,16 @@ export default function HistoricalArchiveView() {
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage(totalPages)}
             className={twMerge(
-              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all flex items-center justify-center border",
+              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all -skew-x-3 flex items-center justify-center border",
               currentPage === totalPages
                 ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
                 : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
             )}
             title="Last Page (>>)"
           >
-            <ChevronsRight className="w-3.5 h-3.5" />
+            <span className="skew-x-3">
+              <ChevronsRight className="w-3.5 h-3.5" />
+            </span>
           </button>
         </div>
       </div>
@@ -739,7 +746,7 @@ export default function HistoricalArchiveView() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2 }}
-              className="bg-surface border border-border-strong rounded-sm shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative"
+              className="bg-surface border border-border-subtle rounded-sm shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative"
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border-subtle bg-surface-subtle/50">
@@ -839,7 +846,7 @@ export default function HistoricalArchiveView() {
                       {selectedReport.agentDetails.waste_categories.map((cat, idx) => (
                         <span 
                           key={idx}
-                          className="px-2 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider bg-surface-subtle border border-border-strong text-text-primary"
+                          className="px-2 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider bg-surface-subtle border border-border-subtle text-text-primary"
                         >
                           {cat}
                         </span>
@@ -865,7 +872,7 @@ export default function HistoricalArchiveView() {
                 <button
                   type="button"
                   onClick={() => setSelectedReport(null)}
-                  className="px-4 py-2 bg-surface hover:bg-surface-subtle border border-border-strong rounded-sm text-xs font-mono font-bold uppercase tracking-wider text-text-primary transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-surface hover:bg-surface-subtle border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase tracking-wider text-text-primary transition-colors cursor-pointer"
                 >
                   Close Dossier
                 </button>

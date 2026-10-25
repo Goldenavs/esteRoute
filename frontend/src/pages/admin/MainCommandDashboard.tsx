@@ -449,7 +449,7 @@ export default function MainCommandDashboard() {
                 }}
               >
                 <Popup className="custom-popup" closeButton={false}>
-                  <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-52 text-text-primary">
+                  <div className="bg-surface/95 backdrop-blur-md border border-border-subtle rounded-sm shadow-2xl p-3 w-52 text-text-primary">
                     <div className="flex items-center justify-between gap-1 mb-1">
                       <h3 className="font-mono font-bold text-xs text-text-muted tracking-widest">{report.tracking_reference}</h3>
                       {isSelected && (
@@ -576,7 +576,7 @@ export default function MainCommandDashboard() {
       <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
         
         {/* Map Controls - Bottom Left (Matches AI Vision panel width w-[24rem]) */}
-        <div className={`pointer-events-auto absolute bottom-4 left-4 z-30 w-[24rem] flex items-center justify-between bg-surface/95 backdrop-blur-xl border border-border-strong p-1.5 rounded-sm shadow-2xl transition-all duration-500 ${isControlsOpen ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+2rem)] opacity-0 pointer-events-none'}`}>
+        <div className={`pointer-events-auto absolute bottom-4 left-4 z-30 w-[24rem] flex items-center justify-between bg-surface/95 backdrop-blur-xl border border-border-subtle p-1.5 rounded-sm shadow-2xl transition-all duration-500 ${isControlsOpen ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+2rem)] opacity-0 pointer-events-none'}`}>
           <div className="flex items-center gap-1 sm:gap-1.5">
             {/* Zoom In */}
             <button
@@ -685,7 +685,7 @@ export default function MainCommandDashboard() {
             onClick={() => {
               setIsControlsOpen(true);
             }}
-            className="pointer-events-auto absolute left-0 bottom-4 z-30 flex h-[46px] w-10 sm:w-12 items-center justify-center border border-l-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-r-sm cursor-pointer"
+            className="pointer-events-auto absolute left-0 bottom-4 z-30 flex h-[46px] w-10 sm:w-12 items-center justify-center border border-l-0 border-border-subtle bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-r-sm cursor-pointer"
             title="Show Map Controls"
             aria-label="Show Map Controls"
           >
@@ -762,7 +762,7 @@ export default function MainCommandDashboard() {
             <button 
               type="button"
               onClick={() => setIsKpiOpen(false)}
-              className="h-11 sm:h-13 px-2 sm:px-2.5 bg-surface/85 hover:bg-surface border border-border-strong text-text-muted hover:text-brand-primary rounded-sm transition-all shadow-lg backdrop-blur-md active:scale-95 -skew-x-2 sm:-skew-x-6 cursor-pointer flex items-center justify-center"
+              className="h-11 sm:h-13 px-2 sm:px-2.5 bg-surface/85 hover:bg-surface border border-border-subtle text-text-muted hover:text-brand-primary rounded-sm transition-all shadow-lg backdrop-blur-md active:scale-95 -skew-x-2 sm:-skew-x-6 cursor-pointer flex items-center justify-center"
               title="Hide KPI Bar"
               aria-label="Hide KPI Bar"
             >
@@ -779,7 +779,7 @@ export default function MainCommandDashboard() {
               setIsKpiOpen(true);
               setIsFocusMode(false);
             }}
-            className="pointer-events-auto absolute bottom-0 left-1/2 -translate-x-1/2 z-30 flex h-7 sm:h-8 px-5 items-center justify-center border border-b-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-t-sm cursor-pointer"
+            className="pointer-events-auto absolute bottom-0 left-1/2 -translate-x-1/2 z-30 flex h-7 sm:h-8 px-5 items-center justify-center border border-b-0 border-border-subtle bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-t-sm cursor-pointer"
             title="Show KPI Metrics"
             aria-label="Show KPI Metrics"
           >
@@ -793,7 +793,7 @@ export default function MainCommandDashboard() {
             isAnalysisOpen ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'
           }`}
         >
-          <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm relative overflow-hidden group">
+          <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-subtle shadow-2xl flex flex-col rounded-sm relative overflow-hidden group">
             <BorderBeam delay={0} color="#60A5FA" />
             <div className="px-4 py-3 border-b border-border-subtle bg-surface-subtle flex justify-between items-center rounded-t-sm relative z-20">
               <h2 className="font-heading font-black text-sm tracking-widest uppercase flex items-center gap-2 text-brand-primary">
@@ -830,7 +830,7 @@ export default function MainCommandDashboard() {
                   </div>
 
                   {/* Submitted Image */}
-                  <div className="w-full h-48 rounded-sm bg-border-subtle overflow-hidden relative group border border-border-strong shadow-inner">
+                  <div className="w-full h-48 rounded-sm bg-border-subtle overflow-hidden relative group border border-border-subtle shadow-inner">
                     <img src={selectedReport.image_url} alt="Reported issue" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                     <div className="absolute bottom-2 left-2 flex gap-1">
@@ -944,7 +944,7 @@ export default function MainCommandDashboard() {
               setIsAnalysisOpen(true);
               setIsFocusMode(false);
             }}
-            className="pointer-events-auto absolute left-0 top-[5rem] z-30 flex h-[46px] w-10 sm:w-12 items-center justify-center border border-l-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-r-sm cursor-pointer"
+            className="pointer-events-auto absolute left-0 top-[5rem] z-30 flex h-[46px] w-10 sm:w-12 items-center justify-center border border-l-0 border-border-subtle bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-r-sm cursor-pointer"
             title="Show AI Vision Rationale"
             aria-label="Show AI Vision Rationale"
           >
@@ -956,7 +956,7 @@ export default function MainCommandDashboard() {
         <div 
           className={`pointer-events-auto absolute bottom-4 right-4 top-[5rem] w-[24rem] z-20 transition-transform duration-500 ease-out ${isQueueOpen ? 'translate-x-0' : 'translate-x-[calc(100%+1rem)]'}`}
         >
-          <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm relative overflow-hidden group">
+          <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-subtle shadow-2xl flex flex-col rounded-sm relative overflow-hidden group">
             <BorderBeam delay={3} color="#3F72AF" />
             
             {/* Header */}
@@ -1082,7 +1082,7 @@ export default function MainCommandDashboard() {
               setIsQueueOpen(true);
               setIsFocusMode(false);
             }}
-            className="pointer-events-auto absolute right-0 top-[5rem] z-30 flex h-[46px] w-10 sm:w-12 items-center justify-center border border-r-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-l-sm cursor-pointer"
+            className="pointer-events-auto absolute right-0 top-[5rem] z-30 flex h-[46px] w-10 sm:w-12 items-center justify-center border border-r-0 border-border-subtle bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-l-sm cursor-pointer"
             title="Show Live Dispatch Queue"
             aria-label="Show Live Dispatch Queue"
           >
