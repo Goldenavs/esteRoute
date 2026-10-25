@@ -1,11 +1,11 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-// Custom Map Marker Icon
+// Custom Map Marker Icons
 const criticalIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -42,7 +42,17 @@ const pendingIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-const getMarkerIcon = (status: string, score: number, needsReview: boolean) => {
+const selectedIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [29, 47],
+  iconAnchor: [14, 47],
+  popupAnchor: [1, -38],
+  shadowSize: [45, 45]
+});
+
+const getMarkerIcon = (status: string, score: number, needsReview: boolean, isSelected?: boolean) => {
+  if (isSelected) return selectedIcon;
   if (status === 'pending_analysis') return pendingIcon;
   if (status === 'failed_analysis' || needsReview) return activeIcon; // Orange for manual review
   if (status === 'dispatched') return activeIcon;
@@ -56,6 +66,23 @@ const getMarkerIcon = (status: string, score: number, needsReview: boolean) => {
   return defaultIcon; // Pending
 };
 
+interface ReportItem {
+  report_id: string;
+  tracking_reference: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+  priority_score: number;
+  needs_human_review?: boolean;
+  citizen_notes?: string;
+  image_url?: string;
+  created_at: string;
+  displayLat: number;
+  displayLng: number;
+  coordIndex: number;
+  locationGroup: ReportItem[];
+}
+
 export default function MainCommandDashboard() { 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reports, setReports] = useState<any[]>([]);
@@ -68,6 +95,7 @@ export default function MainCommandDashboard() {
   const [visionResult, setVisionResult] = useState<any>(null);
   
   const mapRef = useRef<L.Map>(null);
+  const markerRefs = useRef<{ [key: string]: L.Marker | null }>({});
 
   const goToCurrentLocation = () => {
     if ('geolocation' in navigator) {
@@ -84,7 +112,54 @@ export default function MainCommandDashboard() {
     }
   };
 
-  const selectedReport = reports.find(r => r.report_id === selectedReportId);
+  // Group reports by location to handle stacked/overlapping coordinates
+  const reportsByLocation = useMemo(() => {
+    const map: { [key: string]: ReportItem[] } = {};
+    reports.forEach((r) => {
+      const key = `${Number(r.latitude).toFixed(4)},${Number(r.longitude).toFixed(4)}`;
+      if (!map[key]) map[key] = [];
+      map[key].push(r);
+    });
+    return map;
+  }, [reports]);
+
+  // Calculate display positions with subtle radial jitter for stacked/duplicate coordinates
+  const reportsWithDisplayCoords = useMemo(() => {
+    const coordCounts: { [key: string]: number } = {};
+    return reports.map((report) => {
+      const lat = Number(report.latitude);
+      const lng = Number(report.longitude);
+      const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+      const indexAtCoord = coordCounts[key] || 0;
+      coordCounts[key] = indexAtCoord + 1;
+      const group = reportsByLocation[key] || [report];
+
+      if (indexAtCoord === 0) {
+        return { 
+          ...report, 
+          displayLat: lat, 
+          displayLng: lng, 
+          coordIndex: 0,
+          locationGroup: group
+        };
+      }
+      // Slightly offset duplicate pins in a small radial circle (~15 meters) so every pin is distinct and clickable
+      const totalAtLoc = group.length;
+      const angle = (2 * Math.PI * indexAtCoord) / Math.max(totalAtLoc, 1);
+      const radius = 0.00015;
+      const displayLat = lat + radius * Math.sin(angle);
+      const displayLng = lng + radius * Math.cos(angle);
+      return { 
+        ...report, 
+        displayLat, 
+        displayLng, 
+        coordIndex: indexAtCoord,
+        locationGroup: group
+      };
+    });
+  }, [reports, reportsByLocation]);
+
+  const selectedReport = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
 
   useEffect(() => {
     if (!selectedReportId) {
@@ -94,9 +169,25 @@ export default function MainCommandDashboard() {
     }
     
     // Auto-pan to the selected report on the map
-    const report = reports.find(r => r.report_id === selectedReportId);
+    const report = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
     if (report && mapRef.current) {
-      mapRef.current.flyTo([report.latitude, report.longitude], 17, { duration: 1.2 });
+      mapRef.current.flyTo([report.displayLat, report.displayLng], 17, { duration: 1.0 });
+
+      // Automatically open the selected report's marker popup
+      const timer = setTimeout(() => {
+        const marker = markerRefs.current[selectedReportId];
+        if (marker) {
+          marker.openPopup();
+        }
+      }, 350);
+
+      // Scroll queue card into view in the right panel
+      const cardEl = document.getElementById(`queue-card-${selectedReportId}`);
+      if (cardEl) {
+        cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      return () => clearTimeout(timer);
     }
     
     const fetchVisionResult = async () => {
@@ -143,6 +234,11 @@ export default function MainCommandDashboard() {
       
       if (!error && data) {
         setReports(data);
+        // If map is at default position and we have reports, center on the first report
+        if (data.length > 0 && mapRef.current) {
+          const first = data[0];
+          mapRef.current.setView([first.latitude, first.longitude], 14);
+        }
       }
     };
     
@@ -166,7 +262,7 @@ export default function MainCommandDashboard() {
       {/* 1. The Map Background (Z-0) */}
       <div className="absolute inset-0 z-0">
         <MapContainer 
-          center={[14.5995, 120.9842]} 
+          center={[10.3157, 123.8854]} 
           zoom={14} 
           zoomControl={false}
           className="w-full h-full z-10"
@@ -180,29 +276,104 @@ export default function MainCommandDashboard() {
           />
           <ZoomControl position="bottomright" />
           
-          {reports.map((report) => (
-            <Marker 
-              key={report.report_id} 
-              position={[report.latitude, report.longitude]} 
-              icon={getMarkerIcon(report.status, report.priority_score, report.needs_human_review)}
-            >
-              <Popup className="custom-popup" closeButton={false}>
-                <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-48 text-text-primary">
-                  <h3 className="font-mono font-bold text-xs text-text-muted tracking-widest">{report.tracking_reference}</h3>
-                  <p className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm mt-2 mb-2 inline-block ${report.priority_score >= 70 ? 'bg-semantic-urgent text-white' : report.status === 'pending_analysis' ? 'bg-brand-primary text-white animate-pulse' : 'bg-semantic-warning text-white'}`}>
-                    {report.status === 'pending_analysis' ? 'ANALYZING...' : report.status === 'failed_analysis' ? 'NEEDS REVIEW' : `AI Score: ${report.priority_score || 'N/A'}`}
-                  </p>
-                  <p className="text-[10px] text-text-muted mb-2">{new Date(report.created_at).toLocaleTimeString()}</p>
-                  <button 
-                    onClick={() => setSelectedReportId(report.report_id)}
-                    className="w-full bg-brand-primary text-brand-white text-[9px] font-black py-1.5 rounded-sm hover:bg-brand-secondary transition-colors uppercase tracking-widest transform -skew-x-[6deg]"
-                  >
-                    <span className="inline-block transform skew-x-[6deg]">SELECT REPORT</span>
-                  </button>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          {reportsWithDisplayCoords.map((report) => {
+            const isSelected = selectedReportId === report.report_id;
+            const sameLocationReports = report.locationGroup || [];
+
+            return (
+              <Marker 
+                key={report.report_id} 
+                ref={(ref) => {
+                  if (ref) {
+                    markerRefs.current[report.report_id] = ref;
+                  } else {
+                    delete markerRefs.current[report.report_id];
+                  }
+                }}
+                position={[report.displayLat, report.displayLng]} 
+                icon={getMarkerIcon(report.status, report.priority_score, report.needs_human_review, isSelected)}
+                zIndexOffset={isSelected ? 1000 : report.coordIndex * 10}
+                eventHandlers={{
+                  click: () => {
+                    setSelectedReportId(report.report_id);
+                  }
+                }}
+              >
+                <Popup className="custom-popup" closeButton={false}>
+                  <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-52 text-text-primary">
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <h3 className="font-mono font-bold text-xs text-text-muted tracking-widest">{report.tracking_reference}</h3>
+                      {isSelected && (
+                        <span className="text-[8px] font-bold uppercase tracking-wider bg-brand-primary/20 text-brand-primary border border-brand-primary/40 px-1 py-0.5 rounded">
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+
+                    <p className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm mt-1 mb-2 inline-block ${report.priority_score >= 70 ? 'bg-semantic-urgent text-white' : report.status === 'pending_analysis' ? 'bg-brand-primary text-white animate-pulse' : 'bg-semantic-warning text-white'}`}>
+                      {report.status === 'pending_analysis' ? 'ANALYZING...' : report.status === 'failed_analysis' ? 'NEEDS REVIEW' : `AI Score: ${report.priority_score || 'N/A'}`}
+                    </p>
+
+                    <p className="text-[10px] text-text-muted mb-2 font-mono flex items-center justify-between">
+                      <span>{new Date(report.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="text-[9px] opacity-75">Lat {report.latitude.toFixed(3)}, Lng {report.longitude.toFixed(3)}</span>
+                    </p>
+
+                    {/* Action / Selection Status */}
+                    {isSelected ? (
+                      <div className="w-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[9px] font-black py-1.5 rounded-sm text-center uppercase tracking-widest flex items-center justify-center gap-1">
+                        <CheckCircle className="w-3 h-3" /> ACTIVE IN COMMAND
+                      </div>
+                    ) : (
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedReportId(report.report_id);
+                        }}
+                        className="w-full bg-brand-primary text-brand-white text-[9px] font-black py-1.5 rounded-sm hover:bg-brand-secondary transition-colors uppercase tracking-widest transform -skew-x-[6deg] cursor-pointer"
+                      >
+                        <span className="inline-block transform skew-x-[6deg]">SELECT REPORT</span>
+                      </button>
+                    )}
+
+                    {/* Multiple reports at this location switcher */}
+                    {sameLocationReports.length > 1 && (
+                      <div className="mt-2.5 pt-2 border-t border-border-subtle/70 text-[9px] text-text-muted">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-text-secondary">Location Cluster:</span>
+                          <span className="font-mono text-[8px] bg-surface-subtle px-1 rounded">{sameLocationReports.length} reports</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {sameLocationReports.map((other: ReportItem) => {
+                            const isThisOne = other.report_id === report.report_id;
+                            return (
+                              <button
+                                key={other.report_id}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedReportId(other.report_id);
+                                }}
+                                className={`px-1.5 py-0.5 rounded text-[8px] font-mono cursor-pointer transition-colors ${
+                                  isThisOne 
+                                    ? 'bg-brand-primary text-white font-bold shadow-xs' 
+                                    : 'bg-surface hover:bg-surface-subtle text-text-secondary border border-border-subtle'
+                                }`}
+                                title={`Switch to ${other.tracking_reference}`}
+                              >
+                                {other.tracking_reference.replace('ER-2026-', '#')}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
         </MapContainer>
       </div>
 
@@ -491,6 +662,7 @@ export default function MainCommandDashboard() {
                 return (
                   <div 
                     key={report.report_id}
+                    id={`queue-card-${report.report_id}`}
                     onClick={() => setSelectedReportId(report.report_id)}
                     className={`w-full p-4 border rounded-sm relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg cursor-pointer ${
                       selectedReportId === report.report_id ? 'ring-2 ring-brand-primary shadow-xl z-10 scale-[1.02]' : ''
