@@ -114,6 +114,7 @@ export default function MainCommandDashboard() {
   const [reports, setReports] = useState<any[]>([]);
   const [isQueueOpen, setIsQueueOpen] = useState(true);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(true);
+  const [isKpiOpen, setIsKpiOpen] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -534,8 +535,8 @@ export default function MainCommandDashboard() {
       {/* 2. Floating Overlays (Z-50) */}
       <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
         
-        {/* Map Controls - Bottom Center (Standardized with Public Basin Map) */}
-        <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 bg-surface/90 backdrop-blur-xl border border-border-strong p-1.5 rounded-sm shadow-2xl">
+        {/* Map Controls - Bottom Left (Auto-adjusts AI Vision panel) */}
+        <div className={`pointer-events-auto absolute bottom-4 left-4 z-30 flex items-center gap-1.5 sm:gap-2 bg-surface/90 backdrop-blur-xl border border-border-strong p-1.5 rounded-sm shadow-2xl transition-all duration-500 ${!isFocusMode ? 'translate-y-0 opacity-100' : 'translate-y-16 opacity-0 pointer-events-none'}`}>
           {/* Zoom In */}
           <button
             type="button"
@@ -571,7 +572,7 @@ export default function MainCommandDashboard() {
             <Crosshair className="w-4 h-4 skew-x-6" />
           </button>
 
-          {/* Focus Mode Toggle (Zoom/Fullscreen icon as requested) */}
+          {/* Focus Mode Toggle (Zoom/Fullscreen icon) */}
           <button
             type="button"
             onClick={() => setIsFocusMode((v) => !v)}
@@ -621,30 +622,110 @@ export default function MainCommandDashboard() {
 
           <div className="w-px h-6 bg-border-subtle my-auto" />
 
-          {/* Toggle Queue & KPI button */}
+          {/* Toggle KPI strip button */}
           <button
             type="button"
-            onClick={() => setIsQueueOpen((prev) => !prev)}
+            onClick={() => setIsKpiOpen((prev) => !prev)}
             className={`flex items-center gap-1.5 px-3 py-2 sm:py-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer ${
-              isQueueOpen 
+              isKpiOpen 
                 ? 'bg-brand-primary text-white border-brand-primary shadow-brand-primary/30' 
                 : statusFilter !== 'all'
                   ? 'border-brand-primary/70 bg-brand-primary/10 text-brand-primary'
                   : 'bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-primary hover:text-white'
             }`}
-            title={isQueueOpen ? "Hide Queue & KPI" : "Show Queue & KPI"}
-            aria-label="Toggle Queue & KPI"
+            title={isKpiOpen ? "Hide KPI Bar" : "Show KPI Bar"}
+            aria-label="Toggle KPI Bar"
           >
             <BarChart3 className="w-4 h-4 skew-x-6" />
             <span className="text-[10px] font-bold tracking-wider uppercase skew-x-6 hidden sm:inline">
-              {statusFilter !== 'all' ? `FILTER: ${statusFilter}` : isQueueOpen ? "QUEUE & KPI" : "SHOW KPI"}
+              {statusFilter !== 'all' ? statusFilter.toUpperCase() : isKpiOpen ? "HIDE KPI" : "SHOW KPI"}
             </span>
           </button>
         </div>
 
-        {/* Left Panel: AI Vision Analysis (Permanently full-length to bottom-4) */}
+        {/* Bottom Center KPI Strip (Replacing bottom center area, exactly like Public Map & My Reports) */}
         <div 
-          className={`pointer-events-auto absolute left-4 top-[5rem] bottom-4 w-[24rem] z-20 transition-all duration-500 ease-out ${
+          className={`pointer-events-auto absolute bottom-4 left-1/2 z-30 -translate-x-1/2 transition-all duration-500 ease-out ${
+            (isKpiOpen && !isFocusMode) 
+              ? 'translate-y-0 opacity-100' 
+              : 'translate-y-24 opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 bg-surface/85 backdrop-blur-xl border border-border-strong p-1.5 rounded-sm shadow-2xl">
+              {kpiMetrics.map((metric) => {
+                const isSelected = statusFilter === metric.filter;
+                return (
+                  <button
+                    key={metric.label}
+                    type="button"
+                    onClick={() => setStatusFilter(prev => prev === metric.filter ? 'all' : metric.filter)}
+                    className={twMerge(
+                      "group relative overflow-hidden flex h-11 sm:h-13 min-w-[70px] sm:min-w-[96px] md:min-w-[114px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 sm:-skew-x-6 cursor-pointer text-left active:opacity-90",
+                      metric.border,
+                      isSelected 
+                        ? "ring-1 sm:ring-2 ring-brand-primary opacity-100 z-10 bg-surface/95 shadow-md shadow-brand-primary/20" 
+                        : "opacity-85 hover:opacity-100"
+                    )}
+                    title={`Filter by ${metric.label}: ${metric.value} reports (${metric.pct}%)`}
+                  >
+                    {/* Proportional Occupancy Fill Bar */}
+                    <div 
+                      className={twMerge(
+                        "absolute inset-y-0 left-0 opacity-15 pointer-events-none transition-all duration-500",
+                        metric.barBg
+                      )}
+                      style={{ width: `${metric.pct}%` }}
+                    />
+
+                    {/* Bottom Accent Bar */}
+                    <div className="absolute bottom-0 left-0 h-0.5 sm:h-1 bg-border-subtle/50 w-full overflow-hidden">
+                      <div 
+                        className={twMerge("h-full transition-all duration-500", metric.barBg)}
+                        style={{ width: `${metric.pct}%` }}
+                      />
+                    </div>
+
+                    {/* Content (Unskewed) */}
+                    <div className="relative z-10 flex w-full items-center justify-between gap-1 px-2 sm:px-2.5 py-1 skew-x-2 sm:skew-x-6">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[8px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-secondary group-hover:text-brand-primary transition-colors truncate">
+                          <span className="sm:hidden">{metric.shortLabel}</span>
+                          <span className="hidden sm:inline">{metric.label}</span>
+                        </span>
+                        <span className="text-[7px] sm:text-[8px] font-mono text-text-muted tracking-tight truncate hidden md:inline">
+                          {metric.subtext}
+                        </span>
+                      </div>
+                      <span className={twMerge(
+                        "text-xs sm:text-lg md:text-xl font-mono font-bold shrink-0 leading-none",
+                        metric.tone,
+                        metric.pulse && "animate-pulse"
+                      )}>
+                        {metric.value}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Collapse button for KPI */}
+            <button 
+              type="button"
+              onClick={() => setIsKpiOpen(false)}
+              className="bg-surface/90 hover:bg-surface border border-border-strong text-text-muted hover:text-brand-primary h-11 sm:h-13 w-6 flex items-center justify-center rounded-sm transition-colors -skew-x-6 cursor-pointer shadow-md"
+              title="Hide KPI Bar"
+              aria-label="Hide KPI Bar"
+            >
+               <span className="skew-x-6 font-bold text-xs">&times;</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Left Panel: AI Vision Analysis (Auto-adjusts above bottom-left controls dock) */}
+        <div 
+          className={`pointer-events-auto absolute left-4 top-[5rem] bottom-[4.75rem] w-[24rem] z-20 transition-all duration-500 ease-out ${
             (isAnalysisOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'
           }`}
         >
@@ -778,9 +859,9 @@ export default function MainCommandDashboard() {
           </button>
         )}
 
-        {/* Right Panel: Dispatch Queue */}
+        {/* Right Panel: Dispatch Queue (w-[24rem] to match AI Vision panel) */}
         <div 
-          className={`pointer-events-auto absolute bottom-4 right-4 top-[5rem] w-[28rem] z-20 transition-transform duration-500 ease-out ${(isQueueOpen && !isFocusMode) ? 'translate-x-0' : 'translate-x-[calc(100%+1rem)]'}`}
+          className={`pointer-events-auto absolute bottom-4 right-4 top-[5rem] w-[24rem] z-20 transition-transform duration-500 ease-out ${(isQueueOpen && !isFocusMode) ? 'translate-x-0' : 'translate-x-[calc(100%+1rem)]'}`}
         >
           <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm">
             
@@ -798,66 +879,6 @@ export default function MainCommandDashboard() {
               >
                 <span className="font-bold">&gt;</span>
               </button>
-            </div>
-
-            {/* KPI Strip & Filter Cards (Integrated within Dispatch Queue) */}
-            <div className="p-2.5 sm:p-3 border-b border-border-subtle bg-surface-subtle/50 shrink-0">
-              <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
-                {kpiMetrics.map((metric) => {
-                  const isSelected = statusFilter === metric.filter;
-                  return (
-                    <button
-                      key={metric.label}
-                      type="button"
-                      onClick={() => setStatusFilter(prev => prev === metric.filter ? 'all' : metric.filter)}
-                      className={twMerge(
-                        "group relative overflow-hidden flex flex-col justify-between h-13 p-1.5 border bg-surface/85 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 cursor-pointer text-left active:opacity-90",
-                        metric.border,
-                        isSelected 
-                          ? "ring-1 sm:ring-2 ring-brand-primary opacity-100 z-10 bg-surface/95 shadow-md shadow-brand-primary/20" 
-                          : "opacity-85 hover:opacity-100"
-                      )}
-                      title={`Filter by ${metric.label}: ${metric.value} reports (${metric.pct}%)`}
-                    >
-                      {/* Proportional Occupancy Fill Bar */}
-                      <div 
-                        className={twMerge(
-                          "absolute inset-y-0 left-0 opacity-15 pointer-events-none transition-all duration-500",
-                          metric.barBg
-                        )}
-                        style={{ width: `${metric.pct}%` }}
-                      />
-
-                      {/* Bottom Accent Bar */}
-                      <div className="absolute bottom-0 left-0 h-0.5 sm:h-1 bg-border-subtle/50 w-full overflow-hidden">
-                        <div 
-                          className={twMerge("h-full transition-all duration-500", metric.barBg)}
-                          style={{ width: `${metric.pct}%` }}
-                        />
-                      </div>
-
-                      {/* Content (Unskewed) */}
-                      <div className="relative z-10 flex flex-col justify-between h-full skew-x-2">
-                        <span className="text-[8px] font-mono font-bold tracking-wider uppercase text-text-secondary group-hover:text-brand-primary transition-colors truncate">
-                          {metric.shortLabel}
-                        </span>
-                        <div className="flex items-baseline justify-between mt-auto">
-                          <span className={twMerge(
-                            "text-xs sm:text-sm font-mono font-bold leading-none",
-                            metric.tone,
-                            metric.pulse && "animate-pulse"
-                          )}>
-                            {metric.value}
-                          </span>
-                          <span className="text-[7px] font-mono text-text-muted leading-none hidden sm:inline">
-                            {metric.pct}%
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
             </div>
 
             {/* Queue List */}
