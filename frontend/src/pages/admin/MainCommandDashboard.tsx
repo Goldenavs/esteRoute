@@ -554,113 +554,119 @@ export default function MainCommandDashboard() {
       {/* 2. Floating Overlays (Z-50) */}
       <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
         
-        {/* Map Controls - Bottom Left (Auto-adjusts AI Vision panel) */}
-        <div className={`pointer-events-auto absolute bottom-4 left-4 z-30 flex items-center gap-1.5 sm:gap-2 bg-surface/90 backdrop-blur-xl border border-border-strong p-1.5 rounded-sm shadow-2xl transition-all duration-500 ${isControlsOpen ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+2rem)] opacity-0 pointer-events-none'}`}>
-          {/* Zoom In */}
-          <button
-            type="button"
-            onClick={() => mapRef.current?.zoomIn()}
-            className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
-            title="Zoom In"
-            aria-label="Zoom In"
-          >
-            <Plus className="w-4 h-4 skew-x-6" />
-          </button>
+        {/* Map Controls - Bottom Left (Matches AI Vision panel width w-[24rem]) */}
+        <div className={`pointer-events-auto absolute bottom-4 left-4 z-30 w-[24rem] flex items-center justify-between bg-surface/95 backdrop-blur-xl border border-border-strong p-1.5 rounded-sm shadow-2xl transition-all duration-500 ${isControlsOpen ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+2rem)] opacity-0 pointer-events-none'}`}>
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            {/* Zoom In */}
+            <button
+              type="button"
+              onClick={() => mapRef.current?.zoomIn()}
+              className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+              title="Zoom In"
+              aria-label="Zoom In"
+            >
+              <Plus className="w-4 h-4 skew-x-6" />
+            </button>
 
-          {/* Zoom Out */}
-          <button
-            type="button"
-            onClick={() => mapRef.current?.zoomOut()}
-            className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
-            title="Zoom Out"
-            aria-label="Zoom Out"
-          >
-            <Minus className="w-4 h-4 skew-x-6" />
-          </button>
+            {/* Zoom Out */}
+            <button
+              type="button"
+              onClick={() => mapRef.current?.zoomOut()}
+              className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+              title="Zoom Out"
+              aria-label="Zoom Out"
+            >
+              <Minus className="w-4 h-4 skew-x-6" />
+            </button>
 
-          <div className="w-px h-6 bg-border-subtle my-auto" />
+            <div className="w-px h-6 bg-border-subtle my-auto mx-0.5" />
 
-          {/* Locate Me (GPS) */}
-          <button
-            type="button"
-            onClick={goToCurrentLocation}
-            className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
-            title="Locate Me (GPS)"
-            aria-label="Locate Me"
-          >
-            <Crosshair className="w-4 h-4 skew-x-6" />
-          </button>
+            {/* Locate Me (GPS) */}
+            <button
+              type="button"
+              onClick={goToCurrentLocation}
+              className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+              title="Locate Me (GPS)"
+              aria-label="Locate Me"
+            >
+              <Crosshair className="w-4 h-4 skew-x-6" />
+            </button>
 
-          {/* Focus Mode Toggle (Zoom/Fullscreen icon) */}
-          <button
-            type="button"
-            onClick={toggleFocusMode}
-            className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center ${
-              isFocusMode 
-                ? 'bg-brand-primary text-white border-brand-primary' 
-                : 'bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-primary hover:text-white'
-            }`}
-            title={isFocusMode ? "Exit Focus Mode" : "Focus Mode (Hide All Panels)"}
-            aria-label="Toggle Focus Mode"
-          >
-            {isFocusMode ? <Minimize2 className="w-4 h-4 skew-x-6" /> : <Maximize2 className="w-4 h-4 skew-x-6" />}
-          </button>
+            {/* Focus Mode Toggle (Zoom/Fullscreen icon) */}
+            <button
+              type="button"
+              onClick={toggleFocusMode}
+              className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center ${
+                isFocusMode 
+                  ? 'bg-brand-primary text-white border-brand-primary' 
+                  : 'bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-primary hover:text-white'
+              }`}
+              title={isFocusMode ? "Exit Focus Mode" : "Focus Mode (Hide All Panels)"}
+              aria-label="Toggle Focus Mode"
+            >
+              {isFocusMode ? <Minimize2 className="w-4 h-4 skew-x-6" /> : <Maximize2 className="w-4 h-4 skew-x-6" />}
+            </button>
+          </div>
 
-          <div className="w-px h-6 bg-border-subtle my-auto" />
+          <div className="w-px h-6 bg-border-subtle my-auto mx-0.5" />
 
-          {/* Map Theme Toggle (Sun / Moon) */}
-          <button
-            type="button"
-            onClick={() => setIsMapDark((prev) => !prev)}
-            className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center ${
-              isMapDark
-                ? "bg-surface/90 border-brand-primary/40 text-amber-400 hover:bg-brand-primary/20"
-                : "bg-surface/90 border-border-subtle text-brand-primary hover:bg-brand-primary hover:text-white"
-            }`}
-            title={isMapDark ? "Map: Dark Mode (Click for Light)" : "Map: Light Mode (Click for Dark)"}
-            aria-label="Toggle Map Theme"
-          >
-            {isMapDark ? <Sun className="w-4 h-4 skew-x-6" /> : <Moon className="w-4 h-4 skew-x-6" />}
-          </button>
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            {/* Map Theme Toggle (Sun / Moon) */}
+            <button
+              type="button"
+              onClick={() => setIsMapDark((prev) => !prev)}
+              className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center ${
+                isMapDark
+                  ? "bg-surface/90 border-brand-primary/40 text-amber-400 hover:bg-brand-primary/20"
+                  : "bg-surface/90 border-border-subtle text-brand-primary hover:bg-brand-primary hover:text-white"
+              }`}
+              title={isMapDark ? "Map: Dark Mode (Click for Light)" : "Map: Light Mode (Click for Dark)"}
+              aria-label="Toggle Map Theme"
+            >
+              {isMapDark ? <Sun className="w-4 h-4 skew-x-6" /> : <Moon className="w-4 h-4 skew-x-6" />}
+            </button>
 
-          {/* Map Style Cycle: 1 vs 2 */}
-          <button
-            type="button"
-            onClick={() => setMapType((prev) => prev === 'detailed' ? 'standard' : 'detailed')}
-            className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center gap-1 ${
-              mapType === 'detailed'
-                ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/30"
-                : "bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-secondary hover:text-black"
-            }`}
-            title={mapType === 'detailed' ? "Map Style 1 (Click for Map Style 2)" : "Map Style 2 (Click for Map Style 1)"}
-            aria-label="Cycle Map Style (1 / 2)"
-          >
-            <Layers className="w-3.5 h-3.5 skew-x-6" />
-            <span className="font-mono text-[10px] font-bold skew-x-6">{mapType === 'detailed' ? '1' : '2'}</span>
-          </button>
+            {/* Map Style Cycle: 1 vs 2 */}
+            <button
+              type="button"
+              onClick={() => setMapType((prev) => prev === 'detailed' ? 'standard' : 'detailed')}
+              className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center gap-1 ${
+                mapType === 'detailed'
+                  ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/30"
+                  : "bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-secondary hover:text-black"
+              }`}
+              title={mapType === 'detailed' ? "Map Style 1 (Click for Map Style 2)" : "Map Style 2 (Click for Map Style 1)"}
+              aria-label="Cycle Map Style (1 / 2)"
+            >
+              <Layers className="w-3.5 h-3.5 skew-x-6" />
+              <span className="font-mono text-[10px] font-bold skew-x-6">{mapType === 'detailed' ? '1' : '2'}</span>
+            </button>
 
-          <div className="w-px h-6 bg-border-subtle my-auto" />
+            <div className="w-px h-6 bg-border-subtle my-auto mx-0.5" />
 
-          {/* Hide controls dock to the left button */}
-          <button
-            type="button"
-            onClick={() => setIsControlsOpen(false)}
-            className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-muted hover:text-brand-primary transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
-            title="Hide Map Controls"
-            aria-label="Hide Map Controls"
-          >
-            <span className="skew-x-6 font-bold text-xs">&lt;</span>
-          </button>
+            {/* Hide controls dock to the left button */}
+            <button
+              type="button"
+              onClick={() => setIsControlsOpen(false)}
+              className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-muted hover:text-brand-primary transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+              title="Hide Map Controls"
+              aria-label="Hide Map Controls"
+            >
+              <span className="skew-x-6 font-bold text-xs">&lt;</span>
+            </button>
+          </div>
         </div>
 
-        {/* Reveal Map Controls Button when Minimized */}
+        {/* Reveal Map Controls Button when Minimized (Positioned at right edge of AI Vision if open, or left screen edge if closed) */}
         {!isControlsOpen && (
           <button
             type="button"
             onClick={() => {
               setIsControlsOpen(true);
             }}
-            className="pointer-events-auto absolute left-0 bottom-4 z-30 flex h-[46px] w-10 sm:w-12 items-center justify-center border border-l-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-r-sm cursor-pointer"
+            className={`pointer-events-auto absolute bottom-4 z-30 flex h-[46px] w-10 sm:w-12 items-center justify-center border border-l-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-all duration-300 hover:text-brand-primary rounded-r-sm cursor-pointer ${
+              isAnalysisOpen ? 'left-[25rem]' : 'left-0'
+            }`}
             title="Show Map Controls"
             aria-label="Show Map Controls"
           >
@@ -769,15 +775,18 @@ export default function MainCommandDashboard() {
           }`}
         >
           <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm">
-            <div className="p-4 border-b border-border-subtle bg-surface-subtle flex justify-between items-center relative rounded-t-sm">
+            <div className="px-4 py-3 border-b border-border-subtle bg-surface-subtle flex justify-between items-center rounded-t-sm">
               <h2 className="font-heading font-black text-sm tracking-widest uppercase flex items-center gap-2 text-brand-primary">
                 AI Vision Rationale
               </h2>
               <button 
+                type="button"
                 onClick={() => setIsAnalysisOpen(false)}
-                className="absolute right-0 top-0 bottom-0 px-3 flex items-center justify-center bg-surface hover:bg-surface-subtle border-l border-border-strong text-text-muted hover:text-brand-primary transition-colors"
+                className="h-7 w-7 flex items-center justify-center rounded-sm bg-surface/80 hover:bg-surface border border-border-subtle hover:border-brand-primary text-text-muted hover:text-brand-primary transition-all cursor-pointer shadow-sm active:scale-95"
+                title="Collapse AI Vision Rationale"
+                aria-label="Collapse AI Vision Rationale"
               >
-                <span className="font-bold">&lt;</span>
+                <span className="font-bold text-xs">&lt;</span>
               </button>
             </div>
             {selectedReport ? (
@@ -910,7 +919,7 @@ export default function MainCommandDashboard() {
           <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm">
             
             {/* Header */}
-            <div className="p-4 border-b border-border-subtle bg-surface-subtle flex justify-between items-center relative rounded-t-sm">
+            <div className="px-4 py-3 border-b border-border-subtle bg-surface-subtle flex justify-between items-center rounded-t-sm">
               <h2 className="font-heading font-black text-sm tracking-widest uppercase flex items-center gap-2">
                 <Navigation className="w-4 h-4 text-brand-primary" />
                 Live Dispatch Queue
@@ -918,10 +927,11 @@ export default function MainCommandDashboard() {
               <button 
                 type="button"
                 onClick={() => setIsQueueOpen(false)}
-                className="absolute right-0 top-0 bottom-0 px-3 flex items-center justify-center bg-surface hover:bg-surface-subtle border-l border-border-strong text-text-muted hover:text-brand-primary transition-colors cursor-pointer"
-                aria-label="Collapse Dispatch Queue"
+                className="h-7 w-7 flex items-center justify-center rounded-sm bg-surface/80 hover:bg-surface border border-border-subtle hover:border-brand-primary text-text-muted hover:text-brand-primary transition-all cursor-pointer shadow-sm active:scale-95"
+                title="Collapse Live Dispatch Queue"
+                aria-label="Collapse Live Dispatch Queue"
               >
-                <span className="font-bold">&gt;</span>
+                <span className="font-bold text-xs">&gt;</span>
               </button>
             </div>
 
