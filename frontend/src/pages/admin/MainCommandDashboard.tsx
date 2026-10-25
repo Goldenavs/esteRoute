@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
+import BorderBeam from '../../components/common/BorderBeam';
 
 export type MapTileType = 'detailed' | 'standard';
 const getTileUrl = (type: MapTileType) => {
@@ -792,9 +793,14 @@ export default function MainCommandDashboard() {
             isAnalysisOpen ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'
           }`}
         >
-          <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm">
-            <div className="px-4 py-3 border-b border-border-subtle bg-surface-subtle flex justify-between items-center rounded-t-sm">
+          <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm relative overflow-hidden group">
+            <BorderBeam delay={0} color="#60A5FA" />
+            <div className="px-4 py-3 border-b border-border-subtle bg-surface-subtle flex justify-between items-center rounded-t-sm relative z-20">
               <h2 className="font-heading font-black text-sm tracking-widest uppercase flex items-center gap-2 text-brand-primary">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-primary"></span>
+                </span>
                 AI Vision Rationale
               </h2>
               <button 
@@ -950,12 +956,13 @@ export default function MainCommandDashboard() {
         <div 
           className={`pointer-events-auto absolute bottom-4 right-4 top-[5rem] w-[24rem] z-20 transition-transform duration-500 ease-out ${isQueueOpen ? 'translate-x-0' : 'translate-x-[calc(100%+1rem)]'}`}
         >
-          <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm">
+          <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm relative overflow-hidden group">
+            <BorderBeam delay={3} color="#3F72AF" />
             
             {/* Header */}
-            <div className="px-4 py-3 border-b border-border-subtle bg-surface-subtle flex justify-between items-center rounded-t-sm">
+            <div className="px-4 py-3 border-b border-border-subtle bg-surface-subtle flex justify-between items-center rounded-t-sm relative z-20">
               <h2 className="font-heading font-black text-sm tracking-widest uppercase flex items-center gap-2">
-                <Navigation className="w-4 h-4 text-brand-primary" />
+                <Navigation className="w-4 h-4 text-brand-primary animate-pulse" />
                 Live Dispatch Queue
               </h2>
               <button 
