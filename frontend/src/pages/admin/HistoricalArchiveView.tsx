@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo } from 'react';
 import { 
-  Archive, 
   Search, 
-  Filter, 
   Download, 
   ChevronLeft, 
   ChevronRight, 
+  ChevronsLeft,
+  ChevronsRight,
+  ArrowUpDown,
   Eye, 
   CheckCircle2, 
   AlertTriangle, 
@@ -16,7 +17,6 @@ import {
   Trash2, 
   ShieldAlert, 
   FileText, 
-  CheckCircle, 
   Layers, 
   Activity,
   Copy,
@@ -61,13 +61,17 @@ export interface EnrichedArchiveReport extends ArchiveReportRow {
   agentDetails?: AgentResultRow['result_json'];
 }
 
+type FilterType = 'all' | 'resolved' | 'active' | 'review';
+type SortOrderType = 'newest' | 'oldest';
+
 export default function HistoricalArchiveView() {
   const [reports, setReports] = useState<ArchiveReportRow[]>([]);
   const [agentResults, setAgentResults] = useState<AgentResultRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState<FilterType>('all');
+  const [sortOrder, setSortOrder] = useState<SortOrderType>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedReport, setSelectedReport] = useState<EnrichedArchiveReport | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -133,7 +137,59 @@ export default function HistoricalArchiveView() {
     return { total, resolved, active, reviewNeeded };
   }, [reports]);
 
-  // Enriched archive table rows
+  // Stylistic KPI Strip Filter metrics (matches Citizen My Reports page)
+  const kpiMetrics = useMemo(() => {
+    const total = summaryMetrics.total;
+    return [
+      {
+        filter: 'all' as FilterType,
+        label: 'All Archives',
+        shortLabel: 'All',
+        subtext: 'Master Records',
+        value: total,
+        pct: 100,
+        tone: 'text-text-primary',
+        barBg: 'bg-brand-primary',
+        border: 'border-border-subtle hover:border-brand-primary'
+      },
+      {
+        filter: 'resolved' as FilterType,
+        label: 'Resolved',
+        shortLabel: 'Resolved',
+        subtext: 'Cleared Esteros',
+        value: summaryMetrics.resolved,
+        pct: total > 0 ? Math.round((summaryMetrics.resolved / total) * 100) : 0,
+        tone: 'text-emerald-400',
+        barBg: 'bg-emerald-500',
+        border: 'border-emerald-500/30 hover:border-emerald-500'
+      },
+      {
+        filter: 'active' as FilterType,
+        label: 'Pipeline',
+        shortLabel: 'Pipeline',
+        subtext: 'Dispatched & Triaged',
+        value: summaryMetrics.active,
+        pct: total > 0 ? Math.round((summaryMetrics.active / total) * 100) : 0,
+        tone: 'text-cyan-400',
+        barBg: 'bg-cyan-500',
+        border: 'border-cyan-500/30 hover:border-cyan-500'
+      },
+      {
+        filter: 'review' as FilterType,
+        label: 'Needs Audit',
+        shortLabel: 'Audit',
+        subtext: 'Review & Anomalies',
+        value: summaryMetrics.reviewNeeded,
+        pct: total > 0 ? Math.round((summaryMetrics.reviewNeeded / total) * 100) : 0,
+        tone: 'text-amber-400',
+        pulse: summaryMetrics.reviewNeeded > 0,
+        barBg: 'bg-amber-500',
+        border: 'border-amber-500/30 hover:border-amber-500'
+      }
+    ];
+  }, [summaryMetrics]);
+
+  // Enriched and sorted archive table rows
   const archiveData = useMemo(() => {
     return reports.map(r => {
       const agentRes = agentResults.find(ar => ar.report_id === r.report_id);
@@ -154,21 +210,34 @@ export default function HistoricalArchiveView() {
         primaryCategory,
         agentDetails: agentRes?.result_json
       };
-    }).filter(item => {
-      if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
+    })
+    .filter(item => {
+      // 1. KPI Filter (All / Resolved / Active / Review)
+      if (statusFilter === 'resolved' && item.status !== 'resolved') return false;
+      if (statusFilter === 'active' && item.status !== 'in_progress' && item.status !== 'dispatched' && item.status !== 'triaged') return false;
+      if (statusFilter === 'review' && item.status !== 'failed_analysis' && !item.needs_human_review) return false;
+
+      // 2. Category Filter
       if (categoryFilter !== 'ALL' && !item.categories.some(c => c.toLowerCase().includes(categoryFilter.toLowerCase()))) return false;
 
+      // 3. Search Term
       if (!searchTerm) return true;
       const term = searchTerm.toLowerCase();
       return item.tracking_reference.toLowerCase().includes(term) || 
              item.location.toLowerCase().includes(term) || 
              item.primaryCategory.toLowerCase().includes(term) ||
              (item.citizen_notes && item.citizen_notes.toLowerCase().includes(term));
+    })
+    .sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
     });
-  }, [reports, agentResults, searchTerm, categoryFilter, statusFilter]);
+  }, [reports, agentResults, searchTerm, categoryFilter, statusFilter, sortOrder]);
 
-  const totalPages = Math.ceil(archiveData.length / itemsPerPage) || 1;
-  const currentData = archiveData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(archiveData.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentData = archiveData.slice(startIndex, startIndex + itemsPerPage);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -257,7 +326,7 @@ export default function HistoricalArchiveView() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="mb-6 sm:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4"
+        className="mb-4 sm:mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4"
       >
         <div>
           <div className="flex items-center gap-2 mb-1.5">
@@ -273,7 +342,7 @@ export default function HistoricalArchiveView() {
             Historical Archive
           </h1>
           <p className="text-text-muted text-xs md:text-sm pl-4 md:pl-5 mt-1">
-            Master records of canal reports, field resolutions, and triage intelligence logs.
+            Master records of canal blockage reports, field resolutions, and triage intelligence logs.
           </p>
         </div>
         
@@ -302,195 +371,98 @@ export default function HistoricalArchiveView() {
         </div>
       </motion.div>
 
-      {/* 2. Top Metric Cards (Archive Summary) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-        
-        {/* Card 1: Total Records */}
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.05 }}
-          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-brand-primary/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
-        >
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-primary" />
-          <div className="absolute top-0 right-0 w-24 h-24 bg-brand-primary/10 rounded-full blur-2xl group-hover:bg-brand-primary/20 transition-all pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between gap-1 mb-2">
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-muted">
-                Total Master Records
-              </span>
-              <Archive className="w-4 h-4 text-brand-primary" />
-            </div>
-
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-2xl sm:text-4xl font-mono font-black text-text-primary">
-                {summaryMetrics.total}
-              </span>
-              <span className="text-[10px] font-mono font-bold text-text-muted">
-                All-time DB
-              </span>
-            </div>
-
-            <div className="w-full bg-border-subtle/40 h-1 rounded-full overflow-hidden">
-              <div className="bg-brand-primary h-full w-full" />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Card 2: Field Resolutions */}
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.1 }}
-          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-emerald-500/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
-        >
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" />
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between gap-1 mb-2">
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-muted">
-                Cleared & Resolved
-              </span>
-              <CheckCircle className="w-4 h-4 text-emerald-400" />
-            </div>
-
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-2xl sm:text-4xl font-mono font-black text-emerald-400">
-                {summaryMetrics.resolved}
-              </span>
-              <span className="text-[10px] font-mono font-bold text-text-muted">
-                {summaryMetrics.total > 0 ? Math.round((summaryMetrics.resolved / summaryMetrics.total) * 100) : 0}% Cleared
-              </span>
-            </div>
-
-            <div className="w-full bg-border-subtle/40 h-1 rounded-full overflow-hidden">
-              <div 
-                className="bg-emerald-500 h-full transition-all duration-500" 
-                style={{ width: `${summaryMetrics.total > 0 ? (summaryMetrics.resolved / summaryMetrics.total) * 100 : 0}%` }} 
-              />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Card 3: Active Operations */}
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.15 }}
-          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-cyan-500/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
-        >
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500" />
-          <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between gap-1 mb-2">
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-muted">
-                Pipeline / Dispatched
-              </span>
-              <Activity className="w-4 h-4 text-cyan-400" />
-            </div>
-
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-2xl sm:text-4xl font-mono font-black text-cyan-400">
-                {summaryMetrics.active}
-              </span>
-              <span className="text-[10px] font-mono font-bold text-text-muted">
-                In Progress / Triage
-              </span>
-            </div>
-
-            <div className="w-full bg-border-subtle/40 h-1 rounded-full overflow-hidden">
-              <div 
-                className="bg-cyan-500 h-full transition-all duration-500" 
-                style={{ width: `${summaryMetrics.total > 0 ? (summaryMetrics.active / summaryMetrics.total) * 100 : 0}%` }} 
-              />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Card 4: Flagged for Review */}
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.2 }}
-          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-amber-500/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
-        >
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500" />
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between gap-1 mb-2">
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-muted">
-                Review & Anomalies
-              </span>
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
-            </div>
-
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-2xl sm:text-4xl font-mono font-black text-amber-400">
-                {summaryMetrics.reviewNeeded}
-              </span>
-              <span className="text-[10px] font-mono font-bold text-text-muted">
-                Audit Required
-              </span>
-            </div>
-
-            <div className="w-full bg-border-subtle/40 h-1 rounded-full overflow-hidden">
-              <div 
-                className="bg-amber-500 h-full transition-all duration-500" 
-                style={{ width: `${summaryMetrics.total > 0 ? (summaryMetrics.reviewNeeded / summaryMetrics.total) * 100 : 0}%` }} 
-              />
-            </div>
-          </div>
-        </motion.div>
-
-      </div>
-
-      {/* 3. Search and Filter Bar */}
-      <div className="w-full bg-surface/85 backdrop-blur-md border border-border-strong p-3.5 sm:p-4 rounded-sm shadow-xs mb-6 flex flex-col md:flex-row gap-3 items-center">
-        {/* Search */}
-        <div className="flex-1 w-full relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input 
-            type="text" 
-            placeholder="Search by Tracking Reference, notes, or coordinates..." 
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full bg-app-bg/80 border border-border-subtle rounded-sm py-2 pl-9 pr-4 text-xs font-mono focus:outline-none focus:border-brand-primary text-text-primary placeholder:text-text-muted transition-colors"
-          />
-        </div>
-        
-        {/* Filters */}
-        <div className="flex gap-2 w-full md:w-auto shrink-0">
-          {/* Status Filter */}
-          <div className="flex-1 md:flex-none relative bg-app-bg/80 border border-border-subtle flex items-center gap-1.5 rounded-sm hover:border-brand-primary transition-colors px-2.5">
-            <Filter className="w-3.5 h-3.5 text-text-muted" />
-            <select
-              value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="bg-transparent py-2 pr-2 outline-none appearance-none cursor-pointer w-full uppercase tracking-wider text-[10px] font-mono font-bold text-text-secondary"
+      {/* 2. Stylistic KPI Strip Filter (Matches My Reports page style & acts as primary filter) */}
+      <motion.div 
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.05 }}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6 shrink-0"
+      >
+        {kpiMetrics.map((metric) => {
+          const isSelected = statusFilter === metric.filter;
+          return (
+            <button
+              key={metric.label}
+              type="button"
+              onClick={() => {
+                setStatusFilter(metric.filter);
+                setCurrentPage(1);
+              }}
+              className={twMerge(
+                "group relative overflow-hidden flex h-14 sm:h-16 items-center border bg-surface/75 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-brand-primary cursor-pointer text-left rounded-sm active:opacity-90",
+                metric.border,
+                isSelected 
+                  ? "ring-2 ring-brand-primary opacity-100 z-10 bg-surface/95 shadow-md shadow-brand-primary/20" 
+                  : "opacity-85 hover:opacity-100"
+              )}
             >
-              <option value="ALL" className="bg-surface text-text-primary">All Statuses</option>
-              <option value="resolved" className="bg-surface text-text-primary">Resolved</option>
-              <option value="in_progress" className="bg-surface text-text-primary">In Progress</option>
-              <option value="triaged" className="bg-surface text-text-primary">Triaged</option>
-              <option value="failed_analysis" className="bg-surface text-text-primary">Needs Review</option>
-              <option value="pending_analysis" className="bg-surface text-text-primary">Pending</option>
-            </select>
+              {/* Proportional Occupancy Fill Bar */}
+              <div 
+                className={twMerge(
+                  "absolute inset-y-0 left-0 opacity-15 pointer-events-none transition-all duration-500",
+                  metric.barBg
+                )}
+                style={{ width: `${metric.pct}%` }}
+              />
+
+              {/* Bottom Accent Meter Bar */}
+              <div className="absolute bottom-0 left-0 h-1 bg-border-subtle/50 w-full overflow-hidden">
+                <div 
+                  className={twMerge("h-full transition-all duration-500", metric.barBg)}
+                  style={{ width: `${metric.pct}%` }}
+                />
+              </div>
+
+              {/* Card Content */}
+              <div className="relative z-10 flex w-full items-center justify-between gap-1.5 px-3 sm:px-4 py-2">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase text-text-secondary group-hover:text-brand-primary transition-colors truncate">
+                    <span className="sm:hidden">{metric.shortLabel}</span>
+                    <span className="hidden sm:inline">{metric.label}</span>
+                  </span>
+                  <span className="text-[9px] font-mono text-text-muted tracking-tight truncate hidden sm:inline">
+                    {metric.subtext}
+                  </span>
+                </div>
+                <span className={twMerge(
+                  "text-lg sm:text-2xl font-mono font-bold shrink-0 leading-none",
+                  metric.tone,
+                  metric.pulse && "animate-pulse"
+                )}>
+                  {metric.value}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </motion.div>
+
+      {/* 3. Search, Category Filter, and Sorting Bar (Matches My Reports style) */}
+      <div className="w-full flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-4">
+        {/* Left Side: Search + Category Selector */}
+        <div className="flex flex-1 items-center gap-2">
+          {/* Search Box */}
+          <div className="flex-1 relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input 
+              type="text" 
+              placeholder="Search by Tracking Reference, notes, or coordinates..." 
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full bg-surface/85 backdrop-blur-md border border-border-strong rounded-sm py-2 pl-9 pr-4 text-xs font-mono focus:outline-none focus:border-brand-primary text-text-primary placeholder:text-text-muted transition-colors shadow-xs"
+            />
           </div>
 
-          {/* Category Filter */}
-          <div className="flex-1 md:flex-none relative bg-app-bg/80 border border-border-subtle flex items-center gap-1.5 rounded-sm hover:border-brand-primary transition-colors px-2.5">
+          {/* Waste Category Filter */}
+          <div className="relative bg-surface/85 backdrop-blur-md border border-border-strong flex items-center gap-1.5 rounded-sm hover:border-brand-primary transition-colors px-2.5 shadow-xs shrink-0">
             <Trash2 className="w-3.5 h-3.5 text-text-muted" />
             <select
               value={categoryFilter}
               onChange={e => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
-              className="bg-transparent py-2 pr-2 outline-none appearance-none cursor-pointer w-full uppercase tracking-wider text-[10px] font-mono font-bold text-text-secondary"
+              className="bg-transparent py-2 pr-2 outline-none appearance-none cursor-pointer uppercase tracking-wider text-[10px] font-mono font-bold text-text-secondary"
             >
               <option value="ALL" className="bg-surface text-text-primary">All Waste Types</option>
               <option value="plastic" className="bg-surface text-text-primary">Plastic Debris</option>
@@ -498,6 +470,52 @@ export default function HistoricalArchiveView() {
               <option value="styrofoam" className="bg-surface text-text-primary">Styrofoam</option>
               <option value="silt" className="bg-surface text-text-primary">Silt / Sediment</option>
             </select>
+          </div>
+        </div>
+
+        {/* Right Side: Sort Control (Newest / Oldest) - Matches Citizen Dashboard Style */}
+        <div className="flex items-center justify-between md:justify-end gap-3 shrink-0">
+          <span className="text-xs font-mono text-text-muted">
+            ({archiveData.length} matching {archiveData.length === 1 ? 'record' : 'records'})
+          </span>
+
+          <div className="flex items-center gap-1 bg-surface/85 border border-border-strong p-1 rounded-sm shadow-xs">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted px-1.5 flex items-center gap-1 shrink-0">
+              <ArrowUpDown className="w-3 h-3 text-brand-primary" />
+              <span className="hidden sm:inline">Sort:</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSortOrder('newest');
+                setCurrentPage(1);
+              }}
+              className={twMerge(
+                "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
+                sortOrder === 'newest'
+                  ? "bg-brand-primary text-white shadow-xs"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface"
+              )}
+              title="Sort by Newest First"
+            >
+              Newest
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSortOrder('oldest');
+                setCurrentPage(1);
+              }}
+              className={twMerge(
+                "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
+                sortOrder === 'oldest'
+                  ? "bg-brand-primary text-white shadow-xs"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface"
+              )}
+              title="Sort by Oldest First"
+            >
+              Oldest
+            </button>
           </div>
         </div>
       </div>
@@ -618,37 +636,96 @@ export default function HistoricalArchiveView() {
         </div>
       </div>
 
-      {/* 5. Pagination Controls */}
-      <div className="w-full mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-        <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-text-muted">
-          Showing {archiveData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, archiveData.length)} of {archiveData.length} records
-        </span>
-        
+      {/* 5. Pagination Bar (Exact Style & Structure from Citizen My Reports Page) */}
+      <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border-subtle shrink-0">
+        <div className="text-xs font-mono text-text-muted">
+          Showing <span className="text-text-primary font-bold">{archiveData.length === 0 ? 0 : startIndex + 1}</span> to{" "}
+          <span className="text-text-primary font-bold">
+            {Math.min(startIndex + itemsPerPage, archiveData.length)}
+          </span>{" "}
+          of <span className="text-text-primary font-bold">{archiveData.length}</span> records
+        </div>
+
         <div className="flex items-center gap-1.5">
-          <button 
+          {/* First Page (<<) */}
+          <button
             type="button"
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
-            className="p-2 bg-surface/85 border border-border-strong rounded-sm hover:border-brand-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-text-secondary cursor-pointer"
-            title="Previous Page"
+            onClick={() => setCurrentPage(1)}
+            className={twMerge(
+              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all flex items-center justify-center border",
+              currentPage === 1
+                ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
+                : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
+            )}
+            title="First Page (<<)"
+          >
+            <ChevronsLeft className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Previous Page (<) */}
+          <button
+            type="button"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            className={twMerge(
+              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all flex items-center justify-center border",
+              currentPage === 1
+                ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
+                : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
+            )}
+            title="Previous Page (<)"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
-          
-          <div className="px-3 py-1 bg-surface border border-border-strong rounded-sm text-xs font-mono font-bold text-text-primary">
-            <span>{currentPage}</span>
-            <span className="text-text-muted mx-1">/</span>
-            <span className="text-text-muted">{totalPages}</span>
-          </div>
 
-          <button 
+          {/* Numbered Page Buttons */}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+            <button
+              key={pageNum}
+              type="button"
+              onClick={() => setCurrentPage(pageNum)}
+              className={twMerge(
+                "w-7 h-7 rounded-sm text-xs font-mono font-bold transition-all flex items-center justify-center border cursor-pointer active:scale-95",
+                currentPage === pageNum
+                  ? "bg-brand-primary text-white border-brand-primary shadow-xs shadow-brand-primary/30"
+                  : "bg-surface/60 border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface"
+              )}
+            >
+              <span>{pageNum}</span>
+            </button>
+          ))}
+
+          {/* Next Page (>) */}
+          <button
             type="button"
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
             disabled={currentPage === totalPages}
-            className="p-2 bg-surface/85 border border-border-strong rounded-sm hover:border-brand-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-text-secondary cursor-pointer"
-            title="Next Page"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            className={twMerge(
+              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all flex items-center justify-center border",
+              currentPage === totalPages
+                ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
+                : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
+            )}
+            title="Next Page (>)"
           >
             <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Last Page (>>) */}
+          <button
+            type="button"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(totalPages)}
+            className={twMerge(
+              "w-7 h-7 rounded-sm text-xs font-mono font-bold uppercase transition-all flex items-center justify-center border",
+              currentPage === totalPages
+                ? "border-border-subtle text-text-muted opacity-30 cursor-not-allowed"
+                : "border-border-subtle bg-surface/60 hover:bg-brand-primary hover:text-white text-text-primary cursor-pointer active:scale-95"
+            )}
+            title="Last Page (>>)"
+          >
+            <ChevronsRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
