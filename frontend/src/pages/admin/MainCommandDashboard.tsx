@@ -1,9 +1,37 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, CheckCircle, BarChart3, X } from 'lucide-react';
+import { 
+  Clock, 
+  Navigation, 
+  ArrowRight, 
+  Filter, 
+  ShieldAlert, 
+  Truck, 
+  MapPin, 
+  Maximize2, 
+  Minimize2, 
+  CheckCircle, 
+  BarChart3, 
+  X,
+  Plus,
+  Minus,
+  Crosshair,
+  Sun,
+  Moon,
+  Layers
+} from 'lucide-react';
+import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
+
+export type MapTileType = 'detailed' | 'standard';
+const getTileUrl = (type: MapTileType) => {
+  if (type === 'detailed') {
+    return 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
+  }
+  return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+};
 
 // Custom Map Marker Icons
 const criticalIcon = new L.Icon({
@@ -159,17 +187,80 @@ export default function MainCommandDashboard() {
     });
   }, [reports, reportsByLocation]);
 
+  const [isMapDark, setIsMapDark] = useState<boolean>(true);
+  const [mapType, setMapType] = useState<MapTileType>('standard');
   const [statusFilter, setStatusFilter] = useState<'all' | 'critical' | 'review' | 'analyzing' | 'resolved'>('all');
 
-  // Counts for each filter category
-  const counts = useMemo(() => {
-    const critical = reports.filter(r => r.priority_score >= 70 && r.status === 'triaged').length;
-    const review = reports.filter(r => r.status === 'failed_analysis' || r.needs_human_review).length;
-    const analyzing = reports.filter(r => r.status === 'pending_analysis').length;
-    const resolved = reports.filter(r => r.status === 'resolved').length;
-    const all = reports.length;
-    return { all, critical, review, analyzing, resolved };
-  }, [reports]);
+  // Computed metric counts
+  const totalCount = reports.length;
+  const criticalCount = useMemo(() => reports.filter(r => r.priority_score >= 70 && r.status === 'triaged').length, [reports]);
+  const reviewCount = useMemo(() => reports.filter(r => r.status === 'failed_analysis' || r.needs_human_review).length, [reports]);
+  const analyzingCount = useMemo(() => reports.filter(r => r.status === 'pending_analysis').length, [reports]);
+  const resolvedCount = useMemo(() => reports.filter(r => r.status === 'resolved').length, [reports]);
+
+  // Stylistic KPI Strip Filter metrics with visual proportion bars matching PublicEsteroStatusMap & CitizenDashboard
+  const kpiMetrics = useMemo(() => [
+    {
+      filter: 'all' as const,
+      label: 'TOTAL REPORTS',
+      shortLabel: 'ALL',
+      value: totalCount,
+      subtext: 'All Command Pins',
+      tone: 'text-text-primary',
+      border: 'border-border-subtle',
+      barBg: 'bg-brand-primary',
+      pct: 100,
+      pulse: false,
+    },
+    {
+      filter: 'critical' as const,
+      label: 'CRITICAL',
+      shortLabel: 'CRIT',
+      value: criticalCount,
+      subtext: `${totalCount > 0 ? Math.round((criticalCount / totalCount) * 100) : 0}% High Urgency`,
+      tone: 'text-red-400',
+      border: 'border-red-500/40',
+      barBg: 'bg-red-500',
+      pct: totalCount > 0 ? Math.round((criticalCount / totalCount) * 100) : 0,
+      pulse: criticalCount > 0,
+    },
+    {
+      filter: 'review' as const,
+      label: 'NEEDS REVIEW',
+      shortLabel: 'REVIEW',
+      value: reviewCount,
+      subtext: `${totalCount > 0 ? Math.round((reviewCount / totalCount) * 100) : 0}% Human Check`,
+      tone: 'text-amber-400',
+      border: 'border-amber-500/40',
+      barBg: 'bg-amber-500',
+      pct: totalCount > 0 ? Math.round((reviewCount / totalCount) * 100) : 0,
+      pulse: reviewCount > 0,
+    },
+    {
+      filter: 'analyzing' as const,
+      label: 'AI TRIAGE',
+      shortLabel: 'TRIAGE',
+      value: analyzingCount,
+      subtext: `${totalCount > 0 ? Math.round((analyzingCount / totalCount) * 100) : 0}% In Pipeline`,
+      tone: 'text-brand-primary',
+      border: 'border-brand-primary/40',
+      barBg: 'bg-brand-primary',
+      pct: totalCount > 0 ? Math.round((analyzingCount / totalCount) * 100) : 0,
+      pulse: analyzingCount > 0,
+    },
+    {
+      filter: 'resolved' as const,
+      label: 'RESOLVED',
+      shortLabel: 'CLEARED',
+      value: resolvedCount,
+      subtext: `${totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0}% Restored`,
+      tone: 'text-emerald-400',
+      border: 'border-emerald-500/40',
+      barBg: 'bg-emerald-500',
+      pct: totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0,
+      pulse: false,
+    },
+  ], [totalCount, criticalCount, reviewCount, analyzingCount, resolvedCount]);
 
   // Filtered reports for both the Map Markers and the Right Dispatch Queue
   const filteredReports = useMemo(() => {
@@ -290,7 +381,7 @@ export default function MainCommandDashboard() {
     <div className="relative w-full h-[100dvh] overflow-hidden bg-app-bg text-text-primary select-none">
       
       {/* 1. The Map Background (Z-0) */}
-      <div className="absolute inset-0 z-0">
+      <div className={`absolute inset-0 z-0 transition-colors ${isMapDark ? 'dark-map' : ''}`}>
         <MapContainer 
           center={[10.3157, 123.8854]} 
           zoom={14} 
@@ -298,13 +389,11 @@ export default function MainCommandDashboard() {
           className="w-full h-full z-10"
           ref={mapRef}
         >
-          {/* Default OSM with CSS Invert for Tactical Dark Look */}
           <TileLayer
+            key={`${mapType}-${isMapDark ? 'dark' : 'light'}`}
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            className="invert hue-rotate-180 brightness-[0.8] contrast-[1.2]"
+            url={getTileUrl(mapType)}
           />
-          <ZoomControl position="bottomright" />
           
           {filteredReports.map((report) => {
             const isSelected = selectedReportId === report.report_id;
@@ -442,179 +531,200 @@ export default function MainCommandDashboard() {
       {/* 2. Floating Overlays (Z-50) */}
       <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
         
-        {/* Bottom Left KPI & Legend Panel (Acts as Live Filter & Legend) */}
-        <div className={`pointer-events-auto absolute bottom-4 left-4 z-40 transition-all duration-500 ease-out ${(isKpiOpen && !isFocusMode) ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+3rem)] opacity-0 pointer-events-none'}`}>
-          <div className="flex gap-2 items-end">
-            <div className="bg-surface/95 backdrop-blur-md border border-border-strong p-2 rounded-sm shadow-xl transform -skew-x-[6deg] flex items-center gap-1.5 w-max">
-              <div className="transform skew-x-[6deg] flex items-center gap-1.5">
-                
-                {/* All Filter Tile */}
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('all')}
-                  className={`flex flex-col items-center px-2.5 py-1 rounded-sm border transition-all cursor-pointer ${
-                    statusFilter === 'all'
-                      ? 'border-brand-primary bg-brand-primary/20 ring-1 ring-brand-primary shadow-xs'
-                      : 'border-transparent hover:bg-surface-subtle hover:border-border-subtle'
-                  }`}
-                  title="Show all reports"
-                >
-                  <div className="text-base font-black text-text-primary leading-none">{counts.all}</div>
-                  <div className="text-[8px] uppercase tracking-wider font-bold text-text-muted mt-0.5">All</div>
-                </button>
+        {/* Bottom Left KPI & Legend Panel (Exact style from PublicEsteroStatusMap & CitizenDashboard) */}
+        <div 
+          className={`pointer-events-auto absolute bottom-4 left-4 z-40 transition-all duration-500 ease-out ${
+            (isKpiOpen && !isFocusMode) 
+              ? 'translate-x-0 opacity-100' 
+              : '-translate-x-[calc(100%+3rem)] opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-5 gap-1 sm:gap-1.5 bg-surface/85 backdrop-blur-xl border border-border-strong p-1.5 rounded-sm shadow-2xl">
+              {kpiMetrics.map((metric) => {
+                const isSelected = statusFilter === metric.filter;
+                return (
+                  <button
+                    key={metric.label}
+                    type="button"
+                    onClick={() => setStatusFilter(prev => prev === metric.filter ? 'all' : metric.filter)}
+                    className={twMerge(
+                      "group relative overflow-hidden flex h-11 sm:h-13 min-w-[66px] sm:min-w-[90px] md:min-w-[105px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 sm:-skew-x-6 cursor-pointer text-left active:opacity-90",
+                      metric.border,
+                      isSelected 
+                        ? "ring-1 sm:ring-2 ring-brand-primary opacity-100 z-10 bg-surface/95 shadow-md shadow-brand-primary/20" 
+                        : "opacity-85 hover:opacity-100"
+                    )}
+                    title={`Filter by ${metric.label}`}
+                  >
+                    {/* Proportional Occupancy Fill Bar */}
+                    <div 
+                      className={twMerge(
+                        "absolute inset-y-0 left-0 opacity-15 pointer-events-none transition-all duration-500",
+                        metric.barBg
+                      )}
+                      style={{ width: `${metric.pct}%` }}
+                    />
 
-                <div className="w-px h-8 bg-border-subtle" />
+                    {/* Bottom Accent Bar */}
+                    <div className="absolute bottom-0 left-0 h-0.5 sm:h-1 bg-border-subtle/50 w-full overflow-hidden">
+                      <div 
+                        className={twMerge("h-full transition-all duration-500", metric.barBg)}
+                        style={{ width: `${metric.pct}%` }}
+                      />
+                    </div>
 
-                {/* Critical Filter Tile */}
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter(prev => prev === 'critical' ? 'all' : 'critical')}
-                  className={`flex flex-col items-center px-2.5 py-1 rounded-sm border transition-all cursor-pointer ${
-                    statusFilter === 'critical'
-                      ? 'border-semantic-urgent bg-semantic-urgent/20 ring-1 ring-semantic-urgent shadow-xs'
-                      : 'border-transparent hover:bg-surface-subtle hover:border-border-subtle'
-                  }`}
-                  title="Filter: Critical priority reports (Score >= 70)"
-                >
-                  <div className="text-base font-black text-semantic-urgent leading-none flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                    {counts.critical}
-                  </div>
-                  <div className="text-[8px] uppercase tracking-wider font-bold text-text-muted mt-0.5">Critical</div>
-                </button>
-
-                <div className="w-px h-8 bg-border-subtle" />
-
-                {/* Review Filter Tile */}
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter(prev => prev === 'review' ? 'all' : 'review')}
-                  className={`flex flex-col items-center px-2.5 py-1 rounded-sm border transition-all cursor-pointer ${
-                    statusFilter === 'review'
-                      ? 'border-semantic-warning bg-semantic-warning/20 ring-1 ring-semantic-warning shadow-xs'
-                      : 'border-transparent hover:bg-surface-subtle hover:border-border-subtle'
-                  }`}
-                  title="Filter: Needs human review"
-                >
-                  <div className="text-base font-black text-semantic-warning leading-none flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                    {counts.review}
-                  </div>
-                  <div className="text-[8px] uppercase tracking-wider font-bold text-text-muted mt-0.5">Review</div>
-                </button>
-
-                <div className="w-px h-8 bg-border-subtle" />
-
-                {/* Analyzing Filter Tile */}
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter(prev => prev === 'analyzing' ? 'all' : 'analyzing')}
-                  className={`flex flex-col items-center px-2.5 py-1 rounded-sm border transition-all cursor-pointer ${
-                    statusFilter === 'analyzing'
-                      ? 'border-brand-primary bg-brand-primary/20 ring-1 ring-brand-primary shadow-xs'
-                      : 'border-transparent hover:bg-surface-subtle hover:border-border-subtle'
-                  }`}
-                  title="Filter: Pending AI visual triage"
-                >
-                  <div className="text-base font-black text-brand-primary leading-none flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
-                    {counts.analyzing}
-                  </div>
-                  <div className="text-[8px] uppercase tracking-wider font-bold text-text-muted mt-0.5">Analyzing</div>
-                </button>
-
-                <div className="w-px h-8 bg-border-subtle" />
-
-                {/* Resolved Filter Tile */}
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter(prev => prev === 'resolved' ? 'all' : 'resolved')}
-                  className={`flex flex-col items-center px-2.5 py-1 rounded-sm border transition-all cursor-pointer ${
-                    statusFilter === 'resolved'
-                      ? 'border-emerald-500 bg-emerald-500/20 ring-1 ring-emerald-500 shadow-xs'
-                      : 'border-transparent hover:bg-surface-subtle hover:border-border-subtle'
-                  }`}
-                  title="Filter: Cleared & resolved reports"
-                >
-                  <div className="text-base font-black text-emerald-400 leading-none flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    {counts.resolved}
-                  </div>
-                  <div className="text-[8px] uppercase tracking-wider font-bold text-text-muted mt-0.5">Resolved</div>
-                </button>
-                
-              </div>
+                    {/* Content (Unskewed) */}
+                    <div className="relative z-10 flex w-full items-center justify-between gap-1 px-1.5 sm:px-2.5 py-1 skew-x-2 sm:skew-x-6">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[8px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-secondary group-hover:text-brand-primary transition-colors truncate">
+                          <span className="sm:hidden">{metric.shortLabel}</span>
+                          <span className="hidden sm:inline">{metric.label}</span>
+                        </span>
+                        <span className="text-[7px] sm:text-[8px] font-mono text-text-muted tracking-tight truncate hidden md:inline">
+                          {metric.subtext}
+                        </span>
+                      </div>
+                      <span className={twMerge(
+                        "text-xs sm:text-lg md:text-xl font-mono font-bold shrink-0 leading-none",
+                        metric.tone,
+                        metric.pulse && "animate-pulse"
+                      )}>
+                        {metric.value}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Close button for KPI */}
+            {/* Collapse button for KPI */}
             <button 
               type="button"
               onClick={() => setIsKpiOpen(false)}
-              className="bg-surface/90 hover:bg-surface border border-border-strong text-text-muted hover:text-brand-primary h-8 w-6 flex items-center justify-center rounded-sm transition-colors transform -skew-x-[6deg] cursor-pointer"
+              className="bg-surface/90 hover:bg-surface border border-border-strong text-text-muted hover:text-brand-primary h-11 sm:h-13 w-6 flex items-center justify-center rounded-sm transition-colors -skew-x-6 cursor-pointer shadow-md"
               title="Collapse Legend & KPI"
               aria-label="Collapse Legend & KPI"
             >
-               <span className="transform skew-x-[6deg] font-bold text-xs">&lt;</span>
+               <span className="skew-x-6 font-bold text-xs">&lt;</span>
             </button>
           </div>
         </div>
 
-        {/* Map Controls - Bottom Center */}
-        <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3">
-            <button 
-              onClick={goToCurrentLocation}
-              className="flex h-[38px] items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-4 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer"
-              title="Find My Location"
-            >
-              <span className="inline-flex transform skew-x-[12deg] items-center gap-2">
-                  <Navigation className="w-3.5 h-3.5 group-hover:text-brand-primary" />
-                  <span className="hidden sm:inline">LOCATE</span>
-              </span>
-            </button>
+        {/* Map Controls - Bottom Center (Standardized with Public Basin Map) */}
+        <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 bg-surface/90 backdrop-blur-xl border border-border-strong p-1.5 rounded-sm shadow-2xl">
+          {/* Zoom In */}
+          <button
+            type="button"
+            onClick={() => mapRef.current?.zoomIn()}
+            className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+            title="Zoom In"
+            aria-label="Zoom In"
+          >
+            <Plus className="w-4 h-4 skew-x-6" />
+          </button>
 
-            {/* Toggle Legend & KPI in Bottom Dock */}
-            <button 
-              type="button"
-              onClick={() => setIsKpiOpen(prev => !prev)}
-              className={`flex h-[38px] items-center justify-center gap-2 rounded-sm border px-4 shadow-lg backdrop-blur-md transition-all font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer ${
-                isKpiOpen 
-                  ? 'border-brand-primary bg-brand-primary/20 text-brand-primary' 
-                  : statusFilter !== 'all'
-                    ? 'border-brand-primary/70 bg-brand-primary/10 text-brand-primary'
-                    : 'border-border-strong bg-surface/90 text-text-primary hover:border-brand-primary hover:text-brand-primary'
-              }`}
-              title={isKpiOpen ? "Hide Legend & KPI" : "Show Legend & KPI"}
-            >
-              <span className="inline-flex transform skew-x-[12deg] items-center gap-2">
-                  <BarChart3 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">
-                    {statusFilter !== 'all' ? `FILTER: ${statusFilter.toUpperCase()}` : 'LEGEND & KPI'}
-                  </span>
-                  <span className="sm:hidden">
-                    {statusFilter !== 'all' ? statusFilter.toUpperCase() : 'KPI'}
-                  </span>
-              </span>
-            </button>
+          {/* Zoom Out */}
+          <button
+            type="button"
+            onClick={() => mapRef.current?.zoomOut()}
+            className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-text-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+            title="Zoom Out"
+            aria-label="Zoom Out"
+          >
+            <Minus className="w-4 h-4 skew-x-6" />
+          </button>
 
-            <button
-                type="button"
-                onClick={() => setIsFocusMode((v) => !v)}
-                aria-label="Toggle Focus Mode"
-                className="flex h-[38px] items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-4 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer"
-            >
-                <span className="inline-flex transform skew-x-[12deg] items-center gap-2">
-                    {isFocusMode ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />}
-                    <span className="hidden sm:inline">FOCUS</span>
-                </span>
-            </button>
+          <div className="w-px h-6 bg-border-subtle my-auto" />
+
+          {/* Locate Me (GPS) */}
+          <button
+            type="button"
+            onClick={goToCurrentLocation}
+            className="p-2 sm:p-2.5 bg-surface/90 backdrop-blur-md border border-border-subtle rounded-sm text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center"
+            title="Locate Me (GPS)"
+            aria-label="Locate Me"
+          >
+            <Crosshair className="w-4 h-4 skew-x-6" />
+          </button>
+
+          {/* Focus Mode Toggle (Zoom/Fullscreen icon as requested) */}
+          <button
+            type="button"
+            onClick={() => setIsFocusMode((v) => !v)}
+            className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center ${
+              isFocusMode 
+                ? 'bg-brand-primary text-white border-brand-primary' 
+                : 'bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-primary hover:text-white'
+            }`}
+            title={isFocusMode ? "Exit Focus Mode" : "Focus Mode (Fullscreen Map)"}
+            aria-label="Toggle Focus Mode"
+          >
+            {isFocusMode ? <Minimize2 className="w-4 h-4 skew-x-6" /> : <Maximize2 className="w-4 h-4 skew-x-6" />}
+          </button>
+
+          <div className="w-px h-6 bg-border-subtle my-auto" />
+
+          {/* Map Theme Toggle (Sun / Moon) */}
+          <button
+            type="button"
+            onClick={() => setIsMapDark((prev) => !prev)}
+            className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center ${
+              isMapDark
+                ? "bg-surface/90 border-brand-primary/40 text-amber-400 hover:bg-brand-primary/20"
+                : "bg-surface/90 border-border-subtle text-brand-primary hover:bg-brand-primary hover:text-white"
+            }`}
+            title={isMapDark ? "Map: Dark Mode (Click for Light)" : "Map: Light Mode (Click for Dark)"}
+            aria-label="Toggle Map Theme"
+          >
+            {isMapDark ? <Sun className="w-4 h-4 skew-x-6" /> : <Moon className="w-4 h-4 skew-x-6" />}
+          </button>
+
+          {/* Map Style Cycle: 1 vs 2 */}
+          <button
+            type="button"
+            onClick={() => setMapType((prev) => prev === 'detailed' ? 'standard' : 'detailed')}
+            className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center gap-1 ${
+              mapType === 'detailed'
+                ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/30"
+                : "bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-secondary hover:text-black"
+            }`}
+            title={mapType === 'detailed' ? "Map Style 1 (Click for Map Style 2)" : "Map Style 2 (Click for Map Style 1)"}
+            aria-label="Cycle Map Style (1 / 2)"
+          >
+            <Layers className="w-3.5 h-3.5 skew-x-6" />
+            <span className="font-mono text-[10px] font-bold skew-x-6">{mapType === 'detailed' ? '1' : '2'}</span>
+          </button>
+
+          <div className="w-px h-6 bg-border-subtle my-auto" />
+
+          {/* Show/Hide KPI & Legend button */}
+          <button
+            type="button"
+            onClick={() => setIsKpiOpen((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-3 py-2 sm:py-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer ${
+              isKpiOpen 
+                ? 'bg-brand-primary text-white border-brand-primary shadow-brand-primary/30' 
+                : statusFilter !== 'all'
+                  ? 'border-brand-primary/70 bg-brand-primary/10 text-brand-primary'
+                  : 'bg-surface/90 border-border-subtle text-text-primary hover:bg-brand-primary hover:text-white'
+            }`}
+            title={isKpiOpen ? "Hide Legend & KPI" : "Show Legend & KPI"}
+            aria-label="Toggle Legend & KPI"
+          >
+            <BarChart3 className="w-4 h-4 skew-x-6" />
+            <span className="text-[10px] font-bold tracking-wider uppercase skew-x-6 hidden sm:inline">
+              {statusFilter !== 'all' ? statusFilter : isKpiOpen ? "HIDE KPI" : "SHOW KPI"}
+            </span>
+          </button>
         </div>
 
-        {/* Left Panel: AI Vision Analysis (Auto-adjusts between full-length bottom-4 and bottom-[8.75rem]) */}
+        {/* Left Panel: AI Vision Analysis (Auto-adjusts between full-length bottom-4 and bottom-[5.5rem]) */}
         <div 
           className={`pointer-events-auto absolute left-4 top-[5rem] w-[24rem] z-20 transition-all duration-500 ease-out ${
             (isAnalysisOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'
           } ${
-            (isKpiOpen && !isFocusMode) ? 'bottom-[8.75rem]' : 'bottom-4'
+            (isKpiOpen && !isFocusMode) ? 'bottom-[5.5rem]' : 'bottom-4'
           }`}
         >
           <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm">
