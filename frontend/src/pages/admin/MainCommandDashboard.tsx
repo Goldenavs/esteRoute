@@ -6,7 +6,6 @@ import {
   Clock, 
   Navigation, 
   ArrowRight, 
-  Filter, 
   ShieldAlert, 
   Truck, 
   MapPin, 
@@ -14,13 +13,12 @@ import {
   Minimize2, 
   CheckCircle, 
   BarChart3, 
-  X,
-  Plus,
-  Minus,
-  Crosshair,
-  Sun,
-  Moon,
-  Layers
+  Plus, 
+  Minus, 
+  Crosshair, 
+  Sun, 
+  Moon, 
+  Layers 
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
@@ -385,12 +383,12 @@ export default function MainCommandDashboard() {
           center={[10.3157, 123.8854]} 
           zoom={14} 
           zoomControl={false}
+          attributionControl={false}
           className="w-full h-full z-10"
           ref={mapRef}
         >
           <TileLayer
             key={`${mapType}-${isMapDark ? 'dark' : 'light'}`}
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url={getTileUrl(mapType)}
           />
           
@@ -509,6 +507,12 @@ export default function MainCommandDashboard() {
         }
         .custom-popup .leaflet-popup-tip-container {
           display: none;
+        }
+
+        /* Hide default Leaflet controls completely */
+        .leaflet-control-attribution,
+        .leaflet-control-zoom {
+          display: none !important;
         }
 
         /* Custom Scrollbar for side panels */
@@ -786,31 +790,6 @@ export default function MainCommandDashboard() {
                 <Navigation className="w-4 h-4 text-brand-primary" />
                 Live Dispatch Queue
               </h2>
-              <div className="flex items-center gap-2 pr-10">
-                {statusFilter !== 'all' && (
-                  <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm bg-brand-primary/20 text-brand-primary border border-brand-primary/40">
-                    {statusFilter} ({filteredReports.length})
-                    <button
-                      type="button"
-                      onClick={() => setStatusFilter('all')}
-                      className="hover:text-white transition-colors cursor-pointer ml-0.5"
-                      title="Clear filter"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {statusFilter !== 'all' && (
-                  <button 
-                    type="button"
-                    onClick={() => setStatusFilter('all')}
-                    title="Reset to all reports"
-                    className="p-1.5 rounded transition-colors cursor-pointer text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20"
-                  >
-                    <Filter className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
               <button 
                 type="button"
                 onClick={() => setIsQueueOpen(false)}
