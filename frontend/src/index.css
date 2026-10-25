@@ -26,6 +26,7 @@
   --color-text-primary: var(--theme-text-primary);
   --color-text-secondary: var(--theme-text-secondary);
   --color-border-subtle: var(--theme-border-subtle);
+  --color-border-strong: var(--theme-border-strong);
 }
 
 :root {
@@ -36,6 +37,7 @@
   --theme-text-primary: var(--color-brand-dark);
   --theme-text-secondary: #64748B;
   --theme-border-subtle: #E2E8F0;
+  --theme-border-strong: #CBD5E1;
 }
 
 .dark {
@@ -46,6 +48,7 @@
   --theme-text-primary: var(--color-brand-white);
   --theme-text-secondary: #94A3B8;
   --theme-border-subtle: rgba(63, 114, 175, 0.3); /* brand-primary at 30% opacity */
+  --theme-border-strong: rgba(63, 114, 175, 0.45); /* brand-primary at 45% opacity */
 }
 
 @layer base {
