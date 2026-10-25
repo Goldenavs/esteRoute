@@ -19,7 +19,10 @@ import {
   Moon, 
   Layers,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
@@ -652,25 +655,23 @@ export default function MainCommandDashboard() {
               title="Hide Map Controls"
               aria-label="Hide Map Controls"
             >
-              <span className="skew-x-6 font-bold text-xs">&lt;</span>
+              <ChevronLeft className="w-4 h-4 skew-x-6" />
             </button>
           </div>
         </div>
 
-        {/* Reveal Map Controls Button when Minimized (Positioned at right edge of AI Vision if open, or left screen edge if closed) */}
-        {!isControlsOpen && (
+        {/* Reveal Map Controls Button when Minimized (Only rendered on the screen's left edge when AI Vision is closed) */}
+        {!isControlsOpen && !isAnalysisOpen && (
           <button
             type="button"
             onClick={() => {
               setIsControlsOpen(true);
             }}
-            className={`pointer-events-auto absolute bottom-4 z-30 flex h-[46px] w-10 sm:w-12 items-center justify-center border border-l-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-all duration-300 hover:text-brand-primary rounded-r-sm cursor-pointer ${
-              isAnalysisOpen ? 'left-[25rem]' : 'left-0'
-            }`}
+            className="pointer-events-auto absolute left-0 bottom-4 z-30 flex h-[46px] w-10 sm:w-12 items-center justify-center border border-l-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-r-sm cursor-pointer"
             title="Show Map Controls"
             aria-label="Show Map Controls"
           >
-            <span className="font-bold">&gt;</span>
+            <ChevronRight className="w-5 h-5" />
           </button>
         )}
 
@@ -747,7 +748,7 @@ export default function MainCommandDashboard() {
               title="Hide KPI Bar"
               aria-label="Hide KPI Bar"
             >
-              <ChevronDown className="w-4 h-4 skew-x-2 sm:skew-x-6" />
+              <ChevronDown className="w-5 h-5 skew-x-2 sm:skew-x-6" />
             </button>
           </div>
         </div>
@@ -764,7 +765,7 @@ export default function MainCommandDashboard() {
             title="Show KPI Metrics"
             aria-label="Show KPI Metrics"
           >
-            <ChevronUp className="w-4 h-4" />
+            <ChevronUp className="w-5 h-5" />
           </button>
         )}
 
@@ -782,11 +783,11 @@ export default function MainCommandDashboard() {
               <button 
                 type="button"
                 onClick={() => setIsAnalysisOpen(false)}
-                className="h-7 w-7 flex items-center justify-center rounded-sm bg-surface/80 hover:bg-surface border border-border-subtle hover:border-brand-primary text-text-muted hover:text-brand-primary transition-all cursor-pointer shadow-sm active:scale-95"
+                className="h-8 w-8 flex items-center justify-center rounded-sm bg-surface/80 hover:bg-surface border border-border-subtle hover:border-brand-primary text-text-muted hover:text-brand-primary transition-all cursor-pointer shadow-sm active:scale-95"
                 title="Collapse AI Vision Rationale"
                 aria-label="Collapse AI Vision Rationale"
               >
-                <span className="font-bold text-xs">&lt;</span>
+                <ChevronLeft className="w-5 h-5" />
               </button>
             </div>
             {selectedReport ? (
@@ -894,6 +895,22 @@ export default function MainCommandDashboard() {
                 <p className="mt-2 text-center px-4 opacity-50">Select a report from the queue to view the AI's analysis rationale.</p>
               </div>
             )}
+
+            {/* Integrated Controls Drawer Toggle when Controls are Hidden */}
+            {!isControlsOpen && (
+              <button
+                type="button"
+                onClick={() => setIsControlsOpen(true)}
+                className="w-full py-2.5 px-4 border-t border-border-subtle bg-surface-subtle hover:bg-surface flex items-center justify-between text-text-muted hover:text-brand-primary transition-all rounded-b-sm group cursor-pointer shadow-inner shrink-0"
+                title="Show Map Controls"
+              >
+                <span className="flex items-center gap-2 text-[11px] font-mono font-bold tracking-wider uppercase group-hover:text-brand-primary transition-colors">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-brand-primary" />
+                  Show Map Controls
+                </span>
+                <ChevronUp className="w-4 h-4 text-text-muted group-hover:text-brand-primary group-hover:-translate-y-0.5 transition-all" />
+              </button>
+            )}
           </div>
         </div>
         
@@ -908,7 +925,7 @@ export default function MainCommandDashboard() {
             title="Show AI Vision Rationale"
             aria-label="Show AI Vision Rationale"
           >
-            <span className="font-bold">&gt;</span>
+            <ChevronRight className="w-5 h-5" />
           </button>
         )}
 
@@ -927,11 +944,11 @@ export default function MainCommandDashboard() {
               <button 
                 type="button"
                 onClick={() => setIsQueueOpen(false)}
-                className="h-7 w-7 flex items-center justify-center rounded-sm bg-surface/80 hover:bg-surface border border-border-subtle hover:border-brand-primary text-text-muted hover:text-brand-primary transition-all cursor-pointer shadow-sm active:scale-95"
+                className="h-8 w-8 flex items-center justify-center rounded-sm bg-surface/80 hover:bg-surface border border-border-subtle hover:border-brand-primary text-text-muted hover:text-brand-primary transition-all cursor-pointer shadow-sm active:scale-95"
                 title="Collapse Live Dispatch Queue"
                 aria-label="Collapse Live Dispatch Queue"
               >
-                <span className="font-bold text-xs">&gt;</span>
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
 
@@ -1033,7 +1050,7 @@ export default function MainCommandDashboard() {
             title="Show Live Dispatch Queue"
             aria-label="Show Live Dispatch Queue"
           >
-            <span className="font-bold">&lt;</span>
+            <ChevronLeft className="w-5 h-5" />
           </button>
         )}
         
