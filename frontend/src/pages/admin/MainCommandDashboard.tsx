@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, CheckCircle, BarChart3 } from 'lucide-react';
+import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, CheckCircle, BarChart3, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 // Custom Map Marker Icons
@@ -159,6 +159,36 @@ export default function MainCommandDashboard() {
     });
   }, [reports, reportsByLocation]);
 
+  const [statusFilter, setStatusFilter] = useState<'all' | 'critical' | 'review' | 'analyzing' | 'resolved'>('all');
+
+  // Counts for each filter category
+  const counts = useMemo(() => {
+    const critical = reports.filter(r => r.priority_score >= 70 && r.status === 'triaged').length;
+    const review = reports.filter(r => r.status === 'failed_analysis' || r.needs_human_review).length;
+    const analyzing = reports.filter(r => r.status === 'pending_analysis').length;
+    const resolved = reports.filter(r => r.status === 'resolved').length;
+    const all = reports.length;
+    return { all, critical, review, analyzing, resolved };
+  }, [reports]);
+
+  // Filtered reports for both the Map Markers and the Right Dispatch Queue
+  const filteredReports = useMemo(() => {
+    if (statusFilter === 'all') return reportsWithDisplayCoords;
+    if (statusFilter === 'critical') {
+      return reportsWithDisplayCoords.filter(r => r.priority_score >= 70 && r.status === 'triaged');
+    }
+    if (statusFilter === 'review') {
+      return reportsWithDisplayCoords.filter(r => r.status === 'failed_analysis' || r.needs_human_review);
+    }
+    if (statusFilter === 'analyzing') {
+      return reportsWithDisplayCoords.filter(r => r.status === 'pending_analysis');
+    }
+    if (statusFilter === 'resolved') {
+      return reportsWithDisplayCoords.filter(r => r.status === 'resolved');
+    }
+    return reportsWithDisplayCoords;
+  }, [reportsWithDisplayCoords, statusFilter]);
+
   const selectedReport = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
 
   useEffect(() => {
@@ -276,7 +306,7 @@ export default function MainCommandDashboard() {
           />
           <ZoomControl position="bottomright" />
           
-          {reportsWithDisplayCoords.map((report) => {
+          {filteredReports.map((report) => {
             const isSelected = selectedReportId === report.report_id;
             const sameLocationReports = report.locationGroup || [];
 
@@ -412,43 +442,106 @@ export default function MainCommandDashboard() {
       {/* 2. Floating Overlays (Z-50) */}
       <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
         
-        {/* Bottom Left KPI & Legend Panel */}
+        {/* Bottom Left KPI & Legend Panel (Acts as Live Filter & Legend) */}
         <div className={`pointer-events-auto absolute bottom-4 left-4 z-40 transition-all duration-500 ease-out ${(isKpiOpen && !isFocusMode) ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+3rem)] opacity-0 pointer-events-none'}`}>
           <div className="flex gap-2 items-end">
-            <div 
-              onClick={() => setIsKpiOpen(false)}
-              className="bg-surface/95 backdrop-blur-md border border-border-strong hover:border-brand-primary/60 p-2.5 rounded-sm shadow-xl transform -skew-x-[6deg] flex gap-5 w-max cursor-pointer transition-colors group"
-              title="Click to collapse KPI & Legend"
-            >
-              <div className="transform skew-x-[6deg] flex gap-5 items-center">
+            <div className="bg-surface/95 backdrop-blur-md border border-border-strong p-2 rounded-sm shadow-xl transform -skew-x-[6deg] flex items-center gap-1.5 w-max">
+              <div className="transform skew-x-[6deg] flex items-center gap-1.5">
                 
-                {/* Critical KPI */}
-                <div className="flex flex-col items-center px-1">
-                   <div className="text-xl font-black text-semantic-urgent leading-none">{reports.filter(r => r.priority_score >= 70 && r.status === 'triaged').length}</div>
-                   <div className="text-[9px] uppercase tracking-widest font-bold text-text-muted mt-1">Critical</div>
-                </div>
-                
-                {/* Review KPI */}
-                <div className="flex flex-col items-center px-1 border-l border-border-subtle pl-5">
-                   <div className="text-xl font-black text-semantic-warning leading-none">{reports.filter(r => r.status === 'failed_analysis' || r.needs_human_review).length}</div>
-                   <div className="text-[9px] uppercase tracking-widest font-bold text-text-muted mt-1">Review</div>
-                </div>
-                
-                {/* Legend */}
-                <div className="flex flex-col gap-1.5 px-1 border-l border-border-subtle pl-5 justify-center">
-                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                      <div className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse"></div> Analyzing
-                   </div>
-                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                      <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div> Critical
-                   </div>
-                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                      <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div> Review
-                   </div>
-                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                      <div className="w-2.5 h-2.5 rounded-full bg-gray-500"></div> Resolved
-                   </div>
-                </div>
+                {/* All Filter Tile */}
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('all')}
+                  className={`flex flex-col items-center px-2.5 py-1 rounded-sm border transition-all cursor-pointer ${
+                    statusFilter === 'all'
+                      ? 'border-brand-primary bg-brand-primary/20 ring-1 ring-brand-primary shadow-xs'
+                      : 'border-transparent hover:bg-surface-subtle hover:border-border-subtle'
+                  }`}
+                  title="Show all reports"
+                >
+                  <div className="text-base font-black text-text-primary leading-none">{counts.all}</div>
+                  <div className="text-[8px] uppercase tracking-wider font-bold text-text-muted mt-0.5">All</div>
+                </button>
+
+                <div className="w-px h-8 bg-border-subtle" />
+
+                {/* Critical Filter Tile */}
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter(prev => prev === 'critical' ? 'all' : 'critical')}
+                  className={`flex flex-col items-center px-2.5 py-1 rounded-sm border transition-all cursor-pointer ${
+                    statusFilter === 'critical'
+                      ? 'border-semantic-urgent bg-semantic-urgent/20 ring-1 ring-semantic-urgent shadow-xs'
+                      : 'border-transparent hover:bg-surface-subtle hover:border-border-subtle'
+                  }`}
+                  title="Filter: Critical priority reports (Score >= 70)"
+                >
+                  <div className="text-base font-black text-semantic-urgent leading-none flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                    {counts.critical}
+                  </div>
+                  <div className="text-[8px] uppercase tracking-wider font-bold text-text-muted mt-0.5">Critical</div>
+                </button>
+
+                <div className="w-px h-8 bg-border-subtle" />
+
+                {/* Review Filter Tile */}
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter(prev => prev === 'review' ? 'all' : 'review')}
+                  className={`flex flex-col items-center px-2.5 py-1 rounded-sm border transition-all cursor-pointer ${
+                    statusFilter === 'review'
+                      ? 'border-semantic-warning bg-semantic-warning/20 ring-1 ring-semantic-warning shadow-xs'
+                      : 'border-transparent hover:bg-surface-subtle hover:border-border-subtle'
+                  }`}
+                  title="Filter: Needs human review"
+                >
+                  <div className="text-base font-black text-semantic-warning leading-none flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                    {counts.review}
+                  </div>
+                  <div className="text-[8px] uppercase tracking-wider font-bold text-text-muted mt-0.5">Review</div>
+                </button>
+
+                <div className="w-px h-8 bg-border-subtle" />
+
+                {/* Analyzing Filter Tile */}
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter(prev => prev === 'analyzing' ? 'all' : 'analyzing')}
+                  className={`flex flex-col items-center px-2.5 py-1 rounded-sm border transition-all cursor-pointer ${
+                    statusFilter === 'analyzing'
+                      ? 'border-brand-primary bg-brand-primary/20 ring-1 ring-brand-primary shadow-xs'
+                      : 'border-transparent hover:bg-surface-subtle hover:border-border-subtle'
+                  }`}
+                  title="Filter: Pending AI visual triage"
+                >
+                  <div className="text-base font-black text-brand-primary leading-none flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
+                    {counts.analyzing}
+                  </div>
+                  <div className="text-[8px] uppercase tracking-wider font-bold text-text-muted mt-0.5">Analyzing</div>
+                </button>
+
+                <div className="w-px h-8 bg-border-subtle" />
+
+                {/* Resolved Filter Tile */}
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter(prev => prev === 'resolved' ? 'all' : 'resolved')}
+                  className={`flex flex-col items-center px-2.5 py-1 rounded-sm border transition-all cursor-pointer ${
+                    statusFilter === 'resolved'
+                      ? 'border-emerald-500 bg-emerald-500/20 ring-1 ring-emerald-500 shadow-xs'
+                      : 'border-transparent hover:bg-surface-subtle hover:border-border-subtle'
+                  }`}
+                  title="Filter: Cleared & resolved reports"
+                >
+                  <div className="text-base font-black text-emerald-400 leading-none flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    {counts.resolved}
+                  </div>
+                  <div className="text-[8px] uppercase tracking-wider font-bold text-text-muted mt-0.5">Resolved</div>
+                </button>
                 
               </div>
             </div>
@@ -465,33 +558,6 @@ export default function MainCommandDashboard() {
             </button>
           </div>
         </div>
-
-        {/* Toggle for KPI when minimized */}
-        {(!isKpiOpen && !isFocusMode) && (
-          <button
-            type="button"
-            onClick={() => setIsKpiOpen(true)}
-            className={`pointer-events-auto absolute bottom-4 z-30 flex h-[38px] items-center gap-2 border border-border-strong bg-surface/90 hover:bg-surface text-text-primary shadow-lg backdrop-blur-md transition-all hover:border-brand-primary hover:text-brand-primary rounded-sm px-3.5 transform -skew-x-[6deg] cursor-pointer group ${
-              (isAnalysisOpen && !isFocusMode) ? 'left-[25.5rem]' : 'left-4'
-            }`}
-            title="Expand Legend & KPI"
-          >
-            <div className="transform skew-x-[6deg] flex items-center gap-2">
-              <BarChart3 className="w-3.5 h-3.5 text-brand-primary group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-heading font-black tracking-widest uppercase hidden md:inline">
-                Legend & KPI
-              </span>
-              <div className="flex items-center gap-1.5 ml-0.5">
-                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-semantic-urgent text-white rounded-xs">
-                  {reports.filter(r => r.priority_score >= 70 && r.status === 'triaged').length}
-                </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-semantic-warning text-white rounded-xs">
-                  {reports.filter(r => r.status === 'failed_analysis' || r.needs_human_review).length}
-                </span>
-              </div>
-            </div>
-          </button>
-        )}
 
         {/* Map Controls - Bottom Center */}
         <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3">
@@ -513,14 +579,20 @@ export default function MainCommandDashboard() {
               className={`flex h-[38px] items-center justify-center gap-2 rounded-sm border px-4 shadow-lg backdrop-blur-md transition-all font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer ${
                 isKpiOpen 
                   ? 'border-brand-primary bg-brand-primary/20 text-brand-primary' 
-                  : 'border-border-strong bg-surface/90 text-text-primary hover:border-brand-primary hover:text-brand-primary'
+                  : statusFilter !== 'all'
+                    ? 'border-brand-primary/70 bg-brand-primary/10 text-brand-primary'
+                    : 'border-border-strong bg-surface/90 text-text-primary hover:border-brand-primary hover:text-brand-primary'
               }`}
               title={isKpiOpen ? "Hide Legend & KPI" : "Show Legend & KPI"}
             >
               <span className="inline-flex transform skew-x-[12deg] items-center gap-2">
                   <BarChart3 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">LEGEND & KPI</span>
-                  <span className="sm:hidden">KPI</span>
+                  <span className="hidden sm:inline">
+                    {statusFilter !== 'all' ? `FILTER: ${statusFilter.toUpperCase()}` : 'LEGEND & KPI'}
+                  </span>
+                  <span className="sm:hidden">
+                    {statusFilter !== 'all' ? statusFilter.toUpperCase() : 'KPI'}
+                  </span>
               </span>
             </button>
 
@@ -688,13 +760,37 @@ export default function MainCommandDashboard() {
                 Live Dispatch Queue
               </h2>
               <div className="flex items-center gap-2 pr-10">
-                <button className="p-1.5 hover:bg-surface rounded text-text-muted hover:text-brand-primary transition-colors">
+                {statusFilter !== 'all' && (
+                  <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm bg-brand-primary/20 text-brand-primary border border-brand-primary/40">
+                    {statusFilter} ({filteredReports.length})
+                    <button
+                      type="button"
+                      onClick={() => setStatusFilter('all')}
+                      className="hover:text-white transition-colors cursor-pointer ml-0.5"
+                      title="Clear filter"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                <button 
+                  type="button"
+                  onClick={() => setIsKpiOpen(prev => !prev)}
+                  title={isKpiOpen ? "Hide Filter / Legend" : "Show Filter / Legend"}
+                  className={`p-1.5 rounded transition-colors cursor-pointer ${
+                    statusFilter !== 'all' || isKpiOpen 
+                      ? 'text-brand-primary bg-brand-primary/10' 
+                      : 'text-text-muted hover:bg-surface hover:text-brand-primary'
+                  }`}
+                >
                   <Filter className="w-4 h-4" />
                 </button>
               </div>
               <button 
+                type="button"
                 onClick={() => setIsQueueOpen(false)}
-                className="absolute right-0 top-0 bottom-0 px-3 flex items-center justify-center bg-surface hover:bg-surface-subtle border-l border-border-strong text-text-muted hover:text-brand-primary transition-colors"
+                className="absolute right-0 top-0 bottom-0 px-3 flex items-center justify-center bg-surface hover:bg-surface-subtle border-l border-border-strong text-text-muted hover:text-brand-primary transition-colors cursor-pointer"
+                aria-label="Collapse Dispatch Queue"
               >
                 <span className="font-bold">&gt;</span>
               </button>
@@ -702,9 +798,29 @@ export default function MainCommandDashboard() {
 
             {/* Queue List */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
-              {reports.map((report) => {
-                const isCritical = report.status === 'triaged' && report.priority_score >= 70;
-                const needsReview = report.status === 'failed_analysis' || report.needs_human_review;
+              {filteredReports.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-center p-6 border border-dashed border-border-subtle rounded-sm bg-app-bg/40">
+                  <CheckCircle className="w-8 h-8 text-text-muted mb-2 opacity-50" />
+                  <p className="font-heading text-xs font-bold uppercase tracking-widest text-text-secondary">
+                    No {statusFilter !== 'all' ? statusFilter : ''} Reports
+                  </p>
+                  <p className="text-[11px] text-text-muted mt-1">
+                    {statusFilter !== 'all' ? `No reports match the "${statusFilter}" filter.` : 'No reports available in queue.'}
+                  </p>
+                  {statusFilter !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setStatusFilter('all')}
+                      className="mt-3 text-[10px] font-bold text-brand-primary hover:underline uppercase tracking-wider cursor-pointer"
+                    >
+                      Clear Filter (Show All)
+                    </button>
+                  )}
+                </div>
+              ) : (
+                filteredReports.map((report) => {
+                  const isCritical = report.status === 'triaged' && report.priority_score >= 70;
+                  const needsReview = report.status === 'failed_analysis' || report.needs_human_review;
                 
                 return (
                   <div 
@@ -762,7 +878,7 @@ export default function MainCommandDashboard() {
                     </div>
                   </div>
                 );
-              })}
+              }))}
             </div>
           </div>
         </div>
