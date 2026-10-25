@@ -75,7 +75,7 @@ export default function HistoricalArchiveView() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedReport, setSelectedReport] = useState<EnrichedArchiveReport | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const itemsPerPage = 8;
+  const itemsPerPage = 10;
 
   const fetchArchiveData = async () => {
     setIsLoading(true);
@@ -319,7 +319,7 @@ export default function HistoricalArchiveView() {
   };
 
   return (
-    <div className="w-full flex flex-col pb-12 overflow-x-hidden">
+    <div className="w-full flex flex-col pb-12 px-1.5 sm:px-2.5">
       
       {/* 1. Header Section */}
       <motion.div 
@@ -338,7 +338,7 @@ export default function HistoricalArchiveView() {
         </div>
         
         {/* Actions Bar */}
-        <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+        <div className="flex items-center gap-2 self-start md:self-auto shrink-0 pr-1">
           <button 
             type="button"
             onClick={handleExportCSV}
@@ -371,7 +371,7 @@ export default function HistoricalArchiveView() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.05 }}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6 shrink-0"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 mb-4 sm:mb-6 shrink-0 px-1"
       >
         {kpiMetrics.map((metric) => {
           const isSelected = statusFilter === metric.filter;
@@ -476,45 +476,43 @@ export default function HistoricalArchiveView() {
             ({archiveData.length} matching {archiveData.length === 1 ? 'record' : 'records'})
           </span>
 
-          <div className="flex items-center gap-1 bg-surface/85 border border-border-subtle p-1 rounded-sm shadow-xs -skew-x-3 sm:-skew-x-6">
-            <div className="flex items-center gap-1 skew-x-3 sm:skew-x-6">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted px-1.5 flex items-center gap-1 shrink-0">
-                <ArrowUpDown className="w-3 h-3 text-brand-primary" />
-                <span className="hidden sm:inline">Sort:</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setSortOrder('newest');
-                  setCurrentPage(1);
-                }}
-                className={twMerge(
-                  "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
-                  sortOrder === 'newest'
-                    ? "bg-brand-primary text-white shadow-xs"
-                    : "text-text-secondary hover:text-text-primary hover:bg-surface"
-                )}
-                title="Sort by Newest First"
-              >
-                Newest
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSortOrder('oldest');
-                  setCurrentPage(1);
-                }}
-                className={twMerge(
-                  "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
-                  sortOrder === 'oldest'
-                    ? "bg-brand-primary text-white shadow-xs"
-                    : "text-text-secondary hover:text-text-primary hover:bg-surface"
-                )}
-                title="Sort by Oldest First"
-              >
-                Oldest
-              </button>
-            </div>
+          <div className="flex items-center gap-1 bg-surface/85 border border-border-subtle p-1 rounded-sm shadow-xs -skew-x-3">
+            <span className="skew-x-3 text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted px-1.5 flex items-center gap-1 shrink-0">
+              <ArrowUpDown className="w-3 h-3 text-brand-primary" />
+              <span className="hidden sm:inline">Sort:</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSortOrder('newest');
+                setCurrentPage(1);
+              }}
+              className={twMerge(
+                "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
+                sortOrder === 'newest'
+                  ? "bg-brand-primary text-white shadow-xs"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface"
+              )}
+              title="Sort by Newest First"
+            >
+              <span className="skew-x-3">Newest</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSortOrder('oldest');
+                setCurrentPage(1);
+              }}
+              className={twMerge(
+                "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer",
+                sortOrder === 'oldest'
+                  ? "bg-brand-primary text-white shadow-xs"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface"
+              )}
+              title="Sort by Oldest First"
+            >
+              <span className="skew-x-3">Oldest</span>
+            </button>
           </div>
         </div>
       </div>

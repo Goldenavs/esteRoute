@@ -258,7 +258,7 @@ export default function LGUAnalyticsOverview() {
   }, [reports, agentResults, dispatchLogs, timeFilter]);
 
   return (
-    <div className="w-full flex flex-col pb-12 overflow-x-hidden">
+    <div className="w-full flex flex-col pb-12 px-1.5 sm:px-2.5">
       
       {/* 1. Header Section with Smooth Motion */}
       <motion.div 
@@ -277,21 +277,21 @@ export default function LGUAnalyticsOverview() {
         </div>
         
         {/* Time Filters & Refresh */}
-        <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
-          <div className="flex items-center bg-surface/85 backdrop-blur-md border border-border-subtle rounded-sm p-0.5 shadow-xs -skew-x-3 sm:-skew-x-6">
+        <div className="flex items-center gap-2 self-start md:self-auto shrink-0 pr-1">
+          <div className="flex items-center bg-surface/85 backdrop-blur-md border border-border-subtle rounded-sm p-1 shadow-xs -skew-x-3">
             {(['ALL', '30', '14'] as const).map((filterKey) => (
               <button
                 key={filterKey}
                 type="button"
                 onClick={() => setTimeFilter(filterKey)}
                 className={twMerge(
-                  "px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-all rounded-xs cursor-pointer",
+                  "px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-all rounded-xs cursor-pointer",
                   timeFilter === filterKey 
                     ? "bg-brand-primary text-white shadow-xs" 
                     : "text-text-muted hover:text-text-primary hover:bg-surface-subtle"
                 )}
               >
-                <span className="skew-x-3 sm:skew-x-6 inline-block">
+                <span className="skew-x-3 inline-block">
                   {filterKey === 'ALL' ? 'All Time' : `${filterKey} Days`}
                 </span>
               </button>
@@ -302,10 +302,10 @@ export default function LGUAnalyticsOverview() {
             type="button"
             onClick={handleRefresh}
             disabled={isLoading}
-            className="p-2 bg-surface/85 hover:bg-surface border border-border-subtle rounded-sm text-text-muted hover:text-brand-primary transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center shrink-0 -skew-x-3 sm:-skew-x-6"
+            className="p-2 bg-surface/85 hover:bg-surface border border-border-subtle rounded-sm text-text-muted hover:text-brand-primary transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center shrink-0 -skew-x-3"
             title="Refresh Live Analytics"
           >
-            <RefreshCw className={twMerge("w-4 h-4 skew-x-3 sm:skew-x-6", isLoading && "animate-spin text-brand-primary")} />
+            <RefreshCw className={twMerge("w-4 h-4 skew-x-3", isLoading && "animate-spin text-brand-primary")} />
           </button>
         </div>
       </motion.div>
