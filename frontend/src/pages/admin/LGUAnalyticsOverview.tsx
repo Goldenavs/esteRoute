@@ -28,7 +28,6 @@ import {
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import BorderBeam from '../../components/common/BorderBeam';
 
 interface ReportRow {
   report_id: string;
@@ -259,7 +258,7 @@ export default function LGUAnalyticsOverview() {
   }, [reports, agentResults, dispatchLogs, timeFilter]);
 
   return (
-    <div className="w-full h-full flex flex-col pb-12 overflow-y-auto custom-scrollbar">
+    <div className="w-full flex flex-col pb-12 overflow-x-hidden">
       
       {/* 1. Header Section with Smooth Motion */}
       <motion.div 
@@ -287,8 +286,8 @@ export default function LGUAnalyticsOverview() {
         </div>
         
         {/* Time Filters & Refresh */}
-        <div className="flex items-center gap-2 self-start md:self-auto">
-          <div className="flex items-center bg-surface/85 backdrop-blur-md border border-border-strong rounded-sm p-0.5 shadow-md -skew-x-3 sm:-skew-x-6">
+        <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+          <div className="flex items-center bg-surface/85 backdrop-blur-md border border-border-strong rounded-sm p-0.5 shadow-xs">
             {(['ALL', '30', '14'] as const).map((filterKey) => (
               <button
                 key={filterKey}
@@ -297,11 +296,11 @@ export default function LGUAnalyticsOverview() {
                 className={twMerge(
                   "px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-all rounded-xs cursor-pointer",
                   timeFilter === filterKey 
-                    ? "bg-brand-primary text-white shadow-sm" 
+                    ? "bg-brand-primary text-white shadow-xs" 
                     : "text-text-muted hover:text-text-primary hover:bg-surface-subtle"
                 )}
               >
-                <span className="skew-x-3 sm:skew-x-6 inline-block">
+                <span>
                   {filterKey === 'ALL' ? 'All Time' : `${filterKey} Days`}
                 </span>
               </button>
@@ -312,29 +311,28 @@ export default function LGUAnalyticsOverview() {
             type="button"
             onClick={handleRefresh}
             disabled={isLoading}
-            className="p-2 bg-surface/85 hover:bg-surface border border-border-strong rounded-sm text-text-muted hover:text-brand-primary transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center -skew-x-3 sm:-skew-x-6"
+            className="p-2 bg-surface/85 hover:bg-surface border border-border-strong rounded-sm text-text-muted hover:text-brand-primary transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
             title="Refresh Live Analytics"
           >
-            <RefreshCw className={twMerge("w-4 h-4 skew-x-3 sm:skew-x-6", isLoading && "animate-spin text-brand-primary")} />
+            <RefreshCw className={twMerge("w-4 h-4", isLoading && "animate-spin text-brand-primary")} />
           </button>
         </div>
       </motion.div>
 
-      {/* 2. Top Metric Cards with Citizen Screen UI, Skewed Frames, Proportional Meters & BorderBeam */}
+      {/* 2. Top Metric Cards (Clean, Professional, Elevated Frames) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         
-        {/* Card 1: Total Reports with Traveling BorderBeam */}
+        {/* Card 1: Total Reports */}
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.05 }}
-          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-4 sm:p-5 shadow-sm hover:shadow-xl relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
+          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-brand-primary/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
         >
-          <BorderBeam delay={0} color="#60A5FA" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-primary" />
           <div className="absolute top-0 right-0 w-24 h-24 bg-brand-primary/10 rounded-full blur-2xl group-hover:bg-brand-primary/20 transition-all pointer-events-none" />
           
-          <div className="skew-x-2 sm:skew-x-3 relative z-10 flex flex-col justify-between h-full">
+          <div className="relative z-10 flex flex-col justify-between h-full">
             <div className="flex items-center justify-between gap-1 mb-2">
               <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-muted">
                 Total Incident Reports
@@ -363,13 +361,12 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.1 }}
-          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-semantic-urgent/60 transition-all duration-500 rounded-sm p-4 sm:p-5 shadow-sm hover:shadow-xl relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
+          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-semantic-urgent/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
         >
-          <BorderBeam delay={1.5} color="#EF4444" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-semantic-urgent" />
           <div className="absolute top-0 right-0 w-24 h-24 bg-semantic-urgent/10 rounded-full blur-2xl group-hover:bg-semantic-urgent/20 transition-all pointer-events-none" />
           
-          <div className="skew-x-2 sm:skew-x-3 relative z-10 flex flex-col justify-between h-full">
+          <div className="relative z-10 flex flex-col justify-between h-full">
             <div className="flex items-center justify-between gap-1 mb-2">
               <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-muted">
                 Critical Blockages
@@ -400,13 +397,12 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.15 }}
-          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-semantic-warning/60 transition-all duration-500 rounded-sm p-4 sm:p-5 shadow-sm hover:shadow-xl relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
+          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-semantic-warning/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
         >
-          <BorderBeam delay={3} color="#F59E0B" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-semantic-warning" />
           <div className="absolute top-0 right-0 w-24 h-24 bg-semantic-warning/10 rounded-full blur-2xl group-hover:bg-semantic-warning/20 transition-all pointer-events-none" />
           
-          <div className="skew-x-2 sm:skew-x-3 relative z-10 flex flex-col justify-between h-full">
+          <div className="relative z-10 flex flex-col justify-between h-full">
             <div className="flex items-center justify-between gap-1 mb-2">
               <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-muted">
                 Needs Human Review
@@ -437,13 +433,12 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.2 }}
-          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-emerald-500/60 transition-all duration-500 rounded-sm p-4 sm:p-5 shadow-sm hover:shadow-xl relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
+          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-emerald-500/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
         >
-          <BorderBeam delay={4.5} color="#10B981" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" />
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
           
-          <div className="skew-x-2 sm:skew-x-3 relative z-10 flex flex-col justify-between h-full">
+          <div className="relative z-10 flex flex-col justify-between h-full">
             <div className="flex items-center justify-between gap-1 mb-2">
               <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-muted">
                 Cleared & In Progress
@@ -471,19 +466,18 @@ export default function LGUAnalyticsOverview() {
 
       </div>
 
-      {/* 3. Main Analytics Grid (Charts & Tables) */}
+      {/* 3. Main Analytics Grid (Clean Professional Panels) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-8">
         
-        {/* Panel 1: Incident Trend Timeline with Area Gradient & BorderBeam */}
+        {/* Panel 1: Incident Trend Timeline */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.25 }}
-          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col h-[380px] -skew-x-2 relative overflow-hidden group"
+          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-strong hover:border-brand-primary/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col h-[380px] overflow-hidden group"
         >
-          <BorderBeam delay={0} color="#3F72AF" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-primary" />
-          <div className="skew-x-2 h-full flex flex-col relative z-10">
+          <div className="h-full flex flex-col relative z-10">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-heading font-black text-base sm:text-lg tracking-wide uppercase flex items-center gap-2 text-text-primary">
                 <Activity className="w-4 h-4 text-brand-primary" />
@@ -551,11 +545,10 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.3 }}
-          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col h-[380px] -skew-x-2 relative overflow-hidden group"
+          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-strong hover:border-brand-secondary/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col h-[380px] overflow-hidden group"
         >
-          <BorderBeam delay={2} color="#F59E0B" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-secondary" />
-          <div className="skew-x-2 h-full flex flex-col relative z-10">
+          <div className="h-full flex flex-col relative z-10">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-heading font-black text-base sm:text-lg tracking-wide uppercase flex items-center gap-2 text-text-primary">
                 <Trash2 className="w-4 h-4 text-brand-secondary" />
@@ -608,16 +601,15 @@ export default function LGUAnalyticsOverview() {
           </div>
         </motion.div>
 
-        {/* Panel 3: Waterway Basin & Risk Zones (Real Corridor Clusters) */}
+        {/* Panel 3: Waterway Basin & Risk Zones */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.35 }}
-          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col -skew-x-2 relative overflow-hidden group"
+          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-strong hover:border-brand-primary/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col overflow-hidden group"
         >
-          <BorderBeam delay={4} color="#38BDF8" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500" />
-          <div className="skew-x-2 flex flex-col h-full relative z-10">
+          <div className="flex flex-col h-full relative z-10">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-heading font-black text-base sm:text-lg tracking-wide uppercase flex items-center gap-2 text-text-primary">
                 <Waves className="w-4 h-4 text-cyan-400" />
@@ -670,11 +662,10 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.4 }}
-          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col -skew-x-2 relative overflow-hidden group"
+          className="relative bg-surface/35 hover:bg-surface/65 backdrop-blur-xl border border-border-strong hover:border-emerald-500/50 transition-all duration-300 rounded-sm p-5 sm:p-6 shadow-md flex flex-col overflow-hidden group"
         >
-          <BorderBeam delay={6} color="#10B981" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" />
-          <div className="skew-x-2 flex flex-col h-full relative z-10">
+          <div className="flex flex-col h-full relative z-10">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-heading font-black text-base sm:text-lg tracking-wide uppercase flex items-center gap-2 text-text-primary">
                 <Truck className="w-4 h-4 text-emerald-400" />
