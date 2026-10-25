@@ -365,6 +365,7 @@ export default function LGUAnalyticsOverview() {
           transition={{ duration: 0.35, delay: 0.1 }}
           className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-semantic-urgent/60 transition-all duration-500 rounded-sm p-4 sm:p-5 shadow-sm hover:shadow-xl relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
         >
+          <BorderBeam delay={1.5} color="#EF4444" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-semantic-urgent" />
           <div className="absolute top-0 right-0 w-24 h-24 bg-semantic-urgent/10 rounded-full blur-2xl group-hover:bg-semantic-urgent/20 transition-all pointer-events-none" />
           
@@ -401,6 +402,7 @@ export default function LGUAnalyticsOverview() {
           transition={{ duration: 0.35, delay: 0.15 }}
           className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-semantic-warning/60 transition-all duration-500 rounded-sm p-4 sm:p-5 shadow-sm hover:shadow-xl relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
         >
+          <BorderBeam delay={3} color="#F59E0B" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-semantic-warning" />
           <div className="absolute top-0 right-0 w-24 h-24 bg-semantic-warning/10 rounded-full blur-2xl group-hover:bg-semantic-warning/20 transition-all pointer-events-none" />
           
@@ -437,6 +439,7 @@ export default function LGUAnalyticsOverview() {
           transition={{ duration: 0.35, delay: 0.2 }}
           className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-emerald-500/60 transition-all duration-500 rounded-sm p-4 sm:p-5 shadow-sm hover:shadow-xl relative overflow-hidden group -skew-x-2 sm:-skew-x-3"
         >
+          <BorderBeam delay={4.5} color="#10B981" />
           <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" />
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
           
@@ -476,9 +479,10 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.25 }}
-          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col h-[380px] -skew-x-2"
+          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col h-[380px] -skew-x-2 relative overflow-hidden group"
         >
-          <BorderBeam delay={2} color="#3F72AF" />
+          <BorderBeam delay={0} color="#3F72AF" />
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-primary" />
           <div className="skew-x-2 h-full flex flex-col relative z-10">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-heading font-black text-base sm:text-lg tracking-wide uppercase flex items-center gap-2 text-text-primary">
@@ -547,8 +551,10 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.3 }}
-          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col h-[380px] -skew-x-2"
+          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col h-[380px] -skew-x-2 relative overflow-hidden group"
         >
+          <BorderBeam delay={2} color="#F59E0B" />
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-secondary" />
           <div className="skew-x-2 h-full flex flex-col relative z-10">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-heading font-black text-base sm:text-lg tracking-wide uppercase flex items-center gap-2 text-text-primary">
@@ -607,8 +613,10 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.35 }}
-          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col -skew-x-2"
+          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col -skew-x-2 relative overflow-hidden group"
         >
+          <BorderBeam delay={4} color="#38BDF8" />
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500" />
           <div className="skew-x-2 flex flex-col h-full relative z-10">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-heading font-black text-base sm:text-lg tracking-wide uppercase flex items-center gap-2 text-text-primary">
@@ -662,8 +670,10 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.4 }}
-          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col -skew-x-2"
+          className="relative bg-surface/35 hover:bg-surface/75 backdrop-blur-xl border border-border-strong hover:border-brand-primary/60 transition-all duration-500 rounded-sm p-5 sm:p-6 shadow-xl flex flex-col -skew-x-2 relative overflow-hidden group"
         >
+          <BorderBeam delay={6} color="#10B981" />
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" />
           <div className="skew-x-2 flex flex-col h-full relative z-10">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-heading font-black text-base sm:text-lg tracking-wide uppercase flex items-center gap-2 text-text-primary">
