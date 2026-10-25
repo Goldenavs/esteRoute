@@ -72,6 +72,15 @@ const pendingIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+const resolvedIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 const selectedIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -83,17 +92,17 @@ const selectedIcon = new L.Icon({
 
 const getMarkerIcon = (status: string, score: number, needsReview: boolean, isSelected?: boolean) => {
   if (isSelected) return selectedIcon;
+  if (status === 'resolved') return resolvedIcon;
   if (status === 'pending_analysis') return pendingIcon;
   if (status === 'failed_analysis' || needsReview) return activeIcon; // Orange for manual review
   if (status === 'dispatched') return activeIcon;
-  if (status === 'resolved') return defaultIcon;
   
   if (status === 'triaged') {
     if (score >= 70) return criticalIcon;
     if (score >= 40) return activeIcon;
     return defaultIcon;
   }
-  return defaultIcon; // Pending
+  return pendingIcon; // Pending
 };
 
 interface ReportItem {
@@ -209,13 +218,13 @@ export default function MainCommandDashboard() {
 
   const [isMapDark, setIsMapDark] = useState<boolean>(true);
   const [mapType, setMapType] = useState<MapTileType>('standard');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'critical' | 'review' | 'analyzing' | 'resolved'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'critical' | 'review' | 'pending' | 'resolved'>('all');
 
   // Computed metric counts
   const totalCount = reports.length;
   const criticalCount = useMemo(() => reports.filter(r => r.priority_score >= 70 && r.status === 'triaged').length, [reports]);
   const reviewCount = useMemo(() => reports.filter(r => r.status === 'failed_analysis' || r.needs_human_review).length, [reports]);
-  const analyzingCount = useMemo(() => reports.filter(r => r.status === 'pending_analysis').length, [reports]);
+  const pendingCount = useMemo(() => reports.filter(r => r.status === 'pending_analysis').length, [reports]);
   const resolvedCount = useMemo(() => reports.filter(r => r.status === 'resolved').length, [reports]);
 
   // Stylistic KPI Strip Filter metrics with visual proportion bars matching PublicEsteroStatusMap & CitizenDashboard
@@ -257,16 +266,16 @@ export default function MainCommandDashboard() {
       pulse: reviewCount > 0,
     },
     {
-      filter: 'analyzing' as const,
-      label: 'AI TRIAGE',
-      shortLabel: 'TRIAGE',
-      value: analyzingCount,
-      subtext: `${totalCount > 0 ? Math.round((analyzingCount / totalCount) * 100) : 0}% In Pipeline`,
-      tone: 'text-brand-primary',
-      border: 'border-brand-primary/40',
-      barBg: 'bg-brand-primary',
-      pct: totalCount > 0 ? Math.round((analyzingCount / totalCount) * 100) : 0,
-      pulse: analyzingCount > 0,
+      filter: 'pending' as const,
+      label: 'PENDING',
+      shortLabel: 'PENDING',
+      value: pendingCount,
+      subtext: `${totalCount > 0 ? Math.round((pendingCount / totalCount) * 100) : 0}% In Pipeline`,
+      tone: 'text-blue-400',
+      border: 'border-blue-500/40',
+      barBg: 'bg-blue-500',
+      pct: totalCount > 0 ? Math.round((pendingCount / totalCount) * 100) : 0,
+      pulse: pendingCount > 0,
     },
     {
       filter: 'resolved' as const,
@@ -280,7 +289,7 @@ export default function MainCommandDashboard() {
       pct: totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0,
       pulse: false,
     },
-  ], [totalCount, criticalCount, reviewCount, analyzingCount, resolvedCount]);
+  ], [totalCount, criticalCount, reviewCount, pendingCount, resolvedCount]);
 
   // Filtered reports for both the Map Markers and the Right Dispatch Queue
   const filteredReports = useMemo(() => {
@@ -291,7 +300,7 @@ export default function MainCommandDashboard() {
     if (statusFilter === 'review') {
       return reportsWithDisplayCoords.filter(r => r.status === 'failed_analysis' || r.needs_human_review);
     }
-    if (statusFilter === 'analyzing') {
+    if (statusFilter === 'pending') {
       return reportsWithDisplayCoords.filter(r => r.status === 'pending_analysis');
     }
     if (statusFilter === 'resolved') {
@@ -449,8 +458,16 @@ export default function MainCommandDashboard() {
                       )}
                     </div>
 
-                    <p className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm mt-1 mb-2 inline-block ${report.priority_score >= 70 ? 'bg-semantic-urgent text-white' : report.status === 'pending_analysis' ? 'bg-brand-primary text-white animate-pulse' : 'bg-semantic-warning text-white'}`}>
-                      {report.status === 'pending_analysis' ? 'ANALYZING...' : report.status === 'failed_analysis' ? 'NEEDS REVIEW' : `AI Score: ${report.priority_score || 'N/A'}`}
+                    <p className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm mt-1 mb-2 inline-block ${
+                      report.status === 'resolved' ? 'bg-emerald-600 text-white' :
+                      report.priority_score >= 70 && report.status === 'triaged' ? 'bg-semantic-urgent text-white' :
+                      report.status === 'pending_analysis' ? 'bg-blue-600 text-white animate-pulse' :
+                      'bg-semantic-warning text-white'
+                    }`}>
+                      {report.status === 'resolved' ? 'RESOLVED' :
+                       report.status === 'pending_analysis' ? 'PENDING' :
+                       report.status === 'failed_analysis' ? 'NEEDS REVIEW' :
+                       `AI Score: ${report.priority_score || 'N/A'}`}
                     </p>
 
                     <p className="text-[10px] text-text-muted mb-2 font-mono flex items-center justify-between">
@@ -977,6 +994,8 @@ export default function MainCommandDashboard() {
                 filteredReports.map((report) => {
                   const isCritical = report.status === 'triaged' && report.priority_score >= 70;
                   const needsReview = report.status === 'failed_analysis' || report.needs_human_review;
+                  const isPending = report.status === 'pending_analysis';
+                  const isResolved = report.status === 'resolved';
                 
                 return (
                   <div 
@@ -990,7 +1009,11 @@ export default function MainCommandDashboard() {
                         ? 'border-semantic-urgent bg-semantic-urgent/10' 
                         : needsReview
                           ? 'border-semantic-warning bg-semantic-warning/10'
-                          : 'border-border-subtle bg-app-bg hover:border-brand-primary/50'
+                          : isPending
+                            ? 'border-blue-500 bg-blue-500/10'
+                            : isResolved
+                              ? 'border-emerald-500 bg-emerald-500/10'
+                              : 'border-border-subtle bg-app-bg hover:border-brand-primary/50'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-2">
@@ -999,9 +1022,11 @@ export default function MainCommandDashboard() {
                       <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm ${
                         isCritical ? 'bg-semantic-urgent text-white' :
                         needsReview ? 'bg-semantic-warning text-white' :
+                        isPending ? 'bg-blue-600 text-white' :
+                        isResolved ? 'bg-emerald-600 text-white' :
                         'bg-surface-subtle text-text-secondary border border-border-subtle'
                       }`}>
-                        {needsReview ? 'NEEDS REVIEW' : report.status.replace('_', ' ')}
+                        {needsReview ? 'NEEDS REVIEW' : isPending ? 'PENDING' : report.status.replace('_', ' ')}
                       </span>
                     </div>
                     
@@ -1026,6 +1051,10 @@ export default function MainCommandDashboard() {
                              <Truck className="w-3 h-3" /> DISPATCH
                           </span>
                         </button>
+                      ) : isResolved ? (
+                        <span className="text-[10px] font-black tracking-widest text-emerald-400 flex items-center gap-1">
+                          <CheckCircle className="w-3.5 h-3.5" /> RESOLVED
+                        </span>
                       ) : (
                         <button className="text-[10px] font-black tracking-widest text-brand-primary hover:text-brand-secondary flex items-center gap-1 group">
                           DETAILS <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
