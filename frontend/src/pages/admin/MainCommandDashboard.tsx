@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, CheckCircle } from 'lucide-react';
+import { Clock, Navigation, ArrowRight, Filter, ShieldAlert, Truck, MapPin, Maximize, Minimize, CheckCircle, BarChart3 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 // Custom Map Marker Icons
@@ -88,7 +88,7 @@ export default function MainCommandDashboard() {
   const [reports, setReports] = useState<any[]>([]);
   const [isQueueOpen, setIsQueueOpen] = useState(true);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(true);
-  const [isKpiOpen, setIsKpiOpen] = useState(true);
+  const [isKpiOpen, setIsKpiOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -413,9 +413,13 @@ export default function MainCommandDashboard() {
       <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
         
         {/* Bottom Left KPI & Legend Panel */}
-        <div className={`pointer-events-auto absolute bottom-4 left-4 z-40 transition-transform duration-500 ease-out ${(isKpiOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+3rem)]'}`}>
+        <div className={`pointer-events-auto absolute bottom-4 left-4 z-40 transition-all duration-500 ease-out ${(isKpiOpen && !isFocusMode) ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+3rem)] opacity-0 pointer-events-none'}`}>
           <div className="flex gap-2 items-end">
-            <div className="bg-surface/90 backdrop-blur-md border border-border-strong p-2.5 rounded-sm shadow-lg transform -skew-x-[6deg] flex gap-5 w-max">
+            <div 
+              onClick={() => setIsKpiOpen(false)}
+              className="bg-surface/95 backdrop-blur-md border border-border-strong hover:border-brand-primary/60 p-2.5 rounded-sm shadow-xl transform -skew-x-[6deg] flex gap-5 w-max cursor-pointer transition-colors group"
+              title="Click to collapse KPI & Legend"
+            >
               <div className="transform skew-x-[6deg] flex gap-5 items-center">
                 
                 {/* Critical KPI */}
@@ -431,7 +435,7 @@ export default function MainCommandDashboard() {
                 </div>
                 
                 {/* Legend */}
-                <div className="flex flex-col gap-2 px-1 border-l border-border-subtle pl-5 justify-center">
+                <div className="flex flex-col gap-1.5 px-1 border-l border-border-subtle pl-5 justify-center">
                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">
                       <div className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse"></div> Analyzing
                    </div>
@@ -451,8 +455,11 @@ export default function MainCommandDashboard() {
 
             {/* Close button for KPI */}
             <button 
+              type="button"
               onClick={() => setIsKpiOpen(false)}
-              className="bg-surface/90 backdrop-blur-md border border-border-strong text-text-muted hover:text-brand-primary h-8 w-6 flex items-center justify-center rounded-sm transition-colors transform -skew-x-[6deg]"
+              className="bg-surface/90 hover:bg-surface border border-border-strong text-text-muted hover:text-brand-primary h-8 w-6 flex items-center justify-center rounded-sm transition-colors transform -skew-x-[6deg] cursor-pointer"
+              title="Collapse Legend & KPI"
+              aria-label="Collapse Legend & KPI"
             >
                <span className="transform skew-x-[6deg] font-bold text-xs">&lt;</span>
             </button>
@@ -462,18 +469,35 @@ export default function MainCommandDashboard() {
         {/* Toggle for KPI when minimized */}
         {(!isKpiOpen && !isFocusMode) && (
           <button
+            type="button"
             onClick={() => setIsKpiOpen(true)}
-            className="pointer-events-auto absolute left-0 bottom-4 z-30 flex h-[48px] w-8 items-center justify-center border border-l-0 border-border-strong bg-surface/90 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:text-brand-primary rounded-r-sm"
+            className={`pointer-events-auto absolute bottom-4 z-30 flex h-[38px] items-center gap-2 border border-border-strong bg-surface/90 hover:bg-surface text-text-primary shadow-lg backdrop-blur-md transition-all hover:border-brand-primary hover:text-brand-primary rounded-sm px-3.5 transform -skew-x-[6deg] cursor-pointer group ${
+              (isAnalysisOpen && !isFocusMode) ? 'left-[25.5rem]' : 'left-4'
+            }`}
+            title="Expand Legend & KPI"
           >
-            <span className="font-bold text-xs">&gt;</span>
+            <div className="transform skew-x-[6deg] flex items-center gap-2">
+              <BarChart3 className="w-3.5 h-3.5 text-brand-primary group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-heading font-black tracking-widest uppercase hidden md:inline">
+                Legend & KPI
+              </span>
+              <div className="flex items-center gap-1.5 ml-0.5">
+                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-semantic-urgent text-white rounded-xs">
+                  {reports.filter(r => r.priority_score >= 70 && r.status === 'triaged').length}
+                </span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-semantic-warning text-white rounded-xs">
+                  {reports.filter(r => r.status === 'failed_analysis' || r.needs_human_review).length}
+                </span>
+              </div>
+            </div>
           </button>
         )}
 
         {/* Map Controls - Bottom Center */}
-        <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-4">
+        <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3">
             <button 
               onClick={goToCurrentLocation}
-              className="flex h-[38px] items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-5 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer"
+              className="flex h-[38px] items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-4 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer"
               title="Find My Location"
             >
               <span className="inline-flex transform skew-x-[12deg] items-center gap-2">
@@ -481,11 +505,30 @@ export default function MainCommandDashboard() {
                   <span className="hidden sm:inline">LOCATE</span>
               </span>
             </button>
+
+            {/* Toggle Legend & KPI in Bottom Dock */}
+            <button 
+              type="button"
+              onClick={() => setIsKpiOpen(prev => !prev)}
+              className={`flex h-[38px] items-center justify-center gap-2 rounded-sm border px-4 shadow-lg backdrop-blur-md transition-all font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer ${
+                isKpiOpen 
+                  ? 'border-brand-primary bg-brand-primary/20 text-brand-primary' 
+                  : 'border-border-strong bg-surface/90 text-text-primary hover:border-brand-primary hover:text-brand-primary'
+              }`}
+              title={isKpiOpen ? "Hide Legend & KPI" : "Show Legend & KPI"}
+            >
+              <span className="inline-flex transform skew-x-[12deg] items-center gap-2">
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">LEGEND & KPI</span>
+                  <span className="sm:hidden">KPI</span>
+              </span>
+            </button>
+
             <button
                 type="button"
                 onClick={() => setIsFocusMode((v) => !v)}
                 aria-label="Toggle Focus Mode"
-                className="flex h-[38px] items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-6 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer"
+                className="flex h-[38px] items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface/90 px-4 text-text-primary shadow-lg backdrop-blur-md transition-colors hover:border-brand-primary hover:text-brand-primary font-label-caps text-[11px] font-bold tracking-widest transform -skew-x-[12deg] group cursor-pointer"
             >
                 <span className="inline-flex transform skew-x-[12deg] items-center gap-2">
                     {isFocusMode ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />}
@@ -494,9 +537,13 @@ export default function MainCommandDashboard() {
             </button>
         </div>
 
-        {/* Left Panel: AI Vision Analysis (Placeholder) */}
+        {/* Left Panel: AI Vision Analysis (Auto-adjusts between full-length bottom-4 and bottom-[8.75rem]) */}
         <div 
-          className={`pointer-events-auto absolute bottom-[8.5rem] left-4 top-[5rem] w-[24rem] z-20 transition-transform duration-500 ease-out ${(isAnalysisOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'}`}
+          className={`pointer-events-auto absolute left-4 top-[5rem] w-[24rem] z-20 transition-all duration-500 ease-out ${
+            (isAnalysisOpen && !isFocusMode) ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)]'
+          } ${
+            (isKpiOpen && !isFocusMode) ? 'bottom-[8.75rem]' : 'bottom-4'
+          }`}
         >
           <div className="w-full h-full bg-surface/95 backdrop-blur-xl border border-border-strong shadow-2xl flex flex-col rounded-sm">
             <div className="p-4 border-b border-border-subtle bg-surface-subtle flex justify-between items-center relative rounded-t-sm">
