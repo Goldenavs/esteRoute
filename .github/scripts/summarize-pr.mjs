@@ -128,7 +128,7 @@ ${diff}
           contents: [{ parts: [{ text: systemPrompt }] }],
           generationConfig: {
             temperature: 0.2,
-            maxOutputTokens: 1024
+            maxOutputTokens: 8192
           }
         })
       });
@@ -140,9 +140,14 @@ ${diff}
       }
 
       const data = await response.json();
-      aiSummary = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const candidate = data?.candidates?.[0];
+      if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
+        console.warn(`Model ${model} finished with reason: ${candidate.finishReason}`);
+      }
+
+      aiSummary = candidate?.content?.parts?.[0]?.text;
       if (aiSummary) {
-        console.log(`Successfully generated summary using ${model}.`);
+        console.log(`Successfully generated full summary using ${model}.`);
         break;
       }
     } catch (apiErr) {
@@ -167,7 +172,7 @@ ${diff}
   }
 
   // 6. Update PR via gh CLI
-  console.log('📝 Updating PR description...');
+  console.log('Updating PR description...');
   try {
     // Write body to temporary file to safely handle quotes and multiline formatting
     const fs = await import('node:fs');
@@ -178,7 +183,7 @@ ${diff}
     execSync(`gh pr edit ${prNumber} --body-file "${tempFile}"`, { encoding: 'utf-8' });
     fs.unlinkSync(tempFile);
 
-    console.log(`🎉 Pull Request #${prNumber} description updated successfully!`);
+    console.log(`Pull Request #${prNumber} description updated successfully.`);
   } catch (updateErr) {
     console.error('Failed to update PR description via gh CLI:', updateErr.message);
     process.exit(1);
