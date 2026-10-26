@@ -69,12 +69,38 @@ Git Diff & Stats:
 ${diff}
 `;
 
-  // 4. Call Gemini API (Supports gemini-2.5-flash with fallback to gemini-1.5-flash)
+  // 4. Call Gemini API
   console.log('🤖 Requesting PR summary from Gemini API...');
   let aiSummary = '';
 
-  const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
-  for (const model of models) {
+  // Dynamically discover supported models for the account, with fallback to gemini-3.8-flash
+  let modelsToTry = ['gemini-3.8-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  try {
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      const activeModels = (listData.models || [])
+        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+        .map(m => m.name.replace(/^models\//, ''));
+
+      // Prioritize flash models, then pro models
+      const prioritized = [
+        ...activeModels.filter(m => m.includes('flash')),
+        ...activeModels.filter(m => m.includes('pro')),
+        ...activeModels
+      ];
+
+      if (prioritized.length > 0) {
+        // Deduplicate
+        modelsToTry = Array.from(new Set(prioritized));
+        console.log(`Discovered available Gemini models: ${modelsToTry.slice(0, 5).join(', ')}...`);
+      }
+    }
+  } catch (err) {
+    console.warn('Could not query model list dynamically, using defaults:', err.message);
+  }
+
+  for (const model of modelsToTry) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const response = await fetch(url, {
@@ -107,7 +133,7 @@ ${diff}
   }
 
   if (!aiSummary) {
-    console.error('❌ Failed to generate summary from Gemini API.');
+    console.error('❌ Failed to generate summary from Gemini API with available models.');
     process.exit(1);
   }
 
