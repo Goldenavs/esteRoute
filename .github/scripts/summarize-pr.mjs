@@ -91,38 +91,28 @@ ${diff}
   console.log('Requesting PR summary from Gemini API...');
   let aiSummary = '';
 
-  // Explicitly prefer clean, stable text models
-  let modelsToTry = [
-    'gemini-flash-latest',
-    'gemini-3.8-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-flash-lite-latest'
-  ];
-
+  // Dynamically discover supported models for the account, with fallback to gemini-3.8-flash
+  let modelsToTry = ['gemini-3.8-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
   try {
-    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
-      signal: AbortSignal.timeout(8000)
-    });
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     if (listRes.ok) {
       const listData = await listRes.json();
-      const availableTextModels = (listData.models || [])
+      const activeModels = (listData.models || [])
         .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
-        .map(m => m.name.replace(/^models\//, ''))
-        // Filter OUT audio, tts, embedding, and non-text models
-        .filter(name => !name.includes('tts') && !name.includes('audio') && !name.includes('embed') && !name.includes('realtime'));
+        .map(m => m.name.replace(/^models\//, ''));
 
-      // Look for preferred models in order
-      const candidates = [
-        'gemini-flash-latest',
-        'gemini-3.8-flash',
-        'gemini-2.5-flash-lite',
-        'gemini-flash-lite-latest',
-        ...availableTextModels.filter(m => m.includes('flash') && !m.includes('preview') && !m.includes('2.5-flash'))
+      // Prioritize flash models, then pro models
+      const prioritized = [
+        ...activeModels.filter(m => m.includes('flash')),
+        ...activeModels.filter(m => m.includes('pro')),
+        ...activeModels
       ];
 
-      // Deduplicate and limit to top 3 valid models
-      modelsToTry = Array.from(new Set(candidates.filter(m => availableTextModels.includes(m) || m === 'gemini-flash-latest'))).slice(0, 3);
-      console.log(`Targeting Gemini models: ${modelsToTry.join(', ')}`);
+      if (prioritized.length > 0) {
+        // Deduplicate
+        modelsToTry = Array.from(new Set(prioritized));
+        console.log(`Discovered available Gemini models: ${modelsToTry.slice(0, 5).join(', ')}...`);
+      }
     }
   } catch (err) {
     console.warn('Could not query model list dynamically, using defaults:', err.message);
@@ -130,12 +120,10 @@ ${diff}
 
   for (const model of modelsToTry) {
     try {
-      console.log(`Attempting generation with ${model}...`);
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(25000),
         body: JSON.stringify({
           contents: [{ parts: [{ text: systemPrompt }] }],
           generationConfig: {
