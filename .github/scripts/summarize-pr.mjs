@@ -2,7 +2,15 @@ import { execSync } from 'node:child_process';
 
 async function main() {
   const apiKey = process.env.GEMINI_API_KEY;
-  const prNumber = process.env.PR_NUMBER;
+  let prNumber = process.env.PR_NUMBER;
+  if (!prNumber) {
+    try {
+      prNumber = execSync(`gh pr view --json number -q .number`, { encoding: 'utf-8' }).trim();
+    } catch {
+      // ignore
+    }
+  }
+
   const baseRef = process.env.BASE_REF || 'develop';
 
   if (!apiKey) {
@@ -11,7 +19,7 @@ async function main() {
   }
 
   if (!prNumber) {
-    console.error('❌ PR_NUMBER environment variable is missing.');
+    console.error('❌ PR_NUMBER environment variable is missing and could not be detected from branch.');
     process.exit(1);
   }
 
