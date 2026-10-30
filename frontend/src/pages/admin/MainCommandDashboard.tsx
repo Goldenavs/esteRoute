@@ -363,9 +363,15 @@ export default function MainCommandDashboard() {
 
   const updateStatus = async (reportId: string, newStatus: string) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/reports/${reportId}/status`, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(`${API_URL}/api/reports/${reportId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {

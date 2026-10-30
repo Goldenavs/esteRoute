@@ -1,7 +1,8 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Map, Activity, User, Sun, Moon, type LucideIcon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
@@ -37,12 +38,13 @@ const AnimatedNavLink = ({
 
 export default function CitizenLayout() {
   const { theme, toggleTheme } = useTheme();
+  const { logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isNavVisible, setIsNavVisible] = useState(true);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await logout();
     navigate('/login');
   };
 

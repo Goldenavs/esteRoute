@@ -12,6 +12,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../../context/ThemeContext';
+import { supabase } from '../../lib/supabase';
 
 // Subtle, eye-friendly traveling perimeter highlight (matching Landing Page features)
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
@@ -724,7 +725,10 @@ export default function BlockageSubmissionForm() {
       }
 
       const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const response = await fetch(`${API_URL}/api/reports/`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         method: "POST",
         body: formData,
       });
