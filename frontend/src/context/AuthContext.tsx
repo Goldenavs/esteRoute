@@ -21,8 +21,10 @@ interface AuthContextType {
   isAdminOrDispatcher: boolean;
   isCitizen: boolean;
   isGuest: boolean;
+  isGuestMode: boolean;
   token: string | null;
   logout: () => Promise<void>;
+  enterGuestMode: () => void;
   refreshProfile: () => Promise<void>;
 }
 
@@ -33,6 +35,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isGuestMode, setIsGuestMode] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && sessionStorage.getItem('esteroute_guest_session') === 'true';
+  });
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -61,6 +66,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user, fetchProfile]);
 
+  const enterGuestMode = useCallback(() => {
+    sessionStorage.setItem('esteroute_guest_session', 'true');
+    setIsGuestMode(true);
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -74,6 +84,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(currentUser);
 
         if (currentUser) {
+          sessionStorage.removeItem('esteroute_guest_session');
+          setIsGuestMode(false);
           await fetchProfile(currentUser.id);
         }
       } catch (error) {
@@ -95,6 +107,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(currentUser);
 
       if (currentUser) {
+        sessionStorage.removeItem('esteroute_guest_session');
+        setIsGuestMode(false);
         await fetchProfile(currentUser.id);
       } else {
         setProfile(null);
@@ -111,6 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async () => {
     try {
+      sessionStorage.removeItem('esteroute_guest_session');
+      setIsGuestMode(false);
       await supabase.auth.signOut();
     } catch (error) {
       console.error('Error logging out:', error);
@@ -118,6 +134,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setSession(null);
       setProfile(null);
+      setIsGuestMode(false);
+      sessionStorage.removeItem('esteroute_guest_session');
     }
   }, []);
 
@@ -150,8 +168,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdminOrDispatcher,
     isCitizen,
     isGuest,
+    isGuestMode,
     token,
     logout,
+    enterGuestMode,
     refreshProfile
   }), [
     user,
@@ -162,8 +182,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdminOrDispatcher,
     isCitizen,
     isGuest,
+    isGuestMode,
     token,
     logout,
+    enterGuestMode,
     refreshProfile
   ]);
 

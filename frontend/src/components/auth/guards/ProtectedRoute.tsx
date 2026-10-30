@@ -13,7 +13,7 @@ export default function ProtectedRoute({
   allowGuest = false,
   redirectTo = '/login'
 }: ProtectedRouteProps) {
-  const { user, role, isLoading } = useAuth();
+  const { user, role, isLoading, isGuestMode } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -36,7 +36,8 @@ export default function ProtectedRoute({
 
   // Case 1: Unauthenticated user
   if (!user) {
-    if (allowGuest) {
+    // Only permit guests if this route allows guests AND the user explicitly initiated a guest session
+    if (allowGuest && isGuestMode) {
       return <Outlet />;
     }
     // Deny access and redirect to login, preserving intended destination
@@ -64,4 +65,3 @@ export default function ProtectedRoute({
 
   return <Outlet />;
 }
-

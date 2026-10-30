@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useTheme } from '../../../context/ThemeContext';
+import { useAuth } from '../../../context/AuthContext';
 
 interface HeroSectionProps {
   activePortal: 'citizen' | 'admin';
@@ -100,6 +101,7 @@ const AnimatedContourLines = ({ isLight }: { isLight: boolean }) => {
 export default function HeroSection({ activePortal, setActivePortal, scrollTo }: HeroSectionProps) {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { enterGuestMode } = useAuth();
   const isLight = theme === 'light';
 
   // Admin Auth State
@@ -590,7 +592,10 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
 
                     <button
                       type="button"
-                      onClick={() => navigate('/citizen')}
+                      onClick={() => {
+                        enterGuestMode();
+                        navigate('/citizen');
+                      }}
                       className="w-full flex items-center justify-center bg-surface-subtle border-2 border-border-subtle text-text-primary py-2.5 text-xs font-bold uppercase tracking-widest hover:border-brand-primary transition-colors -skew-x-12 cursor-pointer group"
                     >
                       <div className="skew-x-12 flex items-center gap-2">
