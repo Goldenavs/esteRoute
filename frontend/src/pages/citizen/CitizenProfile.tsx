@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useId } from 'react';
 import { 
-  Award, 
+  ArrowRight, Award, 
   User, 
   Camera, 
   CheckCircle2, 
@@ -787,7 +787,7 @@ export default function CitizenProfile() {
 
       {/* Interactive 3D Stewardship ID Credential Modal */}
       <AnimatePresence>
-        {isIdModalOpen && (
+        {!profile.isGuest && isIdModalOpen && (
           <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
             {/* Backdrop Blur */}
             <motion.div
@@ -1545,125 +1545,179 @@ export default function CitizenProfile() {
             </div>
           </motion.div>
 
-          {/* Unique Civic Stewardship Smart Credential Card (Preview - Click to inspect full ID) */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.1 }}
-            className="w-full flex-1 flex flex-col min-h-0 cursor-pointer"
-            onClick={() => {
-              setIsCardFlipped(false);
-              setIsIdModalOpen(true);
-            }}
-          >
-            <div className="w-full h-full flex-1 flex flex-col justify-between bg-gradient-to-br from-surface/90 via-app-bg/95 to-brand-primary/15 hover:from-surface hover:via-surface/80 hover:to-brand-primary/25 backdrop-blur-2xl border-2 border-brand-primary/50 hover:border-brand-primary rounded-sm p-5 sm:p-6 shadow-md hover:shadow-2xl hover:shadow-brand-primary/25 transition-all duration-500 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
-              <BorderBeam delay={1.4} color="#38BDF8" />
-              
-              {/* Metallic Accent Strip & Top Gradient */}
-              <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-emerald-400" />
-              <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-brand-primary/20 via-brand-secondary/10 to-transparent pointer-events-none rounded-bl-full" />
-              
-              <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10 gap-5">
-                
-                {/* 1. Smart Microchip & Civic ID Header */}
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center gap-3">
-                    {profile.isGuest ? (
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-8 rounded-sm bg-surface/60 border border-border-subtle shadow-xs relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
-                          <User className="w-4 h-4 text-text-muted" />
-                        </div>
-                        <p className="text-sm sm:text-base font-mono font-bold text-text-primary tracking-wide">
-                          GUEST REPORTER
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Realistic Metallic Gold Contact Pad / Smart Microchip */}
-                        <div className="w-11 h-8 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
-                          <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
-                            <div className="border-r border-b border-amber-800/50" />
-                            <div className="border-b border-amber-800/50" />
-                            <div className="border-r border-amber-800/50" />
-                            <div />
-                          </div>
-                          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none" />
+          {/* Civic Stewardship Container: Non-clickable info panel for Guests vs. Clickable 3D Card for Citizens */}
+          {profile.isGuest ? (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.1 }}
+              className="w-full flex-1 flex flex-col min-h-0"
+            >
+              <div className="w-full h-full flex-1 flex flex-col justify-between bg-surface/50 border-2 border-border-subtle rounded-sm p-5 sm:p-6 shadow-xs relative overflow-hidden -skew-x-2 sm:-skew-x-3">
+                <div className="absolute top-0 left-0 w-2 h-full bg-amber-500/80" />
+                <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10 gap-5">
+                  {/* Header */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                          <Lock className="w-4 h-4" />
                         </div>
                         <div>
-                          <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted block">
-                            STEWARD REGISTRY ID
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted block">
+                            CIVIC CREDENTIAL
                           </span>
-                          <p className="text-base sm:text-lg font-mono font-bold text-text-primary tracking-widest">
-                            {`EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
-                          </p>
+                          <h3 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary">
+                            Steward Registry
+                          </h3>
                         </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Open / Expand Indicator */}
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm bg-brand-primary/10 border border-brand-primary/20 text-brand-primary group-hover:bg-brand-primary group-hover:text-black transition-all -skew-x-6 shadow-xs">
-                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider skew-x-6 hidden sm:inline">
-                      View ID
-                    </span>
-                    <Maximize2 className="w-3.5 h-3.5 skew-x-6" />
-                  </div>
-                </div>
-
-                {/* 2. Stewardship Credits Box (Clean Uncluttered Header) */}
-                <div className="bg-surface/80 dark:bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-xs relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-brand-primary/10 to-transparent pointer-events-none" />
-                  <div className="flex flex-col relative z-10">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-text-muted font-sans flex items-center gap-1.5">
-                      <Award className="w-3.5 h-3.5 text-brand-primary" />
-                      Stewardship Credits
-                    </span>
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-3xl sm:text-4xl font-mono font-bold text-brand-primary tracking-tight">
-                        {profile.stewardshipScore}
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-xs bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold uppercase">
+                        Unregistered
                       </span>
-                      <span className="text-xs font-bold text-text-muted uppercase tracking-wider">PTS</span>
+                    </div>
+
+                    <p className="text-xs text-text-secondary mt-3 font-sans leading-relaxed">
+                      Official Steward Registry IDs, permanent credit accrual, and waterway honors are reserved for registered citizen accounts.
+                    </p>
+                  </div>
+
+                  {/* Temporary Session Telemetry */}
+                  <div className="grid grid-cols-2 gap-3 font-sans">
+                    <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
+                      <span className="text-[11px] font-medium text-text-muted block">Session Reports</span>
+                      <span className="text-xl font-mono font-bold text-text-primary mt-0.5 block">
+                        {profile.totalReportsCount}
+                      </span>
+                    </div>
+                    <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
+                      <span className="text-[11px] font-medium text-text-muted block">Cleared Waterways</span>
+                      <span className="text-xl font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                        {profile.resolvedReportsCount}
+                      </span>
                     </div>
                   </div>
-                </div>
 
-                {/* 3. Community Impact Telemetry */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
-                    <span className="text-xs font-medium text-text-muted block font-sans">Total Reports</span>
-                    <span className="text-2xl font-mono font-bold text-text-primary mt-1 block">
-                      {profile.totalReportsCount}
-                    </span>
-                  </div>
-
-                  <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
-                    <span className="text-xs font-medium text-text-muted block font-sans">Cleared Waterways</span>
-                    <span className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
-                      {profile.resolvedReportsCount}
-                    </span>
+                  {/* Call to action */}
+                  <div className="pt-2 border-t border-border-subtle/70">
+                    <Link
+                      to="/login"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-sm bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold text-xs uppercase tracking-wider transition-all shadow-xs cursor-pointer active:scale-95"
+                    >
+                      <span>Register to Claim Steward ID</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
                 </div>
-
-                {/* 4. Digital Security Strip Footer */}
-                <div className="pt-3 border-t border-border-subtle/70 mt-auto flex items-center justify-between">
-                  {/* Micro Barcode Strip */}
-                  <div className="flex-1 flex items-center justify-between h-3.5 opacity-60 overflow-hidden pr-3">
-                    {[4, 2, 6, 2, 8, 3, 5, 2, 7, 4, 3, 8, 2, 5, 3, 7, 2, 6, 4, 8, 2, 5, 3, 6, 2, 7, 4, 2, 5, 8, 3, 6, 2, 4, 7, 3, 5, 2, 6, 4, 8, 2].map((height, i) => (
-                      <span 
-                        key={i} 
-                        className="bg-text-muted inline-block w-0.5" 
-                        style={{ height: `${height * 1.5}px` }} 
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[9px] font-mono uppercase tracking-widest text-text-muted shrink-0">
-                    TAP CARD
-                  </span>
-                </div>
-
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.1 }}
+              className="w-full flex-1 flex flex-col min-h-0 cursor-pointer"
+              onClick={() => {
+                setIsCardFlipped(false);
+                setIsIdModalOpen(true);
+              }}
+            >
+              <div className="w-full h-full flex-1 flex flex-col justify-between bg-gradient-to-br from-white via-surface to-brand-light/40 dark:from-[#0B1E36] dark:via-[#112D4E] dark:to-[#071322] hover:border-brand-primary backdrop-blur-2xl border-2 border-brand-primary/50 rounded-sm p-5 sm:p-6 shadow-md hover:shadow-2xl hover:shadow-brand-primary/25 transition-all duration-500 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
+                <BorderBeam delay={1.4} color="#38BDF8" />
+                
+                {/* Metallic Accent Strip & Top Gradient */}
+                <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-emerald-400" />
+                <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-brand-primary/20 via-brand-secondary/10 to-transparent pointer-events-none rounded-bl-full" />
+                
+                <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10 gap-5">
+                  
+                  {/* 1. Smart Microchip & Civic ID Header */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-3">
+                      {/* Realistic Metallic Gold Contact Pad / Smart Microchip */}
+                      <div className="w-11 h-8 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
+                        <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
+                          <div className="border-r border-b border-amber-800/50" />
+                          <div className="border-b border-amber-800/50" />
+                          <div className="border-r border-amber-800/50" />
+                          <div />
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted block">
+                          STEWARD REGISTRY ID
+                        </span>
+                        <p className="text-base sm:text-lg font-mono font-bold text-text-primary tracking-widest">
+                          {`EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Open / Expand Indicator */}
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm bg-brand-primary/10 border border-brand-primary/20 text-brand-primary group-hover:bg-brand-primary group-hover:text-black transition-all -skew-x-6 shadow-xs">
+                      <span className="text-[10px] font-mono font-semibold uppercase tracking-wider skew-x-6 hidden sm:inline">
+                        View ID
+                      </span>
+                      <Maximize2 className="w-3.5 h-3.5 skew-x-6" />
+                    </div>
+                  </div>
+
+                  {/* 2. Stewardship Credits Box (Clean Uncluttered Header) */}
+                  <div className="bg-surface/80 dark:bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-xs relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-brand-primary/10 to-transparent pointer-events-none" />
+                    <div className="flex flex-col relative z-10">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-text-muted font-sans flex items-center gap-1.5">
+                        <Award className="w-3.5 h-3.5 text-brand-primary" />
+                        Stewardship Credits
+                      </span>
+                      <div className="flex items-baseline gap-2 mt-1">
+                        <span className="text-3xl sm:text-4xl font-mono font-bold text-brand-primary tracking-tight">
+                          {profile.stewardshipScore}
+                        </span>
+                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">PTS</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Community Impact Telemetry */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
+                      <span className="text-xs font-medium text-text-muted block font-sans">Total Reports</span>
+                      <span className="text-2xl font-mono font-bold text-text-primary mt-1 block">
+                        {profile.totalReportsCount}
+                      </span>
+                    </div>
+
+                    <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
+                      <span className="text-xs font-medium text-text-muted block font-sans">Cleared Waterways</span>
+                      <span className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
+                        {profile.resolvedReportsCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4. Digital Security Strip Footer */}
+                  <div className="pt-3 border-t border-border-subtle/70 mt-auto flex items-center justify-between">
+                    {/* Micro Barcode Strip */}
+                    <div className="flex-1 flex items-center justify-between h-3.5 opacity-60 overflow-hidden pr-3">
+                      {[4, 2, 6, 2, 8, 3, 5, 2, 7, 4, 3, 8, 2, 5, 3, 7, 2, 6, 4, 8, 2, 5, 3, 6, 2, 7, 4, 2, 5, 8, 3, 6, 2, 4, 7, 3, 5, 2, 6, 4, 8, 2].map((height, i) => (
+                        <span 
+                          key={i} 
+                          className="bg-text-muted inline-block w-0.5" 
+                          style={{ height: `${height * 1.5}px` }} 
+                        />
+                      ))}
+                    </div>
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-text-muted shrink-0">
+                      TAP CARD
+                    </span>
+                  </div>
+
+                </div>
+              </div>
+            </motion.div>
+          )}
 
         </div>
 
