@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import AuthLayout from './layouts/AuthLayout'
 import CitizenLayout from './layouts/CitizenLayout'
 import AdminLayout from './layouts/AdminLayout'
+import ProtectedRoute from './components/auth/guards/ProtectedRoute'
 
 // Auth Pages
 import UniversalLogin from './pages/auth/UniversalLogin'
@@ -26,27 +27,31 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Auth Routing Group */}
+        {/* Auth Routing Group (Public) */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<UniversalLogin />} />
           <Route path="/register" element={<CitizenRegistration />} />
           <Route path="/recovery" element={<PasswordRecovery />} />
         </Route>
 
-        {/* Citizen Routing Group */}
-        <Route path="/citizen" element={<CitizenLayout />}>
-          <Route index element={<BlockageSubmissionForm />} />
-          <Route path="confirmation" element={<SubmissionConfirmation />} />
-          <Route path="public-map" element={<PublicEsteroStatusMap />} />
-          <Route path="dashboard" element={<CitizenDashboard />} />
-          <Route path="profile" element={<CitizenProfile />} />
+        {/* Citizen Routing Group (Guarded: Citizens & Guests allowed; Admins redirected to /admin) */}
+        <Route element={<ProtectedRoute allowedRoles={['citizen']} allowGuest={true} />}>
+          <Route path="/citizen" element={<CitizenLayout />}>
+            <Route index element={<BlockageSubmissionForm />} />
+            <Route path="confirmation" element={<SubmissionConfirmation />} />
+            <Route path="public-map" element={<PublicEsteroStatusMap />} />
+            <Route path="dashboard" element={<CitizenDashboard />} />
+            <Route path="profile" element={<CitizenProfile />} />
+          </Route>
         </Route>
 
-        {/* Admin Routing Group */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<MainCommandDashboard />} />
-          <Route path="analytics" element={<LGUAnalyticsOverview />} />
-          <Route path="archive" element={<HistoricalArchiveView />} />
+        {/* Admin Routing Group (Strictly Guarded: Only 'admin' and 'dispatcher' roles allowed) */}
+        <Route element={<ProtectedRoute allowedRoles={['admin', 'dispatcher']} allowGuest={false} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<MainCommandDashboard />} />
+            <Route path="analytics" element={<LGUAnalyticsOverview />} />
+            <Route path="archive" element={<HistoricalArchiveView />} />
+          </Route>
         </Route>
 
         {/* Fallback to Login */}

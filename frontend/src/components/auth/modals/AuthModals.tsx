@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { X, Lock, Mail, User, ArrowRight, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../context/AuthContext';
 
 interface AuthModalsProps {
   activeModal: 'admin' | 'citizen' | null;
@@ -11,6 +12,7 @@ interface AuthModalsProps {
 
 export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
   const navigate = useNavigate();
+  const { enterGuestMode } = useAuth();
   const [citizenMode, setCitizenMode] = useState<'login' | 'signup'>('login');
 
   const [adminEmail, setAdminEmail] = useState('');
@@ -129,7 +131,8 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
       } else if (data.user && !data.session) {
         setShowEmailConfirmation(true);
       } else {
-        navigate('/citizen');
+        enterGuestMode();
+    navigate('/citizen');
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -150,7 +153,8 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
           await supabase.auth.signOut();
           setCitizenError('Access denied. LGU personnel must sign in via the LGU Dispatch Portal.');
         } else {
-          navigate('/citizen');
+          enterGuestMode();
+    navigate('/citizen');
         }
       }
     }
@@ -158,6 +162,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
   };
 
   const handleGuestLogin = () => {
+    enterGuestMode();
     navigate('/citizen');
   };
 

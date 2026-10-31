@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Terminal, X, RefreshCw } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 interface Props {
   isOpen: boolean;
@@ -15,7 +16,11 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
     setIsRefreshing(true);
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${API_URL}/api/logs`);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(`${API_URL}/api/logs`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       if (res.ok) {
         const data = await res.json();
         setLogs(data.logs);

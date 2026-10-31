@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useId } from 'react';
 import { 
-  Award, 
+  ArrowRight, Award, 
   User, 
   Camera, 
   CheckCircle2, 
-  Bell, 
   LogOut, 
   Lock, 
   ChevronLeft,
@@ -14,15 +13,21 @@ import {
   Check,
   Sparkles,
   Mail,
-  Cpu,
   X,
   Eye,
   EyeOff,
-  KeyRound
+  KeyRound,
+  RotateCw,
+  Maximize2,
+  Trophy,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
+import { useAuth } from '../../context/AuthContext';
+import ConfirmExitModal from '../../components/common/ConfirmExitModal';
 import { supabase } from '../../lib/supabase';
 
 // Built-in adventurer avatar options matching the mobile app
@@ -91,8 +96,92 @@ interface CitizenProfileData {
   isGuest: boolean;
 }
 
+// Civic Stewardship Tiers & Progression
+interface StewardshipTierInfo {
+  title: string;
+  minPts: number;
+  color: string;
+  bg: string;
+}
+
+const ALL_STEWARD_TIERS: StewardshipTierInfo[] = [
+  { title: 'Contributor', minPts: 0, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500' },
+  { title: 'Steward', minPts: 50, color: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-500' },
+  { title: 'Protector', minPts: 200, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500' },
+  { title: 'Guardian', minPts: 500, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500' },
+];
+
+const getStewardshipTier = (score: number) => {
+  if (score >= 500) {
+    return {
+      title: 'Guardian',
+      titleColor: 'text-amber-600 dark:text-amber-400',
+      minPts: 500,
+      nextPts: null,
+      nextTitle: null,
+    };
+  }
+  if (score >= 200) {
+    return {
+      title: 'Protector',
+      titleColor: 'text-blue-600 dark:text-blue-400',
+      minPts: 200,
+      nextPts: 500,
+      nextTitle: 'Guardian',
+    };
+  }
+  if (score >= 50) {
+    return {
+      title: 'Steward',
+      titleColor: 'text-cyan-600 dark:text-cyan-400',
+      minPts: 50,
+      nextPts: 200,
+      nextTitle: 'Protector',
+    };
+  }
+  return {
+    title: 'Contributor',
+    titleColor: 'text-emerald-600 dark:text-emerald-400',
+    minPts: 0,
+    nextPts: 50,
+    nextTitle: 'Steward',
+  };
+};
+
+// Password Strength Evaluator (Matching AuthModals guardrails)
+const getPasswordStrength = (pass: string) => {
+  let score = 0;
+  if (pass.length > 5) score += 1;
+  if (pass.length > 7) score += 1;
+  if (/[A-Z]/.test(pass) || /[0-9]/.test(pass)) score += 1;
+  if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+  return Math.min(score, 4);
+};
+
 export default function CitizenProfile() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+  const [exitModalConfig, setExitModalConfig] = useState<{
+    isOpen: boolean;
+    intent: 'login' | 'register' | 'logout';
+  }>({
+    isOpen: false,
+    intent: 'logout'
+  });
+
+  const openExitModal = (intent: 'login' | 'register' | 'logout') => {
+    setExitModalConfig({ isOpen: true, intent });
+  };
+
+  const handleConfirmExit = async () => {
+    setExitModalConfig(prev => ({ ...prev, isOpen: false }));
+    try {
+      await logout();
+    } catch (e) {
+      console.error('Error during logout:', e);
+    }
+    navigate('/login');
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Profile and Auth States
@@ -121,14 +210,15 @@ export default function CitizenProfile() {
   const [selectedAvatarIndex, setSelectedAvatarIndex] = useState<number>(1);
   const [customProfileImage, setCustomProfileImage] = useState<string | null>(null);
   const avatarSliderRef = useRef<HTMLDivElement>(null);
+  const [isAvatarDragging, setIsAvatarDragging] = useState(false);
+  const [avatarStartX, setAvatarStartX] = useState(0);
+  const [avatarScrollStart, setAvatarScrollStart] = useState(0);
 
-  // Preference Toggles (Local Storage Persisted)
-  const [smsUpdates, setSmsUpdates] = useState(() => {
-    return localStorage.getItem('esteroute_pref_sms') !== 'false';
-  });
-  const [pushNotifications, setPushNotifications] = useState(() => {
-    return localStorage.getItem('esteroute_pref_push') !== 'false';
-  });
+  // Stewardship ID Modal, Levels Modal & Zoom State
+  const [isIdModalOpen, setIsIdModalOpen] = useState(false);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [isLevelsModalOpen, setIsLevelsModalOpen] = useState(false);
+  const [isCardZoomed, setIsCardZoomed] = useState(false);
 
   // Change Password Modal State
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -178,12 +268,11 @@ export default function CitizenProfile() {
           }
 
           if (isMounted) {
-            const defaultGuestAvatar = AVATAR_OPTIONS[1];
             setProfile({
               id: 'guest',
               fullName: 'Guest Reporter',
-              avatarUrl: defaultGuestAvatar,
-              stewardshipScore: guestResolvedReports * 50 + guestTotalReports * 10,
+              avatarUrl: '',
+              stewardshipScore: (guestResolvedReports * 50) + (guestTotalReports * 15),
               role: 'citizen',
               phone: '',
               email: '',
@@ -193,7 +282,7 @@ export default function CitizenProfile() {
             });
             setFullName('Guest Reporter');
             setPhoneNumber('');
-            setSelectedAvatarIndex(1);
+            setSelectedAvatarIndex(-1);
             setIsLoading(false);
           }
           return;
@@ -225,7 +314,7 @@ export default function CitizenProfile() {
           setSelectedAvatarIndex(0);
           setCustomProfileImage(initialAvatarUrl);
         } else {
-          setSelectedAvatarIndex(1);
+          setSelectedAvatarIndex(-1);
         }
 
         // Query user's actual submitted reports from 'reports' table
@@ -249,7 +338,11 @@ export default function CitizenProfile() {
           userResolvedReports = userReports.filter(r => r.status === 'resolved').length;
         }
 
-        const calculatedScore = profileRow?.stewardship_score ?? (userResolvedReports * 50 + userTotalReports * 15);
+        // Score: +15 PTS per submitted report, +50 PTS per resolved waterway clearance
+        const calculatedScore = Math.max(
+          profileRow?.stewardship_score || 0,
+          (userResolvedReports * 50) + (userTotalReports * 15)
+        );
 
         if (isMounted) {
           setProfile({
@@ -375,6 +468,33 @@ export default function CitizenProfile() {
     }
   };
 
+  // Mouse Drag-to-Scroll & Wheel handlers for Avatar Preset Container
+  const handleAvatarMouseDown = (e: React.MouseEvent) => {
+    if (!avatarSliderRef.current) return;
+    setIsAvatarDragging(true);
+    setAvatarStartX(e.pageX - avatarSliderRef.current.offsetLeft);
+    setAvatarScrollStart(avatarSliderRef.current.scrollLeft);
+  };
+
+  const handleAvatarMouseMove = (e: React.MouseEvent) => {
+    if (!isAvatarDragging || !avatarSliderRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - avatarSliderRef.current.offsetLeft;
+    const walk = (x - avatarStartX) * 1.5;
+    avatarSliderRef.current.scrollLeft = avatarScrollStart - walk;
+  };
+
+  const handleAvatarMouseUpOrLeave = () => {
+    setIsAvatarDragging(false);
+  };
+
+  const handleAvatarWheel = (e: React.WheelEvent) => {
+    if (!avatarSliderRef.current) return;
+    if (e.deltaY !== 0) {
+      avatarSliderRef.current.scrollLeft += e.deltaY;
+    }
+  };
+
   // 4. Upload & Update Custom Avatar in Supabase Storage
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -490,29 +610,8 @@ export default function CitizenProfile() {
     }
   };
 
-  // 5. Handle Sign Out
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      navigate('/login');
-    } catch (err) {
-      console.error('Sign out error:', err);
-      navigate('/login');
-    }
-  };
 
-  // 5. Toggle Notification Preferences
-  const handleToggleSms = (val: boolean) => {
-    setSmsUpdates(val);
-    localStorage.setItem('esteroute_pref_sms', String(val));
-    showToast(`SMS updates ${val ? 'enabled' : 'disabled'}.`);
-  };
 
-  const handleTogglePush = (val: boolean) => {
-    setPushNotifications(val);
-    localStorage.setItem('esteroute_pref_push', String(val));
-    showToast(`Push notifications ${val ? 'enabled' : 'disabled'}.`);
-  };
 
   return (
     <div className="w-full flex-1 flex flex-col pb-12 font-sans">
@@ -545,6 +644,433 @@ export default function CitizenProfile() {
         )}
       </AnimatePresence>
 
+            {/* Dedicated Levels Progression Modal (Pushed ON TOP of Card) */}
+      <AnimatePresence>
+        {isLevelsModalOpen && (
+          <div className="fixed inset-0 z-[320] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsLevelsModalOpen(false)}
+              className="absolute inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative z-10 w-full max-w-lg bg-surface/95 border-2 border-brand-primary/50 backdrop-blur-2xl rounded-lg p-6 sm:p-7 shadow-2xl overflow-hidden"
+            >
+              <BorderBeam delay={0} color="#38BDF8" />
+              <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-amber-400" />
+
+              <div className="flex flex-col gap-5 relative z-10">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary">
+                      <Trophy className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
+                        esteRoute Gamified Tiers
+                      </span>
+                      <h3 className="text-base sm:text-lg font-heading font-extrabold uppercase tracking-wider text-text-primary">
+                        Level Progression
+                      </h3>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Score & Next Milestone Card */}
+                {(() => {
+                  const currentTier = getStewardshipTier(profile.stewardshipScore);
+                  return (
+                    <div className="bg-app-bg/80 p-4 rounded-sm border border-brand-primary/30 flex items-center justify-between">
+                      <div>
+                        <span className="text-[11px] font-mono uppercase text-text-muted block">
+                          Current Stewardship Credits
+                        </span>
+                        <div className="flex items-baseline gap-2 mt-0.5">
+                          <span className="text-2xl sm:text-3xl font-mono font-bold text-brand-primary">
+                            {profile.stewardshipScore}
+                          </span>
+                          <span className="text-xs font-bold text-text-muted uppercase">PTS</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className={twMerge(
+                          "text-xs font-heading font-bold uppercase tracking-wider block",
+                          currentTier.titleColor
+                        )}>
+                          Rank: {currentTier.title}
+                        </span>
+                        <span className="text-[10px] text-text-muted font-sans mt-0.5 block">
+                          {currentTier.nextPts
+                            ? `${currentTier.nextPts - profile.stewardshipScore} PTS to ${currentTier.nextTitle}`
+                            : 'Maximum Rank Achieved!'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Progress Bar (0 to 500 PTS) */}
+                <div className="flex flex-col gap-1.5 font-sans">
+                  <div className="flex items-center justify-between text-[11px] text-text-muted font-mono">
+                    <span>PROGRESSION TOWARDS GUARDIAN</span>
+                    <span>{Math.min(100, Math.round((profile.stewardshipScore / 500) * 100))}%</span>
+                  </div>
+                  <div className="w-full bg-app-bg h-2.5 rounded-full overflow-hidden border border-border-subtle p-0.5">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-amber-400 rounded-full transition-all duration-700"
+                      style={{ width: `${Math.min(100, Math.max(4, (profile.stewardshipScore / 500) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* All 4 Tiers List */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {ALL_STEWARD_TIERS.map((tier) => {
+                    const isUnlocked = profile.stewardshipScore >= tier.minPts;
+                    const isCurrent = getStewardshipTier(profile.stewardshipScore).title === tier.title;
+
+                    return (
+                      <div
+                        key={tier.title}
+                        className={twMerge(
+                          "flex flex-col items-center text-center p-3 rounded-sm border transition-all",
+                          isCurrent
+                            ? "bg-brand-primary/15 border-brand-primary shadow-lg ring-1 ring-brand-primary/40"
+                            : isUnlocked
+                              ? "bg-app-bg/70 border-border-subtle"
+                              : "bg-app-bg/30 border-border-subtle/50 opacity-60"
+                        )}
+                      >
+                        <div className={twMerge(
+                          "w-6 h-6 rounded-full flex items-center justify-center text-xs mb-1.5",
+                          isUnlocked ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-surface text-text-muted border border-border-subtle"
+                        )}>
+                          {isUnlocked ? <Check className="w-3.5 h-3.5" /> : <Lock className="w-3 h-3" />}
+                        </div>
+
+                        <span className={twMerge(
+                          "text-xs font-heading font-bold uppercase tracking-wider block",
+                          isCurrent ? "text-brand-primary" : isUnlocked ? tier.color : "text-text-muted"
+                        )}>
+                          {tier.title}
+                        </span>
+
+                        <span className="text-[10px] font-mono text-text-muted mt-1 block">
+                          {tier.minPts} PTS
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* How to Earn Points Info */}
+                <div className="p-3 bg-app-bg/60 rounded-sm border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-sans text-text-secondary">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-brand-primary">+15 PTS</span>
+                    <span>per verified blockage report</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-emerald-400">+50 PTS</span>
+                    <span>per cleared waterway</span>
+                  </div>
+                </div>
+
+                {/* Back to Card button */}
+                <div className="flex justify-end pt-2 border-t border-border-subtle">
+                  <button
+                    type="button"
+                    onClick={() => setIsLevelsModalOpen(false)}
+                    className="px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase text-xs rounded-sm transition-all shadow-xs cursor-pointer active:scale-95"
+                  >
+                    Back to Card
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Interactive 3D Stewardship ID Credential Modal */}
+      <AnimatePresence>
+        {!profile.isGuest && isIdModalOpen && (
+          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+            {/* Backdrop Blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsIdModalOpen(false);
+                setIsCardFlipped(false);
+                setIsCardZoomed(false);
+              }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
+            />
+
+            {/* Modal Dialog Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative z-10 w-full max-w-lg flex flex-col items-center gap-3 transition-all duration-300"
+            >
+              {/* Modal Top Bar */}
+              <div className="w-full flex items-center justify-between text-white px-1">
+                <div>
+                  <span className="text-xs sm:text-sm font-heading font-bold uppercase tracking-wider text-white">
+                    Civic Credential
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Zoom In / Zoom Out UX Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsCardZoomed(prev => !prev)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-surface/80 hover:bg-brand-primary/20 border border-border-strong text-text-primary hover:text-brand-primary transition-all text-xs font-sans font-medium cursor-pointer shadow-xs active:scale-95"
+                    title={isCardZoomed ? "Reset card scale" : "Zoom in card for easier reading"}
+                  >
+                    {isCardZoomed ? (
+                      <>
+                        <ZoomOut className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Zoom Out</span>
+                      </>
+                    ) : (
+                      <>
+                        <ZoomIn className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Zoom In</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* View Levels Button (Pushes Levels Modal on Top) */}
+                  <button
+                    type="button"
+                    onClick={() => setIsLevelsModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand-primary/10 hover:bg-brand-primary/25 border border-brand-primary/30 text-brand-primary transition-all text-xs font-heading font-semibold uppercase tracking-wider cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <Trophy className="w-3.5 h-3.5" />
+                    <span>View Levels</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsIdModalOpen(false);
+                      setIsCardFlipped(false);
+                      setIsCardZoomed(false);
+                    }}
+                    className="p-1.5 rounded-sm bg-surface/80 hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer"
+                    aria-label="Close credential viewer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Scalable Zoom Container (Maintains Perfect Aspect Ratio & Layout via CSS Scale Transform) */}
+              <div className={twMerge(
+                "w-full flex items-center justify-center transition-all duration-300",
+                isCardZoomed ? "my-6 sm:my-10" : "my-0"
+              )}>
+                <div 
+                  className={twMerge(
+                    "w-full max-w-[480px] h-[300px] sm:h-[304px] relative cursor-pointer select-none [perspective:1000px] transition-transform duration-300 origin-center",
+                    isCardZoomed ? "scale-[1.18] sm:scale-[1.32]" : "scale-100"
+                  )}
+                  onClick={() => setIsCardFlipped(prev => !prev)}
+                  title="Click anywhere to flip credential"
+                >
+                  <div 
+                    className={twMerge(
+                      "w-full h-full relative transition-transform duration-700 [transform-style:preserve-3d] rounded-xl shadow-2xl",
+                      isCardFlipped ? "[transform:rotateY(180deg)]" : ""
+                    )}
+                  >
+                    {/* ====== FRONT FACE (Theme Adaptive: Pearl/Silver in Light, Sapphire/Dark in Dark) ====== */}
+                    <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] rounded-xl overflow-hidden border-2 border-brand-primary/50 bg-gradient-to-br from-white via-surface to-brand-light/40 dark:from-[#0B1E36] dark:via-[#112D4E] dark:to-[#071322] p-5 sm:p-6 flex flex-col justify-between shadow-2xl transition-colors">
+                      <BorderBeam delay={0} color="#38BDF8" />
+                      <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-emerald-400" />
+                      <div className="absolute top-0 right-0 w-44 h-44 bg-gradient-to-bl from-brand-primary/25 via-brand-secondary/15 to-transparent pointer-events-none rounded-bl-full" />
+
+                      {/* Front Header: Clean esteRoute / Civic Card */}
+                      <div className="flex items-start justify-between relative z-10 border-b border-border-subtle/80 pb-3">
+                        <div>
+                          <span className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-widest text-brand-primary block">
+                            esteRoute
+                          </span>
+                          <h3 className="text-xs sm:text-sm font-heading font-extrabold uppercase tracking-wider text-text-primary mt-0.5">
+                            Civic Card
+                          </h3>
+                        </div>
+
+                        {/* Golden Microchip */}
+                        <div className="w-12 h-9 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
+                          <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
+                            <div className="border-r border-b border-amber-800/50" />
+                            <div className="border-b border-amber-800/50" />
+                            <div className="border-r border-amber-800/50" />
+                            <div />
+                          </div>
+                          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none" />
+                        </div>
+                      </div>
+
+                      {/* Front Body: Photo & Credentials */}
+                      <div className="flex items-center gap-4 sm:gap-5 relative z-10 py-2">
+                        {/* Photo / Avatar frame */}
+                        <div className="w-18 h-22 sm:w-20 sm:h-24 rounded-sm border-2 border-brand-primary/60 bg-surface/70 shadow-md overflow-hidden shrink-0 relative flex items-center justify-center p-0.5">
+                          {profile.isGuest || !profile.avatarUrl ? (
+                            <div className="w-full h-full flex items-center justify-center bg-surface-subtle/60 dark:bg-app-bg text-text-muted">
+                              <User className="w-10 h-10 text-text-muted/60" />
+                            </div>
+                          ) : (
+                            <img 
+                              src={profile.avatarUrl} 
+                              alt={profile.fullName} 
+                              className="w-full h-full object-cover rounded-xs"
+                            />
+                          )}
+                          <span className="absolute bottom-0 inset-x-0 bg-brand-primary/90 text-[8px] font-mono font-bold text-black uppercase text-center py-0.5 tracking-tighter">
+                            {profile.isGuest ? 'GUEST' : 'CITIZEN'}
+                          </span>
+                        </div>
+
+                        {/* Citizen Info & Stats */}
+                        <div className="flex-1 flex flex-col justify-center min-w-0">
+                          <span className="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-text-muted">
+                            STEWARD REGISTRY ID
+                          </span>
+                          <p className="text-base sm:text-xl font-mono font-bold text-brand-primary tracking-widest truncate">
+                            {profile.isGuest 
+                              ? 'EST-GUEST-SYS' 
+                              : `EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
+                          </p>
+
+                          <div className="mt-1">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span className="text-xs sm:text-sm font-heading font-bold text-text-primary block truncate">
+                                {profile.fullName || 'Citizen Reporter'}
+                              </span>
+                              {/* Clean Level Name Display (No Basic Pill) */}
+                              {(() => {
+                                const currentTier = getStewardshipTier(profile.stewardshipScore);
+                                return (
+                                  <span className={twMerge(
+                                    "text-xs sm:text-sm font-heading font-bold uppercase tracking-wider shrink-0",
+                                    currentTier.titleColor
+                                  )}>
+                                    {currentTier.title}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                            <span className="text-[10px] sm:text-xs text-text-muted font-sans block truncate">
+                              {profile.isGuest ? 'Anonymous Session' : (profile.email || 'Verified Volunteer')}
+                            </span>
+                          </div>
+
+                          {/* Credits & Clearance telemetry badge */}
+                          <div className="flex items-center gap-3 mt-2 font-mono text-[10px] sm:text-xs">
+                            <div className="bg-surface/90 dark:bg-app-bg/80 px-2.5 py-1 rounded-xs border border-border-subtle shadow-xs">
+                              <span className="text-text-muted">CREDITS: </span>
+                              <span className="font-bold text-brand-primary">{profile.stewardshipScore} PTS</span>
+                            </div>
+                            <div className="bg-surface/90 dark:bg-app-bg/80 px-2.5 py-1 rounded-xs border border-border-subtle shadow-xs">
+                              <span className="text-text-muted">CLEARED: </span>
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">{profile.resolvedReportsCount}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Front Footer: Clean Barcode (No SEC-VERIFIED clutter) */}
+                      <div className="relative z-10 pt-2 border-t border-border-subtle/70 flex items-center justify-between">
+                        <div className="flex items-center h-4 gap-0.5 opacity-70">
+                          {[3, 6, 2, 8, 4, 2, 7, 3, 5, 2, 8, 4, 3, 6, 2, 5, 8, 2, 4, 7, 3, 6, 2, 8, 3, 5].map((h, i) => (
+                            <span key={i} className="bg-text-muted inline-block w-0.5" style={{ height: `${h * 1.5}px` }} />
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-heading font-semibold uppercase tracking-wider text-brand-primary/80 hover:text-brand-primary flex items-center gap-1">
+                          <span>Click to flip</span>
+                          <RotateCw className="w-2.5 h-2.5" />
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* ====== BACK FACE: ORIGINAL REVERTED PROGRAM GUIDELINES (Theme Adaptive) ====== */}
+                    <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden border-2 border-border-strong dark:border-brand-primary/40 bg-gradient-to-br from-[#F8FAFC] via-surface to-[#F1F5F9] dark:from-[#071322] dark:via-[#0B1E36] dark:to-[#071322] p-5 sm:p-6 flex flex-col justify-between shadow-2xl transition-colors">
+                      <BorderBeam delay={3} color="#60A5FA" />
+                      
+                      {/* Magnetic Stripe representation */}
+                      <div className="absolute top-4 inset-x-0 h-8 sm:h-9 bg-slate-800 dark:bg-black/90 border-y border-border-subtle/50 pointer-events-none" />
+
+                      {/* Back Header */}
+                      <div className="pt-8 sm:pt-9 relative z-10">
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
+                          STEWARDSHIP PROGRAM GUIDELINES
+                        </span>
+                        <h4 className="text-xs sm:text-sm font-heading font-bold text-text-primary">
+                          How to Earn Credits & Waterway Honors
+                        </h4>
+                      </div>
+
+                      {/* Instructions List (Original Structure) */}
+                      <div className="flex flex-col gap-2 relative z-10 font-sans text-xs my-auto">
+                        <div className="flex items-start gap-2 bg-surface/90 dark:bg-app-bg/70 p-2.5 rounded-xs border border-border-subtle shadow-xs">
+                          <span className="font-mono font-bold text-brand-primary shrink-0">+15 PTS</span>
+                          <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
+                            Submit verified blockage reports with clear photographic and geolocation telemetry.
+                          </span>
+                        </div>
+
+                        <div className="flex items-start gap-2 bg-surface/90 dark:bg-app-bg/70 p-2.5 rounded-xs border border-border-subtle shadow-xs">
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0">+50 PTS</span>
+                          <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
+                            Clearance Bonus awarded when cleaning units officially resolve and unclog the waterway.
+                          </span>
+                        </div>
+
+                        <div className="flex items-start gap-2 bg-surface/90 dark:bg-app-bg/70 p-2.5 rounded-xs border border-border-subtle shadow-xs">
+                          <span className="font-mono font-bold text-amber-600 dark:text-amber-400 shrink-0">LEVELS</span>
+                          <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
+                            Unlock trusted reporter standing, priority flood dispatch alerts, and barangay civic honors.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Back Disclaimer Footer */}
+                      <div className="relative z-10 pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[10px] text-text-muted font-sans">
+                        <span>Certified by esteRoute Waterway Network</span>
+                        <span className="text-brand-primary flex items-center gap-1 font-mono hover:underline">
+                          <span>Flip back ↺</span>
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Hint */}
+              <p className="text-xs text-text-muted text-center font-sans">
+                Click anywhere on the ID card to flip. Click &apos;View Levels&apos; to view gamified rank progression.
+              </p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Change Password Modal */}
       <AnimatePresence>
         {isPasswordModalOpen && (
@@ -559,25 +1085,25 @@ export default function CitizenProfile() {
               className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             />
 
-            {/* Modal Dialog */}
+            {/* Modal Dialog (Clean Unskewed Geometry) */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="relative w-full max-w-md z-10 -skew-x-2 sm:-skew-x-3"
+              className="relative w-full max-w-md z-10"
             >
-              <div className="w-full bg-surface border-2 border-brand-primary/60 rounded-sm p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+              <div className="w-full bg-surface/95 border-2 border-brand-primary/60 rounded-lg p-6 sm:p-7 shadow-2xl relative overflow-hidden backdrop-blur-xl">
                 <BorderBeam delay={0} color="#60A5FA" />
-                <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
+                <div className="absolute top-0 left-0 w-2.5 h-full bg-brand-primary" />
                 
-                {/* Upright Content Wrapper */}
-                <div className="skew-x-2 sm:skew-x-3 relative z-10 font-sans">
+                {/* Content Wrapper */}
+                <div className="relative z-10 font-sans">
                   {/* Modal Header */}
                   <div className="flex items-center justify-between pb-4 mb-4 border-b border-border-subtle">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-2 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
-                        <Lock className="w-4 h-4 skew-x-6" />
+                      <div className="p-2 bg-brand-primary/10 rounded-sm text-brand-primary shadow-xs">
+                        <Lock className="w-4 h-4" />
                       </div>
                       <div>
                         <h3 className="text-base font-heading font-bold uppercase tracking-wider text-text-primary">
@@ -642,6 +1168,46 @@ export default function CitizenProfile() {
                           {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
+
+                      {/* Password Strength Meter (Matching AuthModals) */}
+                      <AnimatePresence>
+                        {newPassword.length > 0 && (
+                          <motion.div 
+                            initial={{ opacity: 0, height: 0 }} 
+                            animate={{ opacity: 1, height: 'auto' }} 
+                            exit={{ opacity: 0, height: 0 }}
+                            className="space-y-1.5 overflow-hidden pt-1"
+                          >
+                            <div className="flex gap-1 h-1.5 w-full">
+                              {[1, 2, 3, 4].map((level) => {
+                                const strength = getPasswordStrength(newPassword);
+                                let bgClass = "bg-border-subtle";
+                                if (strength >= level) {
+                                  if (strength <= 1) bgClass = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]";
+                                  else if (strength === 2) bgClass = "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.4)]";
+                                  else if (strength === 3) bgClass = "bg-brand-primary shadow-[0_0_8px_rgba(59,130,246,0.4)]";
+                                  else bgClass = "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]";
+                                }
+                                return (
+                                  <div key={level} className={`flex-1 rounded-sm transition-all duration-300 ${bgClass}`} />
+                                );
+                              })}
+                            </div>
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-text-muted">Min 6 characters</span>
+                              <span className="font-heading font-bold uppercase tracking-wider">
+                                {(() => {
+                                  const strength = getPasswordStrength(newPassword);
+                                  if (strength <= 1) return <span className="text-red-500">Weak</span>;
+                                  if (strength === 2) return <span className="text-yellow-500">Fair</span>;
+                                  if (strength === 3) return <span className="text-brand-primary">Good</span>;
+                                  return <span className="text-green-500">Strong</span>;
+                                })()}
+                              </span>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     {/* Confirm New Password */}
@@ -677,31 +1243,31 @@ export default function CitizenProfile() {
                       Must contain at least 6 characters. Your current session will remain authenticated.
                     </p>
 
-                    {/* Modal Actions */}
+                    {/* Modal Actions (Clean Unskewed Buttons) */}
                     <div className="flex items-center justify-end gap-3 pt-3 border-t border-border-subtle mt-5">
                       <button
                         type="button"
                         onClick={() => setIsPasswordModalOpen(false)}
                         disabled={isUpdatingPassword}
-                        className="px-4 py-2 border border-border-strong rounded-sm text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-app-bg transition-colors cursor-pointer -skew-x-3 sm:-skew-x-6"
+                        className="px-4 py-2 border border-border-strong rounded-sm text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-app-bg transition-colors cursor-pointer"
                       >
-                        <span className="skew-x-3 sm:skew-x-6 block">Cancel</span>
+                        Cancel
                       </button>
 
                       <button
                         type="submit"
                         disabled={isUpdatingPassword}
-                        className="px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
+                        className="px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs rounded-sm transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
                       >
                         {isUpdatingPassword ? (
                           <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin skew-x-3 sm:skew-x-6" />
-                            <span className="skew-x-3 sm:skew-x-6">Updating...</span>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Updating...</span>
                           </>
                         ) : (
                           <>
-                            <Check className="w-3.5 h-3.5 skew-x-3 sm:skew-x-6" />
-                            <span className="skew-x-3 sm:skew-x-6">Update Password</span>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Update Password</span>
                           </>
                         )}
                       </button>
@@ -776,18 +1342,20 @@ export default function CitizenProfile() {
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto font-sans">
-                <Link
-                  to="/login"
+                <button
+                  type="button"
+                  onClick={() => openExitModal('login')}
                   className="w-full sm:w-auto px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-semibold text-xs rounded-sm transition-all text-center shadow-xs -skew-x-3 sm:-skew-x-6 cursor-pointer active:scale-95"
                 >
                   <span className="skew-x-3 sm:skew-x-6 block">Sign In</span>
-                </Link>
-                <Link
-                  to="/register"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openExitModal('register')}
                   className="w-full sm:w-auto px-4 py-2 bg-surface hover:bg-surface/80 border border-border-strong text-text-primary font-semibold text-xs rounded-sm transition-all text-center -skew-x-3 sm:-skew-x-6 cursor-pointer active:scale-95"
                 >
                   <span className="skew-x-3 sm:skew-x-6 block">Register</span>
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -821,6 +1389,10 @@ export default function CitizenProfile() {
                       <div className="w-full h-full flex items-center justify-center bg-surface">
                         <Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
                       </div>
+                    ) : profile.isGuest || !profile.avatarUrl ? (
+                      <div className="w-full h-full flex items-center justify-center bg-surface/80 text-text-muted">
+                        <User className="w-10 h-10 sm:w-12 sm:h-12 text-text-muted/60" />
+                      </div>
                     ) : (
                       <img 
                         src={profile.avatarUrl} 
@@ -839,17 +1411,19 @@ export default function CitizenProfile() {
                     )}
                   </div>
 
-                  {/* Change Avatar Button */}
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploadingAvatar}
-                    className="absolute bottom-0 right-0 z-20 p-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer border-2 border-surface"
-                    title="Upload profile photo from device"
-                    aria-label="Upload profile photo from device"
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                  </button>
+                  {/* Change Avatar Button (Citizens Only) */}
+                  {!profile.isGuest && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      className="absolute bottom-0 right-0 z-20 p-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer border-2 border-surface"
+                      title="Upload profile photo from device"
+                      aria-label="Upload profile photo from device"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Citizen Name & Verification Badge */}
@@ -866,214 +1440,308 @@ export default function CitizenProfile() {
                   {profile.email ? profile.email : profile.isGuest ? 'Anonymous Session' : '+63 ' + (profile.phone || '9XX XXX XXXX')}
                 </p>
 
-                {/* Avatar Presets Swiper & Device Upload Scroller */}
-                <div className="w-full mt-4 pt-3 border-t border-border-subtle/70">
-                  <div className="flex items-center justify-between mb-2 px-0.5">
-                    <span className="text-[11px] font-heading font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
-                      <Sparkles className="w-3 h-3 text-brand-primary" />
-                      Select Avatar Preset
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => scrollAvatars('left')}
-                        className="p-1 rounded-sm bg-app-bg hover:bg-brand-primary/20 text-text-muted hover:text-text-primary transition-colors cursor-pointer border border-border-subtle active:scale-95"
-                        title="Scroll left"
-                        aria-label="Scroll left"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => scrollAvatars('right')}
-                        className="p-1 rounded-sm bg-app-bg hover:bg-brand-primary/20 text-text-muted hover:text-text-primary transition-colors cursor-pointer border border-border-subtle active:scale-95"
-                        title="Scroll right"
-                        aria-label="Scroll right"
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Horizontal Scroll / Swipe Container */}
-                  <div 
-                    ref={avatarSliderRef}
-                    className="w-full flex items-center gap-2.5 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory select-none"
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                  >
-                    {/* Slot 0: Custom Device Upload */}
+                {/* Avatar Presets Swiper & Device Upload Scroller (Citizens) vs Guest Banner */}
+                {profile.isGuest ? (
+                  <div className="w-full mt-4 pt-3 border-t border-border-subtle/70 text-center font-sans">
+                    <p className="text-xs text-text-muted">
+                      Customizing avatar presets is available for registered citizens.
+                    </p>
                     <button
                       type="button"
-                      onClick={() => handleSelectAvatar(0)}
-                      className={twMerge(
-                        "snap-center shrink-0 w-12 h-12 rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer relative overflow-hidden group/custom",
-                        selectedAvatarIndex === 0
-                          ? "border-2 border-brand-primary shadow-lg shadow-brand-primary/30 ring-2 ring-brand-primary/20 scale-105"
-                          : "border-2 border-dashed border-border-strong hover:border-brand-primary/70 bg-app-bg/60 opacity-80 hover:opacity-100"
-                      )}
-                      title={customProfileImage ? "Custom Device Photo (Click to re-select or change)" : "Upload from Device"}
+                      onClick={() => openExitModal('login')}
+                      className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-brand-primary hover:text-brand-secondary hover:underline transition-colors cursor-pointer"
                     >
-                      {customProfileImage ? (
-                        <img 
-                          src={customProfileImage} 
-                          alt="Custom device avatar" 
-                          className="w-full h-full object-cover rounded-full"
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-text-muted group-hover/custom:text-brand-primary">
-                          <Camera className="w-4 h-4" />
-                        </div>
-                      )}
-                      <span className="absolute bottom-0 inset-x-0 bg-black/65 text-[7.5px] font-mono font-bold text-white text-center py-0.5 uppercase tracking-tighter">
-                        {customProfileImage ? 'Device' : 'Upload'}
-                      </span>
+                      <span>Sign in or register an account</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-
-                    {/* Slots 1..10: Built-in Adventurer Avatars */}
-                    {AVATAR_OPTIONS.slice(1).map((avatarUrl, idx) => {
-                      const realIndex = idx + 1;
-                      const isSelected = selectedAvatarIndex === realIndex;
-                      return (
+                  </div>
+                ) : (
+                  <div className="w-full mt-4 pt-3 border-t border-border-subtle/70">
+                    <div className="flex items-center justify-between mb-2 px-0.5">
+                      <span className="text-[11px] font-heading font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-brand-primary" />
+                        Select Avatar Preset
+                      </span>
+                      <div className="flex items-center gap-1">
                         <button
-                          key={avatarUrl}
                           type="button"
-                          onClick={() => handleSelectAvatar(realIndex)}
-                          className={twMerge(
-                            "snap-center shrink-0 w-12 h-12 rounded-full transition-all duration-200 cursor-pointer relative overflow-hidden bg-app-bg",
-                            isSelected 
-                              ? "border-2 border-brand-primary shadow-lg shadow-brand-primary/30 ring-2 ring-brand-primary/20 scale-105" 
-                              : "border-2 border-border-subtle hover:border-brand-primary/50 opacity-70 hover:opacity-100 hover:scale-102"
-                          )}
-                          title={`Avatar Preset ${realIndex}`}
+                          onClick={() => scrollAvatars('left')}
+                          className="p-1 rounded-sm bg-app-bg hover:bg-brand-primary/20 text-text-muted hover:text-text-primary transition-colors cursor-pointer border border-border-subtle active:scale-95"
+                          title="Scroll left"
+                          aria-label="Scroll left"
                         >
-                          <img 
-                            src={avatarUrl} 
-                            alt={`Avatar ${realIndex}`}
-                            className="w-full h-full object-cover rounded-full pointer-events-none"
-                            loading="lazy"
-                          />
+                          <ChevronLeft className="w-3.5 h-3.5" />
                         </button>
-                      );
-                    })}
-                  </div>
-
-                  <p className="text-[10px] text-text-muted text-center font-sans mt-1">
-                    Swipe or click to choose a preset, or upload your own.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Unique Civic Stewardship Smart Credential Card (Fills remaining height) */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.1 }}
-            className="w-full flex-1 flex flex-col min-h-0"
-          >
-            <div className="w-full h-full flex-1 flex flex-col justify-between bg-gradient-to-br from-surface/90 via-app-bg/95 to-brand-primary/15 hover:from-surface hover:via-surface/80 hover:to-brand-primary/25 backdrop-blur-2xl border-2 border-brand-primary/50 hover:border-brand-primary rounded-sm p-5 sm:p-6 shadow-md hover:shadow-2xl hover:shadow-brand-primary/25 transition-all duration-500 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
-              <BorderBeam delay={1.4} color="#38BDF8" />
-              
-              {/* Metallic Accent Strip & Top Gradient */}
-              <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-emerald-400" />
-              <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-brand-primary/20 via-brand-secondary/10 to-transparent pointer-events-none rounded-bl-full" />
-              
-              <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10 gap-5">
-                
-                {/* 1. Smart Microchip & Civic ID Header */}
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center gap-3">
-                    {/* Realistic Metallic Gold Contact Pad / Smart Microchip */}
-                    <div className="w-11 h-8 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
-                      <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
-                        <div className="border-r border-b border-amber-800/50" />
-                        <div className="border-b border-amber-800/50" />
-                        <div className="border-r border-amber-800/50" />
-                        <div />
+                        <button
+                          type="button"
+                          onClick={() => scrollAvatars('right')}
+                          className="p-1 rounded-sm bg-app-bg hover:bg-brand-primary/20 text-text-muted hover:text-text-primary transition-colors cursor-pointer border border-border-subtle active:scale-95"
+                          title="Scroll right"
+                          aria-label="Scroll right"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none" />
                     </div>
-                    <div>
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted block">
-                        STEWARD REGISTRY ID
-                      </span>
-                      <p className="text-base sm:text-lg font-mono font-bold text-text-primary tracking-widest">
-                        {profile.isGuest 
-                          ? 'EST-GUEST-SYS' 
-                          : `EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
-                      </p>
+
+                    {/* Horizontal Scroll / Drag-to-Swipe Container */}
+                    <div 
+                      ref={avatarSliderRef}
+                      onMouseDown={handleAvatarMouseDown}
+                      onMouseMove={handleAvatarMouseMove}
+                      onMouseUp={handleAvatarMouseUpOrLeave}
+                      onMouseLeave={handleAvatarMouseUpOrLeave}
+                      onWheel={handleAvatarWheel}
+                      className={twMerge(
+                        "w-full flex items-center gap-2.5 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory select-none transition-all",
+                        isAvatarDragging ? "cursor-grabbing" : "cursor-grab"
+                      )}
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      {/* Slot 0: Custom Device Upload */}
+                      <button
+                        type="button"
+                        onClick={() => handleSelectAvatar(0)}
+                        className={twMerge(
+                          "snap-center shrink-0 w-12 h-12 rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer relative overflow-hidden group/custom",
+                          selectedAvatarIndex === 0
+                            ? "border-2 border-brand-primary shadow-lg shadow-brand-primary/30 ring-2 ring-brand-primary/20 scale-105"
+                            : "border-2 border-dashed border-border-strong hover:border-brand-primary/70 bg-app-bg/60 opacity-80 hover:opacity-100"
+                        )}
+                        title={customProfileImage ? "Custom Device Photo (Click to re-select or change)" : "Upload from Device"}
+                      >
+                        {customProfileImage ? (
+                          <img 
+                            src={customProfileImage} 
+                            alt="Custom device avatar" 
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-text-muted group-hover/custom:text-brand-primary">
+                            <Camera className="w-4 h-4" />
+                          </div>
+                        )}
+                        <span className="absolute bottom-0 inset-x-0 bg-black/65 text-[7.5px] font-mono font-bold text-white text-center py-0.5 uppercase tracking-tighter">
+                          {customProfileImage ? 'Device' : 'Upload'}
+                        </span>
+                      </button>
+
+                      {/* Slots 1..10: Built-in Adventurer Avatars */}
+                      {AVATAR_OPTIONS.slice(1).map((avatarUrl, idx) => {
+                        const realIndex = idx + 1;
+                        const isSelected = selectedAvatarIndex === realIndex;
+                        return (
+                          <button
+                            key={avatarUrl}
+                            type="button"
+                            onClick={() => handleSelectAvatar(realIndex)}
+                            className={twMerge(
+                              "snap-center shrink-0 w-12 h-12 rounded-full transition-all duration-200 cursor-pointer relative overflow-hidden bg-app-bg",
+                              isSelected 
+                                ? "border-2 border-brand-primary shadow-lg shadow-brand-primary/30 ring-2 ring-brand-primary/20 scale-105" 
+                                : "border-2 border-border-subtle hover:border-brand-primary/50 opacity-70 hover:opacity-100 hover:scale-102"
+                            )}
+                            title={`Avatar Preset ${realIndex}`}
+                          >
+                            <img 
+                              src={avatarUrl} 
+                              alt={`Avatar ${realIndex}`}
+                              className="w-full h-full object-cover rounded-full pointer-events-none"
+                              loading="lazy"
+                            />
+                          </button>
+                        );
+                      })}
                     </div>
-                  </div>
 
-                  <div className="p-1.5 bg-brand-primary/10 border border-brand-primary/20 rounded-sm -skew-x-6 text-brand-primary shadow-xs">
-                    <Cpu className="w-4 h-4 skew-x-6" />
+                    <p className="text-[10px] text-text-muted text-center font-sans mt-1">
+                      Drag, scroll, or click to choose a preset, or upload your own.
+                    </p>
                   </div>
-                </div>
-
-                {/* 2. Stewardship Credits Box (Embossed Centerpiece) */}
-                <div className="bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-inner relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-brand-primary/10 to-transparent pointer-events-none" />
-                  <div className="flex flex-col relative z-10">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-text-muted font-sans flex items-center gap-1.5">
-                      <Award className="w-3.5 h-3.5 text-brand-primary" />
-                      Stewardship Credits
-                    </span>
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-3xl sm:text-4xl font-mono font-bold text-brand-primary tracking-tight">
-                        {profile.stewardshipScore}
-                      </span>
-                      <span className="text-xs font-bold text-text-muted uppercase tracking-wider">PTS</span>
-                    </div>
-                  </div>
-
-                  <div className="text-right relative z-10">
-                    <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-sm font-sans inline-flex items-center gap-1.5 shadow-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Level 1 Contributor
-                    </span>
-                  </div>
-                </div>
-
-                {/* 3. Community Impact Telemetry */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
-                    <span className="text-xs font-medium text-text-muted block font-sans">Total Reports</span>
-                    <span className="text-2xl font-mono font-bold text-text-primary mt-1 block">
-                      {profile.totalReportsCount}
-                    </span>
-                  </div>
-
-                  <div className="bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
-                    <span className="text-xs font-medium text-text-muted block font-sans">Cleared Waterways</span>
-                    <span className="text-2xl font-mono font-bold text-emerald-400 mt-1 block">
-                      {profile.resolvedReportsCount}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 4. Digital Security Strip Footer */}
-                <div className="pt-3 border-t border-border-subtle/70 mt-auto">
-                  {/* Micro Barcode Strip */}
-                  <div className="w-full flex items-center justify-between h-3.5 opacity-60 overflow-hidden px-0.5">
-                    {[4, 2, 6, 2, 8, 3, 5, 2, 7, 4, 3, 8, 2, 5, 3, 7, 2, 6, 4, 8, 2, 5, 3, 6, 2, 7, 4, 2, 5, 8, 3, 6, 2, 4, 7, 3, 5, 2, 6, 4, 8, 2].map((height, i) => (
-                      <span 
-                        key={i} 
-                        className="bg-text-muted inline-block w-0.5" 
-                        style={{ height: `${height * 1.5}px` }} 
-                      />
-                    ))}
-                  </div>
-                </div>
-
+                )}
               </div>
             </div>
           </motion.div>
+
+          {/* Civic Stewardship Container: Non-clickable info panel for Guests vs. Clickable 3D Card for Citizens */}
+          {profile.isGuest ? (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.1 }}
+              className="w-full flex-1 flex flex-col min-h-0"
+            >
+              <div className="w-full h-full flex-1 flex flex-col justify-between bg-surface/50 border-2 border-border-subtle rounded-sm p-5 sm:p-6 shadow-xs relative overflow-hidden -skew-x-2 sm:-skew-x-3">
+                <div className="absolute top-0 left-0 w-2 h-full bg-amber-500/80" />
+                <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10 gap-5">
+                  {/* Header */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                          <Lock className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted block">
+                            CIVIC CREDENTIAL
+                          </span>
+                          <h3 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary">
+                            Steward Registry
+                          </h3>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-xs bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold uppercase">
+                        Unregistered
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-text-secondary mt-3 font-sans leading-relaxed">
+                      Official Steward Registry IDs, permanent credit accrual, and waterway honors are reserved for registered citizen accounts.
+                    </p>
+                  </div>
+
+                  {/* Temporary Session Telemetry */}
+                  <div className="grid grid-cols-2 gap-3 font-sans">
+                    <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
+                      <span className="text-[11px] font-medium text-text-muted block">Session Reports</span>
+                      <span className="text-xl font-mono font-bold text-text-primary mt-0.5 block">
+                        {profile.totalReportsCount}
+                      </span>
+                    </div>
+                    <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
+                      <span className="text-[11px] font-medium text-text-muted block">Cleared Waterways</span>
+                      <span className="text-xl font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                        {profile.resolvedReportsCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Call to action */}
+                  <div className="pt-2 border-t border-border-subtle/70">
+                    <button
+                      type="button"
+                      onClick={() => openExitModal('register')}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-sm bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold text-xs uppercase tracking-wider transition-all shadow-xs cursor-pointer active:scale-95"
+                    >
+                      <span>Register to Claim Steward ID</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.1 }}
+              className="w-full flex-1 flex flex-col min-h-0 cursor-pointer"
+              onClick={() => {
+                setIsCardFlipped(false);
+                setIsIdModalOpen(true);
+              }}
+            >
+              <div className="w-full h-full flex-1 flex flex-col justify-between bg-gradient-to-br from-white via-surface to-brand-light/40 dark:from-[#0B1E36] dark:via-[#112D4E] dark:to-[#071322] hover:border-brand-primary backdrop-blur-2xl border-2 border-brand-primary/50 rounded-sm p-5 sm:p-6 shadow-md hover:shadow-2xl hover:shadow-brand-primary/25 transition-all duration-500 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
+                <BorderBeam delay={1.4} color="#38BDF8" />
+                
+                {/* Metallic Accent Strip & Top Gradient */}
+                <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-emerald-400" />
+                <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-brand-primary/20 via-brand-secondary/10 to-transparent pointer-events-none rounded-bl-full" />
+                
+                <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10 gap-5">
+                  
+                  {/* 1. Smart Microchip & Civic ID Header */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-3">
+                      {/* Realistic Metallic Gold Contact Pad / Smart Microchip */}
+                      <div className="w-11 h-8 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
+                        <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
+                          <div className="border-r border-b border-amber-800/50" />
+                          <div className="border-b border-amber-800/50" />
+                          <div className="border-r border-amber-800/50" />
+                          <div />
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted block">
+                          STEWARD REGISTRY ID
+                        </span>
+                        <p className="text-base sm:text-lg font-mono font-bold text-text-primary tracking-widest">
+                          {`EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Open / Expand Indicator */}
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm bg-brand-primary/10 border border-brand-primary/20 text-brand-primary group-hover:bg-brand-primary group-hover:text-black transition-all -skew-x-6 shadow-xs">
+                      <span className="text-[10px] font-mono font-semibold uppercase tracking-wider skew-x-6 hidden sm:inline">
+                        View ID
+                      </span>
+                      <Maximize2 className="w-3.5 h-3.5 skew-x-6" />
+                    </div>
+                  </div>
+
+                  {/* 2. Stewardship Credits Box (Clean Uncluttered Header) */}
+                  <div className="bg-surface/80 dark:bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-xs relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-brand-primary/10 to-transparent pointer-events-none" />
+                    <div className="flex flex-col relative z-10">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-text-muted font-sans flex items-center gap-1.5">
+                        <Award className="w-3.5 h-3.5 text-brand-primary" />
+                        Stewardship Credits
+                      </span>
+                      <div className="flex items-baseline gap-2 mt-1">
+                        <span className="text-3xl sm:text-4xl font-mono font-bold text-brand-primary tracking-tight">
+                          {profile.stewardshipScore}
+                        </span>
+                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">PTS</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Community Impact Telemetry */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
+                      <span className="text-xs font-medium text-text-muted block font-sans">Total Reports</span>
+                      <span className="text-2xl font-mono font-bold text-text-primary mt-1 block">
+                        {profile.totalReportsCount}
+                      </span>
+                    </div>
+
+                    <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
+                      <span className="text-xs font-medium text-text-muted block font-sans">Cleared Waterways</span>
+                      <span className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
+                        {profile.resolvedReportsCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4. Digital Security Strip Footer */}
+                  <div className="pt-3 border-t border-border-subtle/70 mt-auto flex items-center justify-between">
+                    {/* Micro Barcode Strip */}
+                    <div className="flex-1 flex items-center justify-between h-3.5 opacity-60 overflow-hidden pr-3">
+                      {[4, 2, 6, 2, 8, 3, 5, 2, 7, 4, 3, 8, 2, 5, 3, 7, 2, 6, 4, 8, 2, 5, 3, 6, 2, 7, 4, 2, 5, 8, 3, 6, 2, 4, 7, 3, 5, 2, 6, 4, 8, 2].map((height, i) => (
+                        <span 
+                          key={i} 
+                          className="bg-text-muted inline-block w-0.5" 
+                          style={{ height: `${height * 1.5}px` }} 
+                        />
+                      ))}
+                    </div>
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-text-muted shrink-0">
+                      TAP CARD
+                    </span>
+                  </div>
+
+                </div>
+              </div>
+            </motion.div>
+          )}
 
         </div>
 
         {/* Right Column (Personal Information Form & Preferences) */}
-        <div className="lg:col-span-8 flex flex-col gap-6 h-full justify-between">
+        <div className="lg:col-span-8 flex flex-col gap-6 h-full">
           
           {/* Personal Information Form */}
           <motion.div
@@ -1098,6 +1766,24 @@ export default function CitizenProfile() {
                   </div>
                 </div>
                 
+                {profile.isGuest && (
+                  <div className="mb-5 p-3.5 rounded-sm bg-brand-primary/10 border border-brand-primary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs font-sans">
+                    <div className="flex items-center gap-2 text-text-secondary">
+                      <AlertCircle className="w-4 h-4 text-brand-primary shrink-0" />
+                      <span>
+                        You are in <strong>Guest Mode</strong>. Profile details and contact synchronization require an account.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openExitModal('login')}
+                      className="text-brand-primary hover:text-brand-secondary hover:underline font-semibold shrink-0 cursor-pointer"
+                    >
+                      Sign In / Register &rarr;
+                    </button>
+                  </div>
+                )}
+
                 <form onSubmit={handleSaveChanges}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-sans">
                     {/* Full Name */}
@@ -1108,10 +1794,17 @@ export default function CitizenProfile() {
                       <input 
                         id="profile-full-name"
                         type="text" 
-                        value={fullName}
+                        value={profile.isGuest ? 'N/A' : fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Enter your full name"
-                        className="w-full bg-app-bg border border-border-strong rounded-sm px-3.5 py-2.5 text-text-primary text-sm font-sans focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                        disabled={profile.isGuest}
+                        readOnly={profile.isGuest}
+                        placeholder={profile.isGuest ? 'N/A' : 'Enter your full name'}
+                        className={twMerge(
+                          "w-full bg-app-bg border rounded-sm px-3.5 py-2.5 text-sm font-sans transition-colors",
+                          profile.isGuest 
+                            ? "border-border-subtle text-text-muted bg-app-bg/50 cursor-not-allowed select-none" 
+                            : "border-border-strong text-text-primary focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                        )}
                       />
                     </div>
 
@@ -1127,7 +1820,7 @@ export default function CitizenProfile() {
                         <input 
                           id="profile-email"
                           type="email" 
-                          value={profile.email || (profile.isGuest ? 'guest@esteroute.local' : 'citizen@esteroute.local')}
+                          value={profile.isGuest ? 'N/A' : (profile.email || 'citizen@esteroute.local')}
                           readOnly
                           disabled
                           className="w-full bg-app-bg/40 border border-border-subtle rounded-sm pl-10 pr-4 py-2.5 text-text-muted text-sm font-sans cursor-not-allowed select-none" 
@@ -1141,176 +1834,144 @@ export default function CitizenProfile() {
                         Mobile Phone Number
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted font-mono font-medium text-sm z-10">
-                          +63
-                        </span>
+                        {!profile.isGuest && (
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted font-mono font-medium text-sm z-10">
+                            +63
+                          </span>
+                        )}
                         <input 
                           id="profile-phone"
-                          type="tel" 
-                          value={phoneNumber}
+                          type={profile.isGuest ? "text" : "tel"} 
+                          value={profile.isGuest ? 'N/A' : phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
-                          placeholder="9XX XXX XXXX"
+                          disabled={profile.isGuest}
+                          readOnly={profile.isGuest}
+                          placeholder={profile.isGuest ? "N/A" : "9XX XXX XXXX"}
                           maxLength={15}
-                          className="w-full bg-app-bg border border-border-strong rounded-sm pl-13 pr-4 py-2.5 text-text-primary text-sm font-mono focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                          className={twMerge(
+                            "w-full bg-app-bg border rounded-sm py-2.5 text-sm font-mono transition-colors",
+                            profile.isGuest 
+                              ? "border-border-subtle text-text-muted bg-app-bg/50 cursor-not-allowed select-none px-3.5" 
+                              : "border-border-strong text-text-primary focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary pl-13 pr-4"
+                          )}
                         />
                       </div>
-                      <span className="text-xs text-text-muted mt-0.5 font-sans leading-normal">
-                        Used for localized emergency waterway flood dispatch advisories.
-                      </span>
+                      {!profile.isGuest && (
+                        <span className="text-xs text-text-muted mt-0.5 font-sans leading-normal">
+                          Used for localized emergency waterway flood dispatch advisories.
+                        </span>
+                      )}
                     </div>
                   </div>
                   
-                  {/* Form Action Button */}
-                  <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-border-subtle">
-                    <button 
-                      type="submit"
-                      disabled={isSaving}
-                      className="px-6 py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs sm:text-sm rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin skew-x-3 sm:skew-x-6" />
-                          <span className="skew-x-3 sm:skew-x-6">Saving...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-4 h-4 skew-x-3 sm:skew-x-6" />
-                          <span className="skew-x-3 sm:skew-x-6">Save Changes</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  {/* Form Action Button (Citizens Only) */}
+                  {!profile.isGuest && (
+                    <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-border-subtle">
+                      <button 
+                        type="submit"
+                        disabled={isSaving}
+                        className="px-6 py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs sm:text-sm rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin skew-x-3 sm:skew-x-6" />
+                            <span className="skew-x-3 sm:skew-x-6">Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4 skew-x-3 sm:skew-x-6" />
+                            <span className="skew-x-3 sm:skew-x-6">Save Changes</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </form>
               </div>
             </div>
           </motion.div>
 
-          {/* Settings & Security Grid (Stretched to match Civic Card height at bottom) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch shrink-0">
-            
-            {/* Notification Preferences */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.2 }}
-              className="w-full h-full flex flex-col"
-            >
-              <div className="w-full h-full flex-1 flex flex-col justify-between bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
-                <BorderBeam delay={2.1} color="#60A5FA" />
-                <div className="absolute top-0 left-0 w-2 h-full bg-brand-secondary" />
+          {/* Account & Security Card (Fills remaining column height) */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.2 }}
+            className="w-full flex-1 flex flex-col min-h-0"
+          >
+            <div className="w-full h-full flex-1 flex flex-col justify-between bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
+              <BorderBeam delay={2.5} color="#60A5FA" />
+              <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
 
-                <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10">
-                  <div>
-                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-subtle">
-                      <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
-                        <div className="p-1.5 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-6 shadow-xs">
-                          <Bell className="w-4 h-4 skew-x-6" />
-                        </div>
-                        <span>Notifications</span>
-                      </h2>
-                    </div>
-
-                    <div className="flex flex-col gap-3 font-sans">
-                      <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 shadow-xs">
-                        <div className="flex flex-col pr-2">
-                          <span className="text-xs sm:text-sm font-medium text-text-primary">SMS Status Alerts</span>
-                          <span className="text-xs text-text-muted mt-0.5">Receive clearance updates on your reports</span>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={smsUpdates}
-                          onChange={(e) => handleToggleSms(e.target.checked)}
-                          className="accent-brand-primary w-4 h-4 cursor-pointer" 
-                        />
-                      </label>
-
-                      <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 shadow-xs">
-                        <div className="flex flex-col pr-2">
-                          <span className="text-xs sm:text-sm font-medium text-text-primary">Basin Flood Alerts</span>
-                          <span className="text-xs text-text-muted mt-0.5">High water level waterway warnings</span>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={pushNotifications}
-                          onChange={(e) => handleTogglePush(e.target.checked)}
-                          className="accent-brand-primary w-4 h-4 cursor-pointer" 
-                        />
-                      </label>
-                    </div>
+              <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10">
+                <div>
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-subtle">
+                    <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
+                      <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
+                        <Lock className="w-4 h-4 skew-x-6" />
+                      </div>
+                      <span>Security & Session</span>
+                    </h2>
                   </div>
+
+                  <p className="text-xs text-text-muted font-sans mb-4 leading-relaxed">
+                    {profile.isGuest 
+                      ? "Your temporary session data is saved locally on this browser. Leaving will end your session on this device."
+                      : "Manage your credentials and authenticate securely across official waterway reporting services."}
+                  </p>
                 </div>
-              </div>
-            </motion.div>
 
-            {/* Account & Security Actions */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.25 }}
-              className="w-full h-full flex flex-col"
-            >
-              <div className="w-full h-full flex-1 flex flex-col justify-between bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
-                <BorderBeam delay={2.8} color="#60A5FA" />
-                <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
-
-                <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10">
-                  <div>
-                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-subtle">
-                      <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
-                        <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
-                          <Lock className="w-4 h-4 skew-x-6" />
-                        </div>
-                        <span>Security & Session</span>
-                      </h2>
-                    </div>
-
-                    <div className="flex flex-col gap-3 font-sans">
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          if (profile.isGuest) {
-                            showToast('Guest accounts do not have a password. Please register an account.', 'error');
-                            return;
-                          }
-                          setPasswordError('');
-                          setNewPassword('');
-                          setConfirmPassword('');
-                          setShowNewPassword(false);
-                          setShowConfirmPassword(false);
-                          setIsPasswordModalOpen(true);
-                        }}
-                        className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary transition-colors bg-app-bg/60 text-left group/sec cursor-pointer shadow-xs w-full"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <KeyRound className="w-4 h-4 text-brand-primary/80 group-hover/sec:text-brand-primary transition-colors" />
-                          <span className="text-xs sm:text-sm font-medium text-text-primary group-hover/sec:text-brand-primary transition-colors">
-                            Change Password
-                          </span>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-text-muted group-hover/sec:text-brand-primary transition-colors" />
-                      </button>
-
-                      <button 
-                        type="button"
-                        onClick={handleSignOut}
-                        className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-semantic-urgent transition-colors bg-app-bg/60 text-left group/sec cursor-pointer w-full shadow-xs"
-                      >
-                        <span className="text-xs sm:text-sm font-medium text-semantic-urgent">
-                          {profile.isGuest ? 'Leave Guest Session' : 'Sign Out of esteRoute'}
+                <div className="flex flex-col gap-3 font-sans mt-auto">
+                  {/* Change Password (Citizens Only) */}
+                  {!profile.isGuest && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setPasswordError('');
+                        setNewPassword('');
+                        setConfirmPassword('');
+                        setShowNewPassword(false);
+                        setShowConfirmPassword(false);
+                        setIsPasswordModalOpen(true);
+                      }}
+                      className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary transition-colors bg-app-bg/60 text-left group/sec cursor-pointer shadow-xs w-full"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <KeyRound className="w-4 h-4 text-brand-primary/80 group-hover/sec:text-brand-primary transition-colors" />
+                        <span className="text-xs sm:text-sm font-medium text-text-primary group-hover/sec:text-brand-primary transition-colors">
+                          Change Password
                         </span>
-                        <LogOut className="w-4 h-4 text-semantic-urgent/70 group-hover/sec:text-semantic-urgent transition-colors" />
-                      </button>
-                    </div>
-                  </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-text-muted group-hover/sec:text-brand-primary transition-colors" />
+                    </button>
+                  )}
+
+                  <button 
+                    type="button"
+                    onClick={() => openExitModal('logout')}
+                    className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-semantic-urgent transition-colors bg-app-bg/60 text-left group/sec cursor-pointer w-full shadow-xs"
+                  >
+                    <span className="text-xs sm:text-sm font-medium text-semantic-urgent">
+                      {profile.isGuest ? 'Leave Guest Session' : 'Sign Out of esteRoute'}
+                    </span>
+                    <LogOut className="w-4 h-4 text-semantic-urgent/70 group-hover/sec:text-semantic-urgent transition-colors" />
+                  </button>
                 </div>
               </div>
-            </motion.div>
-
-          </div>
+            </div>
+          </motion.div>
 
         </div>
 
       </div>
+
+      {/* Session Exit / Logout Confirmation Modal */}
+      <ConfirmExitModal
+        isOpen={exitModalConfig.isOpen}
+        onClose={() => setExitModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmExit}
+        isGuest={profile.isGuest}
+        intent={exitModalConfig.intent}
+      />
     </div>
   );
 }

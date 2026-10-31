@@ -12,6 +12,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../../context/ThemeContext';
+import { supabase } from '../../lib/supabase';
 
 // Subtle, eye-friendly traveling perimeter highlight (matching Landing Page features)
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
@@ -724,7 +725,10 @@ export default function BlockageSubmissionForm() {
       }
 
       const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const response = await fetch(`${API_URL}/api/reports/`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         method: "POST",
         body: formData,
       });
@@ -735,14 +739,17 @@ export default function BlockageSubmissionForm() {
 
       const data = await response.json();
       setTrackingRef(data.tracking_reference);
-      try {
-        const stored: string[] = JSON.parse(localStorage.getItem('esteroute_my_reports') || '[]');
-        if (data.tracking_reference && !stored.includes(data.tracking_reference)) {
-          stored.unshift(data.tracking_reference);
-          localStorage.setItem('esteroute_my_reports', JSON.stringify(stored));
+      // Only store tracking reference in localStorage for anonymous guest submissions
+      if (!token) {
+        try {
+          const stored: string[] = JSON.parse(localStorage.getItem('esteroute_my_reports') || '[]');
+          if (data.tracking_reference && !stored.includes(data.tracking_reference)) {
+            stored.unshift(data.tracking_reference);
+            localStorage.setItem('esteroute_my_reports', JSON.stringify(stored));
+          }
+        } catch (storageErr) {
+          console.warn("Could not save tracking ref to localStorage:", storageErr);
         }
-      } catch (storageErr) {
-        console.warn("Could not save tracking ref to localStorage:", storageErr);
       }
       setIsSubmitted(true);
     } catch (error) {
