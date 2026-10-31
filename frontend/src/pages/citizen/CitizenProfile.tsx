@@ -103,17 +103,17 @@ interface StewardshipTierInfo {
 }
 
 const ALL_STEWARD_TIERS: StewardshipTierInfo[] = [
-  { title: 'Contributor', minPts: 0, color: 'text-emerald-400', bg: 'bg-emerald-500' },
-  { title: 'Steward', minPts: 50, color: 'text-cyan-400', bg: 'bg-cyan-500' },
-  { title: 'Protector', minPts: 200, color: 'text-blue-400', bg: 'bg-blue-500' },
-  { title: 'Guardian', minPts: 500, color: 'text-amber-400', bg: 'bg-amber-500' },
+  { title: 'Contributor', minPts: 0, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500' },
+  { title: 'Steward', minPts: 50, color: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-500' },
+  { title: 'Protector', minPts: 200, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500' },
+  { title: 'Guardian', minPts: 500, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500' },
 ];
 
 const getStewardshipTier = (score: number) => {
   if (score >= 500) {
     return {
       title: 'Guardian',
-      titleColor: 'text-amber-400',
+      titleColor: 'text-amber-600 dark:text-amber-400',
       minPts: 500,
       nextPts: null,
       nextTitle: null,
@@ -122,7 +122,7 @@ const getStewardshipTier = (score: number) => {
   if (score >= 200) {
     return {
       title: 'Protector',
-      titleColor: 'text-blue-400',
+      titleColor: 'text-blue-600 dark:text-blue-400',
       minPts: 200,
       nextPts: 500,
       nextTitle: 'Guardian',
@@ -131,7 +131,7 @@ const getStewardshipTier = (score: number) => {
   if (score >= 50) {
     return {
       title: 'Steward',
-      titleColor: 'text-cyan-400',
+      titleColor: 'text-cyan-600 dark:text-cyan-400',
       minPts: 50,
       nextPts: 200,
       nextTitle: 'Protector',
@@ -139,7 +139,7 @@ const getStewardshipTier = (score: number) => {
   }
   return {
     title: 'Contributor',
-    titleColor: 'text-emerald-400',
+    titleColor: 'text-emerald-600 dark:text-emerald-400',
     minPts: 0,
     nextPts: 50,
     nextTitle: 'Steward',
@@ -813,7 +813,7 @@ export default function CitizenProfile() {
               {/* Modal Top Bar */}
               <div className="w-full flex items-center justify-between text-white px-1">
                 <div>
-                  <span className="text-xs sm:text-sm font-heading font-bold uppercase tracking-wider text-text-primary">
+                  <span className="text-xs sm:text-sm font-heading font-bold uppercase tracking-wider text-white">
                     Civic Credential
                   </span>
                 </div>
@@ -882,8 +882,8 @@ export default function CitizenProfile() {
                       isCardFlipped ? "[transform:rotateY(180deg)]" : ""
                     )}
                   >
-                    {/* ====== FRONT FACE ====== */}
-                    <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] rounded-xl overflow-hidden border-2 border-brand-primary/50 bg-gradient-to-br from-slate-900 via-brand-dark/95 to-slate-950 p-5 sm:p-6 flex flex-col justify-between shadow-2xl">
+                    {/* ====== FRONT FACE (Theme Adaptive: Pearl/Silver in Light, Sapphire/Dark in Dark) ====== */}
+                    <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] rounded-xl overflow-hidden border-2 border-brand-primary/50 bg-gradient-to-br from-white via-surface to-brand-light/40 dark:from-[#0B1E36] dark:via-[#112D4E] dark:to-[#071322] p-5 sm:p-6 flex flex-col justify-between shadow-2xl transition-colors">
                       <BorderBeam delay={0} color="#38BDF8" />
                       <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-emerald-400" />
                       <div className="absolute top-0 right-0 w-44 h-44 bg-gradient-to-bl from-brand-primary/25 via-brand-secondary/15 to-transparent pointer-events-none rounded-bl-full" />
@@ -916,7 +916,7 @@ export default function CitizenProfile() {
                         {/* Photo / Avatar frame */}
                         <div className="w-18 h-22 sm:w-20 sm:h-24 rounded-sm border-2 border-brand-primary/60 bg-surface/70 shadow-md overflow-hidden shrink-0 relative flex items-center justify-center p-0.5">
                           {profile.isGuest || !profile.avatarUrl ? (
-                            <div className="w-full h-full flex items-center justify-center bg-app-bg text-text-muted">
+                            <div className="w-full h-full flex items-center justify-center bg-surface-subtle/60 dark:bg-app-bg text-text-muted">
                               <User className="w-10 h-10 text-text-muted/60" />
                             </div>
                           ) : (
@@ -967,13 +967,13 @@ export default function CitizenProfile() {
 
                           {/* Credits & Clearance telemetry badge */}
                           <div className="flex items-center gap-3 mt-2 font-mono text-[10px] sm:text-xs">
-                            <div className="bg-app-bg/80 px-2.5 py-1 rounded-xs border border-border-subtle">
+                            <div className="bg-surface/90 dark:bg-app-bg/80 px-2.5 py-1 rounded-xs border border-border-subtle shadow-xs">
                               <span className="text-text-muted">CREDITS: </span>
                               <span className="font-bold text-brand-primary">{profile.stewardshipScore} PTS</span>
                             </div>
-                            <div className="bg-app-bg/80 px-2.5 py-1 rounded-xs border border-border-subtle">
+                            <div className="bg-surface/90 dark:bg-app-bg/80 px-2.5 py-1 rounded-xs border border-border-subtle shadow-xs">
                               <span className="text-text-muted">CLEARED: </span>
-                              <span className="font-bold text-emerald-400">{profile.resolvedReportsCount}</span>
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">{profile.resolvedReportsCount}</span>
                             </div>
                           </div>
                         </div>
@@ -993,12 +993,12 @@ export default function CitizenProfile() {
                       </div>
                     </div>
 
-                    {/* ====== BACK FACE: ORIGINAL REVERTED PROGRAM GUIDELINES ====== */}
-                    <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden border-2 border-border-strong bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-5 sm:p-6 flex flex-col justify-between shadow-2xl">
+                    {/* ====== BACK FACE: ORIGINAL REVERTED PROGRAM GUIDELINES (Theme Adaptive) ====== */}
+                    <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden border-2 border-border-strong dark:border-brand-primary/40 bg-gradient-to-br from-[#F8FAFC] via-surface to-[#F1F5F9] dark:from-[#071322] dark:via-[#0B1E36] dark:to-[#071322] p-5 sm:p-6 flex flex-col justify-between shadow-2xl transition-colors">
                       <BorderBeam delay={3} color="#60A5FA" />
                       
                       {/* Magnetic Stripe representation */}
-                      <div className="absolute top-4 inset-x-0 h-8 sm:h-9 bg-black/90 border-y border-border-subtle/50 pointer-events-none" />
+                      <div className="absolute top-4 inset-x-0 h-8 sm:h-9 bg-slate-800 dark:bg-black/90 border-y border-border-subtle/50 pointer-events-none" />
 
                       {/* Back Header */}
                       <div className="pt-8 sm:pt-9 relative z-10">
@@ -1012,22 +1012,22 @@ export default function CitizenProfile() {
 
                       {/* Instructions List (Original Structure) */}
                       <div className="flex flex-col gap-2 relative z-10 font-sans text-xs my-auto">
-                        <div className="flex items-start gap-2 bg-app-bg/60 p-2.5 rounded-xs border border-border-subtle">
+                        <div className="flex items-start gap-2 bg-surface/90 dark:bg-app-bg/70 p-2.5 rounded-xs border border-border-subtle shadow-xs">
                           <span className="font-mono font-bold text-brand-primary shrink-0">+15 PTS</span>
                           <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
                             Submit verified blockage reports with clear photographic and geolocation telemetry.
                           </span>
                         </div>
 
-                        <div className="flex items-start gap-2 bg-app-bg/60 p-2.5 rounded-xs border border-border-subtle">
-                          <span className="font-mono font-bold text-emerald-400 shrink-0">+50 PTS</span>
+                        <div className="flex items-start gap-2 bg-surface/90 dark:bg-app-bg/70 p-2.5 rounded-xs border border-border-subtle shadow-xs">
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0">+50 PTS</span>
                           <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
                             Clearance Bonus awarded when cleaning units officially resolve and unclog the waterway.
                           </span>
                         </div>
 
-                        <div className="flex items-start gap-2 bg-app-bg/60 p-2.5 rounded-xs border border-border-subtle">
-                          <span className="font-mono font-bold text-amber-400 shrink-0">LEVELS</span>
+                        <div className="flex items-start gap-2 bg-surface/90 dark:bg-app-bg/70 p-2.5 rounded-xs border border-border-subtle shadow-xs">
+                          <span className="font-mono font-bold text-amber-600 dark:text-amber-400 shrink-0">LEVELS</span>
                           <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
                             Unlock trusted reporter standing, priority flood dispatch alerts, and barangay civic honors.
                           </span>
@@ -1611,7 +1611,7 @@ export default function CitizenProfile() {
                 </div>
 
                 {/* 2. Stewardship Credits Box (Clean Uncluttered Header) */}
-                <div className="bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-inner relative overflow-hidden">
+                <div className="bg-surface/80 dark:bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-xs relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-brand-primary/10 to-transparent pointer-events-none" />
                   <div className="flex flex-col relative z-10">
                     <span className="text-xs font-semibold uppercase tracking-wider text-text-muted font-sans flex items-center gap-1.5">
@@ -1629,16 +1629,16 @@ export default function CitizenProfile() {
 
                 {/* 3. Community Impact Telemetry */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
+                  <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
                     <span className="text-xs font-medium text-text-muted block font-sans">Total Reports</span>
                     <span className="text-2xl font-mono font-bold text-text-primary mt-1 block">
                       {profile.totalReportsCount}
                     </span>
                   </div>
 
-                  <div className="bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
+                  <div className="bg-surface/80 dark:bg-app-bg/60 p-3 rounded-sm border border-border-subtle shadow-xs">
                     <span className="text-xs font-medium text-text-muted block font-sans">Cleared Waterways</span>
-                    <span className="text-2xl font-mono font-bold text-emerald-400 mt-1 block">
+                    <span className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
                       {profile.resolvedReportsCount}
                     </span>
                   </div>
