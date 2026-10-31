@@ -90,6 +90,44 @@ interface CitizenProfileData {
   isGuest: boolean;
 }
 
+// Civic Stewardship Tier mapping
+const getStewardshipTier = (score: number) => {
+  if (score >= 500) {
+    return {
+      name: 'Level 4 Guardian',
+      colorText: 'text-amber-400',
+      colorBg: 'bg-amber-500/10',
+      colorBorder: 'border-amber-500/30',
+      pulseColor: 'bg-amber-400',
+    };
+  }
+  if (score >= 200) {
+    return {
+      name: 'Level 3 Protector',
+      colorText: 'text-blue-400',
+      colorBg: 'bg-blue-500/10',
+      colorBorder: 'border-blue-500/30',
+      pulseColor: 'bg-blue-400',
+    };
+  }
+  if (score >= 50) {
+    return {
+      name: 'Level 2 Steward',
+      colorText: 'text-cyan-400',
+      colorBg: 'bg-cyan-500/10',
+      colorBorder: 'border-cyan-500/30',
+      pulseColor: 'bg-cyan-400',
+    };
+  }
+  return {
+    name: 'Level 1 Contributor',
+    colorText: 'text-emerald-400',
+    colorBg: 'bg-emerald-500/10',
+    colorBorder: 'border-emerald-500/30',
+    pulseColor: 'bg-emerald-400',
+  };
+};
+
 export default function CitizenProfile() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -173,7 +211,7 @@ export default function CitizenProfile() {
               id: 'guest',
               fullName: 'Guest Reporter',
               avatarUrl: '',
-              stewardshipScore: guestResolvedReports * 50 + guestTotalReports * 10,
+              stewardshipScore: (guestResolvedReports * 50) + (guestTotalReports * 15),
               role: 'citizen',
               phone: '',
               email: '',
@@ -239,7 +277,11 @@ export default function CitizenProfile() {
           userResolvedReports = userReports.filter(r => r.status === 'resolved').length;
         }
 
-        const calculatedScore = profileRow?.stewardship_score ?? (userResolvedReports * 50 + userTotalReports * 15);
+        // Score: +15 PTS per submitted report, +50 PTS per resolved waterway clearance
+        const calculatedScore = Math.max(
+          profileRow?.stewardship_score || 0,
+          (userResolvedReports * 50) + (userTotalReports * 15)
+        );
 
         if (isMounted) {
           setProfile({
@@ -1022,28 +1064,41 @@ export default function CitizenProfile() {
                 </div>
 
                 {/* 2. Stewardship Credits Box (Embossed Centerpiece) */}
-                <div className="bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-inner relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-brand-primary/10 to-transparent pointer-events-none" />
-                  <div className="flex flex-col relative z-10">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-text-muted font-sans flex items-center gap-1.5">
-                      <Award className="w-3.5 h-3.5 text-brand-primary" />
-                      Stewardship Credits
-                    </span>
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-3xl sm:text-4xl font-mono font-bold text-brand-primary tracking-tight">
-                        {profile.stewardshipScore}
-                      </span>
-                      <span className="text-xs font-bold text-text-muted uppercase tracking-wider">PTS</span>
-                    </div>
-                  </div>
+                {(() => {
+                  const currentTier = getStewardshipTier(profile.stewardshipScore);
+                  return (
+                    <div className="bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-inner relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-brand-primary/10 to-transparent pointer-events-none" />
+                      <div className="flex flex-col relative z-10">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-text-muted font-sans flex items-center gap-1.5">
+                          <Award className="w-3.5 h-3.5 text-brand-primary" />
+                          Stewardship Credits
+                        </span>
+                        <div className="flex items-baseline gap-2 mt-1">
+                          <span className="text-3xl sm:text-4xl font-mono font-bold text-brand-primary tracking-tight">
+                            {profile.stewardshipScore}
+                          </span>
+                          <span className="text-xs font-bold text-text-muted uppercase tracking-wider">PTS</span>
+                        </div>
+                      </div>
 
-                  <div className="text-right relative z-10">
-                    <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-sm font-sans inline-flex items-center gap-1.5 shadow-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Level 1 Contributor
-                    </span>
-                  </div>
-                </div>
+                      <div className="text-right relative z-10 flex flex-col items-end gap-1">
+                        <span className={twMerge(
+                          "text-xs font-semibold px-2.5 py-1 rounded-sm font-sans inline-flex items-center gap-1.5 shadow-xs border",
+                          currentTier.colorText,
+                          currentTier.colorBg,
+                          currentTier.colorBorder
+                        )}>
+                          <span className={twMerge("w-1.5 h-1.5 rounded-full animate-pulse", currentTier.pulseColor)} />
+                          {currentTier.name}
+                        </span>
+                        <span className="text-[10px] text-text-muted font-sans">
+                          +15 pts / report • +50 pts / cleared
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* 3. Community Impact Telemetry */}
                 <div className="grid grid-cols-2 gap-3">
