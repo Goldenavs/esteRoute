@@ -16,7 +16,9 @@ import {
   Truck,
   Compass,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Search,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
@@ -88,6 +90,110 @@ export default function CitizenDashboard() {
 
   const [reports, setReports] = useState<CitizenReportItem[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState<boolean>(true);
+  const [searchRefInput, setSearchRefInput] = useState('');
+  const [isSearchingRef, setIsSearchingRef] = useState(false);
+  const [searchRefError, setSearchRefError] = useState<string | null>(null);
+  const [searchRefSuccess, setSearchRefSuccess] = useState<string | null>(null);
+
+  const handleTrackByRef = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchRefInput.trim();
+    if (!query) return;
+
+    setIsSearchingRef(true);
+    setSearchRefError(null);
+    setSearchRefSuccess(null);
+
+    try {
+      // 1. Check if already present in reports list
+      const alreadyPresent = reports.find(
+        (r) =>
+          r.trackingRef.toLowerCase() === query.toLowerCase() ||
+          r.id.toLowerCase() === query.toLowerCase()
+      );
+
+      if (alreadyPresent) {
+        setSelectedReport(alreadyPresent);
+        setSearchRefSuccess(`Opened report ${alreadyPresent.trackingRef}`);
+        setSearchRefInput('');
+        return;
+      }
+
+      // 2. Query Supabase directly
+      const { data, error } = await supabase
+        .from('reports')
+        .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
+        .or(`tracking_reference.ilike.${query},report_id.eq.${query}`)
+        .maybeSingle();
+
+      if (error || !data) {
+        setSearchRefError(`No report found for "${query}". Please verify the tracking code.`);
+        return;
+      }
+
+      // 3. Map to report item
+      let statusKey: CitizenReportItem['status'] = 'pending';
+      let label = 'Under Review';
+
+      if (data.status === 'resolved') {
+        statusKey = 'resolved';
+        label = 'Resolved';
+      } else if (data.status === 'dispatched' || data.status === 'triaged') {
+        statusKey = 'in_progress';
+        label = data.status === 'dispatched' ? 'Crew Dispatched' : 'In Progress';
+      } else if (data.status === 'failed_analysis') {
+        statusKey = 'review';
+        label = 'Manual Verification';
+      }
+
+      const score = data.priority_score ?? 0;
+      const sevText = score >= 70 ? `Critical (${score})` : score >= 40 ? `Moderate (${score})` : `Low (${score})`;
+
+      const newReport: CitizenReportItem = {
+        id: data.report_id,
+        trackingRef: data.tracking_reference || `ER-${data.report_id.slice(0, 6)}`,
+        date: new Date(data.created_at).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        rawDate: data.created_at,
+        status: statusKey,
+        statusLabel: label,
+        severity: sevText,
+        priorityScore: score,
+        location: `Canal Coordinates: ${Number(data.latitude).toFixed(4)}, ${Number(data.longitude).toFixed(4)}`,
+        latitude: Number(data.latitude),
+        longitude: Number(data.longitude),
+        image: data.image_url || 'https://images.unsplash.com/photo-1596767746408-db2891d4e0e2?q=80&w=600',
+        notes: data.citizen_notes || 'Citizen canal blockage observation.',
+      };
+
+      // 4. Save to localStorage so it stays tracked on this device
+      try {
+        const stored: string[] = JSON.parse(localStorage.getItem('esteroute_my_reports') || '[]');
+        if (data.tracking_reference && !stored.includes(data.tracking_reference)) {
+          stored.unshift(data.tracking_reference);
+          localStorage.setItem('esteroute_my_reports', JSON.stringify(stored));
+        }
+      } catch (storageErr) {
+        console.warn("Could not save to localStorage:", storageErr);
+      }
+
+      // 5. Update state and open details drawer
+      setReports((prev) => [newReport, ...prev.filter((r) => r.id !== newReport.id)]);
+      setSelectedReport(newReport);
+      setSearchRefSuccess(`Added report ${newReport.trackingRef} to your dashboard.`);
+      setSearchRefInput('');
+    } catch (err) {
+      console.error('Error tracking report by reference:', err);
+      setSearchRefError('An error occurred while tracking the report. Please try again.');
+    } finally {
+      setIsSearchingRef(false);
+    }
+  };
   const [selectedReport, setSelectedReport] = useState<CitizenReportItem | null>(null);
   const [isImageFocused, setIsImageFocused] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -432,7 +538,71 @@ export default function CitizenDashboard() {
         </Link>
       </motion.div>
 
-      {/* 2. Stylistic KPI Strip Filter (with proportional indicator meters) */}
+      {/* 2. Quick Tracking Bar for Guests & Reference Lookup */}
+      <motion.div
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.03 }}
+        className="mb-3 sm:mb-5"
+      >
+        <div className="bg-surface/75 backdrop-blur-md border border-border-subtle hover:border-brand-primary/50 transition-colors p-2.5 sm:p-3 rounded-sm shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 -skew-x-1 sm:-skew-x-2">
+          <div className="skew-x-1 sm:skew-x-2 flex items-center gap-2 pl-1">
+            <Search className="w-4 h-4 text-brand-primary shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary whitespace-nowrap">
+                Track by Reference Code
+              </span>
+              <span className="text-[10px] font-mono text-text-muted">
+                Enter an existing report code (e.g. ER-2026-XXXXXX) to monitor live status
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={handleTrackByRef} className="skew-x-1 sm:skew-x-2 flex items-center gap-2 flex-1 sm:max-w-md">
+            <input
+              type="text"
+              placeholder="e.g. ER-2026-XXXXXX"
+              value={searchRefInput}
+              onChange={(e) => {
+                setSearchRefInput(e.target.value);
+                if (searchRefError) setSearchRefError(null);
+                if (searchRefSuccess) setSearchRefSuccess(null);
+              }}
+              className="flex-1 bg-surface-subtle/80 border border-border-subtle focus:border-brand-primary px-3 py-1.5 rounded-sm text-xs font-mono uppercase tracking-wider text-text-primary placeholder:text-text-muted/60 focus:outline-none transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={isSearchingRef || !searchRefInput.trim()}
+              className="bg-brand-primary hover:bg-brand-secondary text-white hover:text-black transition-colors px-3 py-1.5 rounded-sm text-xs font-mono font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5 shrink-0 active:scale-95 shadow-xs"
+            >
+              {isSearchingRef ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <>
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Track</span>
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Feedback messages */}
+        {searchRefError && (
+          <p className="text-xs font-mono text-semantic-urgent mt-1.5 pl-2 flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            {searchRefError}
+          </p>
+        )}
+        {searchRefSuccess && (
+          <p className="text-xs font-mono text-emerald-400 mt-1.5 pl-2 flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            {searchRefSuccess}
+          </p>
+        )}
+      </motion.div>
+
+      {/* 3. Stylistic KPI Strip Filter (with proportional indicator meters) */}
       <motion.div 
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -651,6 +821,11 @@ export default function CitizenDashboard() {
               <p className="text-sm font-mono text-text-muted">
                 {reports.length === 0 ? "You haven't submitted any reports yet." : "No reports match the selected filter category."}
               </p>
+              {reports.length === 0 && (
+                <p className="text-xs font-mono text-text-muted/80 max-w-md">
+                  If you submitted a report earlier as a guest on another device, use the tracking bar above with your reference code to view its status.
+                </p>
+              )}
             </div>
           ) : (
             <>
