@@ -146,6 +146,16 @@ const getStewardshipTier = (score: number) => {
   };
 };
 
+// Password Strength Evaluator (Matching AuthModals guardrails)
+const getPasswordStrength = (pass: string) => {
+  let score = 0;
+  if (pass.length > 5) score += 1;
+  if (pass.length > 7) score += 1;
+  if (/[A-Z]/.test(pass) || /[0-9]/.test(pass)) score += 1;
+  if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+  return Math.min(score, 4);
+};
+
 export default function CitizenProfile() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -627,15 +637,6 @@ export default function CitizenProfile() {
                       </h3>
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsLevelsModalOpen(false)}
-                    className="p-1.5 rounded-sm bg-app-bg hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer"
-                    aria-label="Close levels viewer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
 
                 {/* Score & Next Milestone Card */}
@@ -1122,6 +1123,46 @@ export default function CitizenProfile() {
                           {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
+
+                      {/* Password Strength Meter (Matching AuthModals) */}
+                      <AnimatePresence>
+                        {newPassword.length > 0 && (
+                          <motion.div 
+                            initial={{ opacity: 0, height: 0 }} 
+                            animate={{ opacity: 1, height: 'auto' }} 
+                            exit={{ opacity: 0, height: 0 }}
+                            className="space-y-1.5 overflow-hidden pt-1"
+                          >
+                            <div className="flex gap-1 h-1.5 w-full">
+                              {[1, 2, 3, 4].map((level) => {
+                                const strength = getPasswordStrength(newPassword);
+                                let bgClass = "bg-border-subtle";
+                                if (strength >= level) {
+                                  if (strength <= 1) bgClass = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]";
+                                  else if (strength === 2) bgClass = "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.4)]";
+                                  else if (strength === 3) bgClass = "bg-brand-primary shadow-[0_0_8px_rgba(59,130,246,0.4)]";
+                                  else bgClass = "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]";
+                                }
+                                return (
+                                  <div key={level} className={`flex-1 rounded-sm transition-all duration-300 ${bgClass}`} />
+                                );
+                              })}
+                            </div>
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-text-muted">Min 6 characters</span>
+                              <span className="font-heading font-bold uppercase tracking-wider">
+                                {(() => {
+                                  const strength = getPasswordStrength(newPassword);
+                                  if (strength <= 1) return <span className="text-red-500">Weak</span>;
+                                  if (strength === 2) return <span className="text-yellow-500">Fair</span>;
+                                  if (strength === 3) return <span className="text-brand-primary">Good</span>;
+                                  return <span className="text-green-500">Strong</span>;
+                                })()}
+                              </span>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     {/* Confirm New Password */}
