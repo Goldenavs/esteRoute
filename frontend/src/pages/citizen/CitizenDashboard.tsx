@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 // Subtle, eye-friendly traveling perimeter highlight matching Landing Page features
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
@@ -77,76 +78,16 @@ export interface CitizenReportItem {
   notes?: string;
 }
 
-const fallbackReports: CitizenReportItem[] = [
-  {
-    id: 'demo-1',
-    trackingRef: 'ER-2026-881204',
-    date: 'Oct 15, 2026 • 2:30 PM',
-    rawDate: '2026-10-15T14:30:00Z',
-    status: 'in_progress',
-    statusLabel: 'In Progress',
-    severity: 'High Priority (Score: 84)',
-    priorityScore: 84,
-    location: 'Rizal Ave & 4th St Culvert, Subangdaku',
-    latitude: 10.3330,
-    longitude: 123.9180,
-    image: 'https://images.unsplash.com/photo-1596767746408-db2891d4e0e2?q=80&w=600',
-    notes: 'Dense plastic and fallen branches trapping garbage at Subangdaku culvert gate.'
-  },
-  {
-    id: 'demo-2',
-    trackingRef: 'ER-2026-443912',
-    date: 'Oct 02, 2026 • 9:15 AM',
-    rawDate: '2026-10-02T09:15:00Z',
-    status: 'in_progress',
-    statusLabel: 'Crew Dispatched',
-    severity: 'Medium Priority (Score: 52)',
-    priorityScore: 52,
-    location: 'San Juan Spillway Drainage, Lahug',
-    latitude: 10.3190,
-    longitude: 123.9040,
-    image: 'https://images.unsplash.com/photo-1584449856172-2d8544d6db53?q=80&w=600',
-    notes: 'LGU declogging truck and manual cleaning crew on site for routine maintenance.'
-  },
-  {
-    id: 'demo-3',
-    trackingRef: 'ER-2026-559281',
-    date: 'Oct 17, 2026 • 11:05 AM',
-    rawDate: '2026-10-17T11:05:00Z',
-    status: 'pending',
-    statusLabel: 'Under AI Triage',
-    severity: 'Pending Verification',
-    location: 'Luna Canal Lateral B, Guadalupe',
-    latitude: 10.3150,
-    longitude: 123.8860,
-    image: 'https://images.unsplash.com/photo-1621360662234-5835694a50bb?q=80&w=600',
-    notes: 'Debris accumulation after moderate rainfall. Drainage grate partly clogged.'
-  },
-  {
-    id: 'demo-4',
-    trackingRef: 'ER-2026-102948',
-    date: 'Oct 16, 2026 • 4:45 PM',
-    rawDate: '2026-10-16T16:45:00Z',
-    status: 'resolved',
-    statusLabel: 'Resolved',
-    severity: 'Low Priority (Score: 28)',
-    priorityScore: 28,
-    location: 'Tinago Creek Outfall, Cebu Port Area',
-    latitude: 10.3010,
-    longitude: 123.8760,
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600',
-    notes: 'Canal dredging completed by engineering department. Waterway free flowing.'
-  }
-];
-
 export type CitizenFilterType = 'all' | 'pending' | 'in_progress' | 'resolved';
 
 export default function CitizenDashboard() {
   const [searchParams] = useSearchParams();
   const targetReportRef = searchParams.get('report') || searchParams.get('id');
   const hasAutoOpenedRef = useRef<string | null>(null);
+  const { user } = useAuth();
 
-  const [reports, setReports] = useState<CitizenReportItem[]>(fallbackReports);
+  const [reports, setReports] = useState<CitizenReportItem[]>([]);
+  const [isLoadingReports, setIsLoadingReports] = useState<boolean>(true);
   const [selectedReport, setSelectedReport] = useState<CitizenReportItem | null>(null);
   const [isImageFocused, setIsImageFocused] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -176,15 +117,30 @@ export default function CitizenDashboard() {
           refsToFetch.push(targetReportRef);
         }
 
+        setIsLoadingReports(true);
+
         let query = supabase
           .from('reports')
           .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
           .order('created_at', { ascending: false });
 
-        if (refsToFetch.length > 0) {
-          query = query.in('tracking_reference', refsToFetch);
+        if (user) {
+          // Authenticated citizen: query by user ID, plus any guest reports submitted prior to login
+          if (refsToFetch.length > 0) {
+            query = query.or(`reporter_id.eq.${user.id},tracking_reference.in.(${refsToFetch.map(ref => `"${ref}"`).join(',')})`);
+          } else {
+            query = query.eq('reporter_id', user.id);
+          }
         } else {
-          query = query.limit(20);
+          // Guest user: only query reports submitted on this device
+          if (refsToFetch.length === 0) {
+            if (isMounted) {
+              setReports([]);
+              setIsLoadingReports(false);
+            }
+            return;
+          }
+          query = query.in('tracking_reference', refsToFetch);
         }
 
         const { data, error } = await query;
@@ -286,9 +242,14 @@ export default function CitizenDashboard() {
           }
 
           if (isMounted) setReports(mapped);
+        } else if (isMounted) {
+          setReports([]);
         }
       } catch (err) {
-        console.warn('Could not load reports from database, using cached history:', err);
+        console.warn('Could not load reports from database:', err);
+        if (isMounted) setReports([]);
+      } finally {
+        if (isMounted) setIsLoadingReports(false);
       }
     }
 
@@ -297,7 +258,7 @@ export default function CitizenDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [targetReportRef]);
+  }, [user, targetReportRef]);
 
   // Auto-open detailed view when arriving with a ?report= query parameter
   useEffect(() => {
@@ -679,10 +640,17 @@ export default function CitizenDashboard() {
             </div>
           </div>
 
-          {historyReports.length === 0 ? (
+          {isLoadingReports ? (
+            <div className="w-full bg-surface/35 backdrop-blur-xl border-2 border-border-subtle rounded-sm p-8 text-center flex flex-col items-center justify-center gap-3">
+              <Activity className="w-8 h-8 text-brand-primary animate-spin" />
+              <p className="text-sm font-mono text-text-muted">Loading your reports...</p>
+            </div>
+          ) : historyReports.length === 0 ? (
             <div className="w-full bg-surface/35 backdrop-blur-xl border-2 border-border-subtle rounded-sm p-8 text-center flex flex-col items-center justify-center gap-3">
               <Clock className="w-8 h-8 text-text-muted" />
-              <p className="text-sm font-mono text-text-muted">No reports match the selected filter category.</p>
+              <p className="text-sm font-mono text-text-muted">
+                {reports.length === 0 ? "You haven't submitted any reports yet." : "No reports match the selected filter category."}
+              </p>
             </div>
           ) : (
             <>

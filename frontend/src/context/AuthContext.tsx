@@ -126,6 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(async () => {
     try {
       sessionStorage.removeItem('esteroute_guest_session');
+      localStorage.removeItem('esteroute_my_reports');
       setIsGuestMode(false);
       await supabase.auth.signOut();
     } catch (error) {
@@ -136,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(null);
       setIsGuestMode(false);
       sessionStorage.removeItem('esteroute_guest_session');
+      localStorage.removeItem('esteroute_my_reports');
     }
   }, []);
 
