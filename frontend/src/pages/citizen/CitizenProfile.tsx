@@ -19,7 +19,7 @@ import {
   KeyRound,
   RotateCw,
   Maximize2,
-  ShieldCheck
+  Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
@@ -92,41 +92,55 @@ interface CitizenProfileData {
   isGuest: boolean;
 }
 
-// Civic Stewardship Tier mapping
+// Civic Stewardship Tiers & Progression
+interface StewardshipTierInfo {
+  title: string;
+  minPts: number;
+  color: string;
+  bg: string;
+}
+
+const ALL_STEWARD_TIERS: StewardshipTierInfo[] = [
+  { title: 'Contributor', minPts: 0, color: 'text-emerald-400', bg: 'bg-emerald-500' },
+  { title: 'Steward', minPts: 50, color: 'text-cyan-400', bg: 'bg-cyan-500' },
+  { title: 'Protector', minPts: 200, color: 'text-blue-400', bg: 'bg-blue-500' },
+  { title: 'Guardian', minPts: 500, color: 'text-amber-400', bg: 'bg-amber-500' },
+];
+
 const getStewardshipTier = (score: number) => {
   if (score >= 500) {
     return {
-      name: 'Level 4 Guardian',
-      colorText: 'text-amber-400',
-      colorBg: 'bg-amber-500/10',
-      colorBorder: 'border-amber-500/30',
-      pulseColor: 'bg-amber-400',
+      title: 'Guardian',
+      titleColor: 'text-amber-400',
+      minPts: 500,
+      nextPts: null,
+      nextTitle: null,
     };
   }
   if (score >= 200) {
     return {
-      name: 'Level 3 Protector',
-      colorText: 'text-blue-400',
-      colorBg: 'bg-blue-500/10',
-      colorBorder: 'border-blue-500/30',
-      pulseColor: 'bg-blue-400',
+      title: 'Protector',
+      titleColor: 'text-blue-400',
+      minPts: 200,
+      nextPts: 500,
+      nextTitle: 'Guardian',
     };
   }
   if (score >= 50) {
     return {
-      name: 'Level 2 Steward',
-      colorText: 'text-cyan-400',
-      colorBg: 'bg-cyan-500/10',
-      colorBorder: 'border-cyan-500/30',
-      pulseColor: 'bg-cyan-400',
+      title: 'Steward',
+      titleColor: 'text-cyan-400',
+      minPts: 50,
+      nextPts: 200,
+      nextTitle: 'Protector',
     };
   }
   return {
-    name: 'Level 1 Contributor',
-    colorText: 'text-emerald-400',
-    colorBg: 'bg-emerald-500/10',
-    colorBorder: 'border-emerald-500/30',
-    pulseColor: 'bg-emerald-400',
+    title: 'Contributor',
+    titleColor: 'text-emerald-400',
+    minPts: 0,
+    nextPts: 50,
+    nextTitle: 'Steward',
   };
 };
 
@@ -597,20 +611,19 @@ export default function CitizenProfile() {
             >
               {/* Modal Top Bar */}
               <div className="w-full flex items-center justify-between text-white px-1">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-brand-primary" />
-                  <span className="text-xs sm:text-sm font-heading font-bold uppercase tracking-wider">
-                    Official Civic Credential
+                <div>
+                  <span className="text-xs sm:text-sm font-heading font-bold uppercase tracking-wider text-text-primary">
+                    Civic Credential
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setIsCardFlipped(prev => !prev)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-surface/80 hover:bg-brand-primary/20 border border-border-strong text-text-primary hover:text-brand-primary transition-all text-xs font-sans font-medium cursor-pointer shadow-xs active:scale-95"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand-primary/10 hover:bg-brand-primary/25 border border-brand-primary/30 text-brand-primary transition-all text-xs font-heading font-semibold uppercase tracking-wider cursor-pointer shadow-xs active:scale-95"
                   >
-                    <RotateCw className="w-3.5 h-3.5" />
-                    <span>Flip Card</span>
+                    <Trophy className="w-3.5 h-3.5" />
+                    <span>{isCardFlipped ? 'View Card' : 'View Levels'}</span>
                   </button>
                   <button
                     type="button"
@@ -648,13 +661,11 @@ export default function CitizenProfile() {
                     {/* Front Header */}
                     <div className="flex items-start justify-between relative z-10 border-b border-border-subtle/80 pb-3">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-widest text-brand-primary">
-                            REPUBLIC OF THE PHILIPPINES
-                          </span>
-                        </div>
+                        <span className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-widest text-brand-primary block">
+                          esteRoute
+                        </span>
                         <h3 className="text-xs sm:text-sm font-heading font-extrabold uppercase tracking-wider text-text-primary mt-0.5">
-                          esteRoute Civic Estero Registry
+                          Civic Card
                         </h3>
                       </div>
 
@@ -702,21 +713,19 @@ export default function CitizenProfile() {
                         </p>
 
                         <div className="mt-1">
-                          <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-baseline justify-between gap-2">
                             <span className="text-xs sm:text-sm font-heading font-bold text-text-primary block truncate">
                               {profile.fullName || 'Citizen Reporter'}
                             </span>
+                            {/* Level Name Display (No Basic Pill) */}
                             {(() => {
                               const currentTier = getStewardshipTier(profile.stewardshipScore);
                               return (
                                 <span className={twMerge(
-                                  "text-[9px] font-semibold px-1.5 py-0.5 rounded-xs font-sans inline-flex items-center gap-1 border shrink-0",
-                                  currentTier.colorText,
-                                  currentTier.colorBg,
-                                  currentTier.colorBorder
+                                  "text-xs sm:text-sm font-heading font-bold uppercase tracking-wider shrink-0",
+                                  currentTier.titleColor
                                 )}>
-                                  <span className={twMerge("w-1 h-1 rounded-full animate-pulse", currentTier.pulseColor)} />
-                                  {currentTier.name}
+                                  {currentTier.title}
                                 </span>
                               );
                             })()}
@@ -740,69 +749,108 @@ export default function CitizenProfile() {
                       </div>
                     </div>
 
-                    {/* Front Footer: Barcode & Hologram */}
+                    {/* Front Footer: Clean Barcode (No SEC-VERIFIED clutter) */}
                     <div className="relative z-10 pt-2 border-t border-border-subtle/70 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center h-4 gap-0.5 opacity-70">
-                          {[3, 6, 2, 8, 4, 2, 7, 3, 5, 2, 8, 4, 3, 6, 2, 5, 8, 2, 4, 7, 3, 6, 2, 8, 3, 5].map((h, i) => (
-                            <span key={i} className="bg-text-muted inline-block w-0.5" style={{ height: `${h * 1.5}px` }} />
-                          ))}
-                        </div>
-                        <span className="text-[9px] font-mono text-text-muted tracking-tighter">SEC-VERIFIED</span>
+                      <div className="flex items-center h-4 gap-0.5 opacity-70">
+                        {[3, 6, 2, 8, 4, 2, 7, 3, 5, 2, 8, 4, 3, 6, 2, 5, 8, 2, 4, 7, 3, 6, 2, 8, 3, 5].map((h, i) => (
+                          <span key={i} className="bg-text-muted inline-block w-0.5" style={{ height: `${h * 1.5}px` }} />
+                        ))}
                       </div>
-                      <span className="text-[9px] font-sans text-brand-primary/80 hover:text-brand-primary flex items-center gap-1">
-                        <span>Click to flip</span>
+                      <span className="text-[10px] font-heading font-semibold uppercase tracking-wider text-brand-primary/80 hover:text-brand-primary flex items-center gap-1">
+                        <span>View Levels</span>
                         <RotateCw className="w-2.5 h-2.5" />
                       </span>
                     </div>
                   </div>
 
-                  {/* ====== BACK FACE ====== */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden border-2 border-border-strong bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-5 sm:p-6 flex flex-col justify-between shadow-2xl">
-                    <BorderBeam delay={3} color="#60A5FA" />
+                  {/* ====== BACK FACE: GAMIFIED LEVEL PROGRESSION ====== */}
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden border-2 border-brand-primary/40 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-5 sm:p-6 flex flex-col justify-between shadow-2xl">
+                    <BorderBeam delay={2} color="#38BDF8" />
                     
-                    {/* Magnetic Stripe representation */}
-                    <div className="absolute top-4 inset-x-0 h-8 sm:h-9 bg-black/90 border-y border-border-subtle/50 pointer-events-none" />
+                    {/* Progression Header */}
+                    <div className="relative z-10 border-b border-border-subtle/80 pb-2.5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
+                            LEVEL PROGRESSION
+                          </span>
+                          <h4 className="text-sm font-heading font-extrabold uppercase tracking-wider text-text-primary">
+                            {profile.stewardshipScore} Points Earned
+                          </h4>
+                        </div>
+                        {(() => {
+                          const tier = getStewardshipTier(profile.stewardshipScore);
+                          return (
+                            <div className="text-right">
+                              <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-brand-primary block">
+                                {tier.nextPts 
+                                  ? `${tier.nextPts - profile.stewardshipScore} PTS TO ${tier.nextTitle?.toUpperCase()}`
+                                  : 'MAX TIER ACHIEVED'}
+                              </span>
+                              <span className="text-[9px] text-text-muted font-sans block">
+                                Current: {tier.title}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </div>
 
-                    {/* Back Header */}
-                    <div className="pt-8 sm:pt-9 relative z-10">
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
-                        STEWARDSHIP PROGRAM GUIDELINES
-                      </span>
-                      <h4 className="text-xs sm:text-sm font-heading font-bold text-text-primary">
-                        How to Earn Credits & Waterway Honors
-                      </h4>
+                      {/* Continuous Visual Progress Bar (0 to 500 PTS) */}
+                      <div className="w-full bg-app-bg/80 h-2 rounded-full mt-3 overflow-hidden border border-border-subtle relative p-0.5">
+                        <div 
+                          className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-amber-400 rounded-full transition-all duration-700"
+                          style={{ width: `${Math.min(100, Math.max(5, (profile.stewardshipScore / 500) * 100))}%` }}
+                        />
+                      </div>
                     </div>
 
-                    {/* Instructions List Skeleton */}
-                    <div className="flex flex-col gap-2 relative z-10 font-sans text-xs my-auto">
-                      <div className="flex items-start gap-2 bg-app-bg/60 p-2 rounded-xs border border-border-subtle">
-                        <span className="font-mono font-bold text-brand-primary shrink-0">+15 PTS</span>
-                        <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
-                          Submit verified blockage reports with clear photographic and geolocation telemetry.
-                        </span>
-                      </div>
+                    {/* Gamified 4-Tier Grid */}
+                    <div className="grid grid-cols-4 gap-2 relative z-10 my-auto py-2">
+                      {ALL_STEWARD_TIERS.map((tier) => {
+                        const isUnlocked = profile.stewardshipScore >= tier.minPts;
+                        const isCurrent = getStewardshipTier(profile.stewardshipScore).title === tier.title;
 
-                      <div className="flex items-start gap-2 bg-app-bg/60 p-2 rounded-xs border border-border-subtle">
-                        <span className="font-mono font-bold text-emerald-400 shrink-0">+50 PTS</span>
-                        <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
-                          Clearance Bonus awarded when cleaning units officially resolve and unclog the waterway.
-                        </span>
-                      </div>
+                        return (
+                          <div
+                            key={tier.title}
+                            className={twMerge(
+                              "flex flex-col items-center text-center p-2 rounded-sm border transition-all duration-300 relative",
+                              isCurrent
+                                ? "bg-brand-primary/10 border-brand-primary shadow-md ring-1 ring-brand-primary/30"
+                                : isUnlocked
+                                  ? "bg-app-bg/70 border-border-subtle/80"
+                                  : "bg-app-bg/30 border-border-subtle/40 opacity-55"
+                            )}
+                          >
+                            {/* Checkmark or Lock Status */}
+                            <div className={twMerge(
+                              "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mb-1",
+                              isUnlocked ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-surface text-text-muted border border-border-subtle"
+                            )}>
+                              {isUnlocked ? <Check className="w-3 h-3 text-emerald-400" /> : <Lock className="w-2.5 h-2.5 text-text-muted" />}
+                            </div>
 
-                      <div className="flex items-start gap-2 bg-app-bg/60 p-2 rounded-xs border border-border-subtle">
-                        <span className="font-mono font-bold text-amber-400 shrink-0">LEVELS</span>
-                        <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
-                          Unlock trusted reporter standing, priority flood dispatch alerts, and barangay civic honors.
-                        </span>
-                      </div>
+                            <span className={twMerge(
+                              "text-xs font-heading font-bold uppercase tracking-wider block",
+                              isCurrent ? "text-brand-primary" : isUnlocked ? tier.color : "text-text-muted"
+                            )}>
+                              {tier.title}
+                            </span>
+
+                            <span className="text-[10px] font-mono text-text-muted mt-0.5 block">
+                              {tier.minPts} PTS
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
 
-                    {/* Back Disclaimer Footer */}
-                    <div className="relative z-10 pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[9px] text-text-muted font-sans">
-                      <span>Certified by esteRoute Waterway Network</span>
-                      <span className="text-brand-primary flex items-center gap-1 font-mono">
-                        <span>Flip back ↺</span>
+                    {/* Progression Quick Info & Flip back */}
+                    <div className="relative z-10 pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[10px] text-text-muted font-sans">
+                      <span>+15 pts / report • +50 pts / clearance</span>
+                      <span className="text-brand-primary font-heading font-semibold uppercase tracking-wider flex items-center gap-1 cursor-pointer hover:underline">
+                        <span>Card View</span>
+                        <RotateCw className="w-2.5 h-2.5" />
                       </span>
                     </div>
                   </div>
@@ -1325,7 +1373,7 @@ export default function CitizenProfile() {
                   </div>
                 </div>
 
-                {/* 2. Stewardship Credits Box (Uncluttered Professional Header) */}
+                {/* 2. Stewardship Credits Box (Clean Uncluttered Header) */}
                 <div className="bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-inner relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-brand-primary/10 to-transparent pointer-events-none" />
                   <div className="flex flex-col relative z-10">
@@ -1339,16 +1387,6 @@ export default function CitizenProfile() {
                       </span>
                       <span className="text-xs font-bold text-text-muted uppercase tracking-wider">PTS</span>
                     </div>
-                  </div>
-
-                  <div className="text-right relative z-10">
-                    <span className="text-[11px] font-mono font-semibold text-text-muted uppercase tracking-wider block">
-                      CIVIC CREDENTIAL
-                    </span>
-                    <span className="text-[10px] text-brand-primary font-sans mt-0.5 inline-flex items-center gap-1 group-hover:underline">
-                      <span>Click to expand</span>
-                      <span>&rarr;</span>
-                    </span>
                   </div>
                 </div>
 
