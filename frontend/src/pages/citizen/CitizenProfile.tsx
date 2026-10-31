@@ -26,6 +26,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
+import { useAuth } from '../../context/AuthContext';
+import ConfirmExitModal from '../../components/common/ConfirmExitModal';
 import { supabase } from '../../lib/supabase';
 
 // Built-in adventurer avatar options matching the mobile app
@@ -158,6 +160,28 @@ const getPasswordStrength = (pass: string) => {
 
 export default function CitizenProfile() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+  const [exitModalConfig, setExitModalConfig] = useState<{
+    isOpen: boolean;
+    intent: 'login' | 'register' | 'logout';
+  }>({
+    isOpen: false,
+    intent: 'logout'
+  });
+
+  const openExitModal = (intent: 'login' | 'register' | 'logout') => {
+    setExitModalConfig({ isOpen: true, intent });
+  };
+
+  const handleConfirmExit = async () => {
+    setExitModalConfig(prev => ({ ...prev, isOpen: false }));
+    try {
+      await logout();
+    } catch (e) {
+      console.error('Error during logout:', e);
+    }
+    navigate('/login');
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Profile and Auth States
@@ -586,16 +610,7 @@ export default function CitizenProfile() {
     }
   };
 
-  // 5. Handle Sign Out
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      navigate('/login');
-    } catch (err) {
-      console.error('Sign out error:', err);
-      navigate('/login');
-    }
-  };
+
 
 
   return (
@@ -1327,18 +1342,20 @@ export default function CitizenProfile() {
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto font-sans">
-                <Link
-                  to="/login"
+                <button
+                  type="button"
+                  onClick={() => openExitModal('login')}
                   className="w-full sm:w-auto px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-semibold text-xs rounded-sm transition-all text-center shadow-xs -skew-x-3 sm:-skew-x-6 cursor-pointer active:scale-95"
                 >
                   <span className="skew-x-3 sm:skew-x-6 block">Sign In</span>
-                </Link>
-                <Link
-                  to="/register"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openExitModal('register')}
                   className="w-full sm:w-auto px-4 py-2 bg-surface hover:bg-surface/80 border border-border-strong text-text-primary font-semibold text-xs rounded-sm transition-all text-center -skew-x-3 sm:-skew-x-6 cursor-pointer active:scale-95"
                 >
                   <span className="skew-x-3 sm:skew-x-6 block">Register</span>
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -1429,13 +1446,14 @@ export default function CitizenProfile() {
                     <p className="text-xs text-text-muted">
                       Customizing avatar presets is available for registered citizens.
                     </p>
-                    <Link
-                      to="/login"
-                      className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-brand-primary hover:text-brand-secondary hover:underline transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => openExitModal('login')}
+                      className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-brand-primary hover:text-brand-secondary hover:underline transition-colors cursor-pointer"
                     >
                       <span>Sign in or register an account</span>
                       <ChevronRight className="w-3.5 h-3.5" />
-                    </Link>
+                    </button>
                   </div>
                 ) : (
                   <div className="w-full mt-4 pt-3 border-t border-border-subtle/70">
@@ -1600,13 +1618,14 @@ export default function CitizenProfile() {
 
                   {/* Call to action */}
                   <div className="pt-2 border-t border-border-subtle/70">
-                    <Link
-                      to="/login"
+                    <button
+                      type="button"
+                      onClick={() => openExitModal('register')}
                       className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-sm bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold text-xs uppercase tracking-wider transition-all shadow-xs cursor-pointer active:scale-95"
                     >
                       <span>Register to Claim Steward ID</span>
                       <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1755,12 +1774,13 @@ export default function CitizenProfile() {
                         You are in <strong>Guest Mode</strong>. Profile details and contact synchronization require an account.
                       </span>
                     </div>
-                    <Link
-                      to="/login"
-                      className="text-brand-primary hover:text-brand-secondary hover:underline font-semibold shrink-0"
+                    <button
+                      type="button"
+                      onClick={() => openExitModal('login')}
+                      className="text-brand-primary hover:text-brand-secondary hover:underline font-semibold shrink-0 cursor-pointer"
                     >
                       Sign In / Register &rarr;
-                    </Link>
+                    </button>
                   </div>
                 )}
 
@@ -1927,7 +1947,7 @@ export default function CitizenProfile() {
 
                   <button 
                     type="button"
-                    onClick={handleSignOut}
+                    onClick={() => openExitModal('logout')}
                     className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-semantic-urgent transition-colors bg-app-bg/60 text-left group/sec cursor-pointer w-full shadow-xs"
                   >
                     <span className="text-xs sm:text-sm font-medium text-semantic-urgent">
@@ -1943,6 +1963,15 @@ export default function CitizenProfile() {
         </div>
 
       </div>
+
+      {/* Session Exit / Logout Confirmation Modal */}
+      <ConfirmExitModal
+        isOpen={exitModalConfig.isOpen}
+        onClose={() => setExitModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmExit}
+        isGuest={profile.isGuest}
+        intent={exitModalConfig.intent}
+      />
     </div>
   );
 }

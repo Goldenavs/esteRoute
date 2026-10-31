@@ -7,6 +7,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect } from 'react';
 import TacticalBackground from '../components/common/TacticalBackground';
+import ConfirmExitModal from '../components/common/ConfirmExitModal';
 
 const AnimatedNavLink = ({ 
   title, 
@@ -38,12 +39,14 @@ const AnimatedNavLink = ({
 
 export default function CitizenLayout() {
   const { theme, toggleTheme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, isGuestMode } = useAuth();
+  const [isConfirmExitOpen, setIsConfirmExitOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [isNavVisible, setIsNavVisible] = useState(true);
 
-  const handleLogout = async () => {
+  const handleConfirmLogout = async () => {
+    setIsConfirmExitOpen(false);
     await logout();
     navigate('/login');
   };
@@ -162,10 +165,10 @@ export default function CitizenLayout() {
 
                 <button 
                   type="button"
-                  onClick={handleLogout}
+                  onClick={() => setIsConfirmExitOpen(true)}
                   className="text-xs xl:text-sm font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto cursor-pointer"
                 >
-                  Logout
+                  {isGuestMode ? 'Leave Session' : 'Logout'}
                 </button>
               </div>
 
@@ -189,6 +192,15 @@ export default function CitizenLayout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Session Exit / Logout Confirmation Modal */}
+      <ConfirmExitModal
+        isOpen={isConfirmExitOpen}
+        onClose={() => setIsConfirmExitOpen(false)}
+        onConfirm={handleConfirmLogout}
+        isGuest={isGuestMode}
+        intent="logout"
+      />
 
       {/* Mobile Bottom Tab Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-md border-t border-border-subtle z-50 flex justify-around items-center px-2 py-3 pb-safe shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
