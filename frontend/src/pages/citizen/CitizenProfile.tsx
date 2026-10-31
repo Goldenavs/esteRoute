@@ -169,11 +169,10 @@ export default function CitizenProfile() {
           }
 
           if (isMounted) {
-            const defaultGuestAvatar = AVATAR_OPTIONS[1];
             setProfile({
               id: 'guest',
               fullName: 'Guest Reporter',
-              avatarUrl: defaultGuestAvatar,
+              avatarUrl: '',
               stewardshipScore: guestResolvedReports * 50 + guestTotalReports * 10,
               role: 'citizen',
               phone: '',
@@ -184,7 +183,7 @@ export default function CitizenProfile() {
             });
             setFullName('Guest Reporter');
             setPhoneNumber('');
-            setSelectedAvatarIndex(1);
+            setSelectedAvatarIndex(-1);
             setIsLoading(false);
           }
           return;
@@ -216,7 +215,7 @@ export default function CitizenProfile() {
           setSelectedAvatarIndex(0);
           setCustomProfileImage(initialAvatarUrl);
         } else {
-          setSelectedAvatarIndex(1);
+          setSelectedAvatarIndex(-1);
         }
 
         // Query user's actual submitted reports from 'reports' table
@@ -800,6 +799,10 @@ export default function CitizenProfile() {
                       <div className="w-full h-full flex items-center justify-center bg-surface">
                         <Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
                       </div>
+                    ) : profile.isGuest || !profile.avatarUrl ? (
+                      <div className="w-full h-full flex items-center justify-center bg-surface/80 text-text-muted">
+                        <User className="w-10 h-10 sm:w-12 sm:h-12 text-text-muted/60" />
+                      </div>
                     ) : (
                       <img 
                         src={profile.avatarUrl} 
@@ -981,19 +984,14 @@ export default function CitizenProfile() {
                 <div className="flex items-center justify-between pt-1">
                   <div className="flex items-center gap-3">
                     {profile.isGuest ? (
-                      <>
+                      <div className="flex items-center gap-3">
                         <div className="w-11 h-8 rounded-sm bg-surface/60 border border-border-subtle shadow-xs relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
                           <User className="w-4 h-4 text-text-muted" />
                         </div>
-                        <div>
-                          <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted block">
-                            SESSION STATUS
-                          </span>
-                          <p className="text-sm sm:text-base font-mono font-bold text-text-muted tracking-wide">
-                            GUEST REPORTER
-                          </p>
-                        </div>
-                      </>
+                        <p className="text-sm sm:text-base font-mono font-bold text-text-primary tracking-wide">
+                          GUEST REPORTER
+                        </p>
+                      </div>
                     ) : (
                       <>
                         {/* Realistic Metallic Gold Contact Pad / Smart Microchip */}
@@ -1085,7 +1083,7 @@ export default function CitizenProfile() {
         </div>
 
         {/* Right Column (Personal Information Form & Preferences) */}
-        <div className="lg:col-span-8 flex flex-col gap-6 h-full justify-between">
+        <div className="lg:col-span-8 flex flex-col gap-6 h-full">
           
           {/* Personal Information Form */}
           <motion.div
@@ -1137,11 +1135,11 @@ export default function CitizenProfile() {
                       <input 
                         id="profile-full-name"
                         type="text" 
-                        value={fullName}
+                        value={profile.isGuest ? 'N/A' : fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         disabled={profile.isGuest}
                         readOnly={profile.isGuest}
-                        placeholder="Enter your full name"
+                        placeholder={profile.isGuest ? 'N/A' : 'Enter your full name'}
                         className={twMerge(
                           "w-full bg-app-bg border rounded-sm px-3.5 py-2.5 text-sm font-sans transition-colors",
                           profile.isGuest 
@@ -1163,7 +1161,7 @@ export default function CitizenProfile() {
                         <input 
                           id="profile-email"
                           type="email" 
-                          value={profile.email || (profile.isGuest ? 'guest@esteroute.local' : 'citizen@esteroute.local')}
+                          value={profile.isGuest ? 'N/A' : (profile.email || 'citizen@esteroute.local')}
                           readOnly
                           disabled
                           className="w-full bg-app-bg/40 border border-border-subtle rounded-sm pl-10 pr-4 py-2.5 text-text-muted text-sm font-sans cursor-not-allowed select-none" 
@@ -1177,29 +1175,33 @@ export default function CitizenProfile() {
                         Mobile Phone Number
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted font-mono font-medium text-sm z-10">
-                          +63
-                        </span>
+                        {!profile.isGuest && (
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted font-mono font-medium text-sm z-10">
+                            +63
+                          </span>
+                        )}
                         <input 
                           id="profile-phone"
-                          type="tel" 
-                          value={phoneNumber}
+                          type={profile.isGuest ? "text" : "tel"} 
+                          value={profile.isGuest ? 'N/A' : phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
                           disabled={profile.isGuest}
                           readOnly={profile.isGuest}
-                          placeholder={profile.isGuest ? "Not configured in guest session" : "9XX XXX XXXX"}
+                          placeholder={profile.isGuest ? "N/A" : "9XX XXX XXXX"}
                           maxLength={15}
                           className={twMerge(
-                            "w-full bg-app-bg border rounded-sm pl-13 pr-4 py-2.5 text-sm font-mono transition-colors",
+                            "w-full bg-app-bg border rounded-sm py-2.5 text-sm font-mono transition-colors",
                             profile.isGuest 
-                              ? "border-border-subtle text-text-muted bg-app-bg/50 cursor-not-allowed select-none" 
-                              : "border-border-strong text-text-primary focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                              ? "border-border-subtle text-text-muted bg-app-bg/50 cursor-not-allowed select-none px-3.5" 
+                              : "border-border-strong text-text-primary focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary pl-13 pr-4"
                           )}
                         />
                       </div>
-                      <span className="text-xs text-text-muted mt-0.5 font-sans leading-normal">
-                        Used for localized emergency waterway flood dispatch advisories.
-                      </span>
+                      {!profile.isGuest && (
+                        <span className="text-xs text-text-muted mt-0.5 font-sans leading-normal">
+                          Used for localized emergency waterway flood dispatch advisories.
+                        </span>
+                      )}
                     </div>
                   </div>
                   
@@ -1230,28 +1232,36 @@ export default function CitizenProfile() {
             </div>
           </motion.div>
 
-          {/* Account & Security Card */}
+          {/* Account & Security Card (Fills remaining column height) */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.2 }}
-            className="w-full shrink-0"
+            className="w-full flex-1 flex flex-col min-h-0"
           >
-            <div className="w-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
+            <div className="w-full h-full flex-1 flex flex-col justify-between bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
               <BorderBeam delay={2.5} color="#60A5FA" />
               <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
 
-              <div className="skew-x-2 sm:skew-x-3 relative z-10">
-                <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-subtle">
-                  <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
-                    <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
-                      <Lock className="w-4 h-4 skew-x-6" />
-                    </div>
-                    <span>Security & Session</span>
-                  </h2>
+              <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10">
+                <div>
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-subtle">
+                    <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
+                      <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
+                        <Lock className="w-4 h-4 skew-x-6" />
+                      </div>
+                      <span>Security & Session</span>
+                    </h2>
+                  </div>
+
+                  <p className="text-xs text-text-muted font-sans mb-4 leading-relaxed">
+                    {profile.isGuest 
+                      ? "Your temporary session data is saved locally on this browser. Leaving will end your session on this device."
+                      : "Manage your credentials and authenticate securely across official waterway reporting services."}
+                  </p>
                 </div>
 
-                <div className="flex flex-col gap-3 font-sans">
+                <div className="flex flex-col gap-3 font-sans mt-auto">
                   {/* Change Password (Citizens Only) */}
                   {!profile.isGuest && (
                     <button 
