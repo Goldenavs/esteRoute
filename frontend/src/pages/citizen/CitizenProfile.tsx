@@ -186,6 +186,9 @@ export default function CitizenProfile() {
   const [selectedAvatarIndex, setSelectedAvatarIndex] = useState<number>(1);
   const [customProfileImage, setCustomProfileImage] = useState<string | null>(null);
   const avatarSliderRef = useRef<HTMLDivElement>(null);
+  const [isAvatarDragging, setIsAvatarDragging] = useState(false);
+  const [avatarStartX, setAvatarStartX] = useState(0);
+  const [avatarScrollStart, setAvatarScrollStart] = useState(0);
 
   // Stewardship ID Modal, Levels Modal & Zoom State
   const [isIdModalOpen, setIsIdModalOpen] = useState(false);
@@ -438,6 +441,33 @@ export default function CitizenProfile() {
     if (avatarSliderRef.current) {
       const scrollAmount = direction === 'left' ? -160 : 160;
       avatarSliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  // Mouse Drag-to-Scroll & Wheel handlers for Avatar Preset Container
+  const handleAvatarMouseDown = (e: React.MouseEvent) => {
+    if (!avatarSliderRef.current) return;
+    setIsAvatarDragging(true);
+    setAvatarStartX(e.pageX - avatarSliderRef.current.offsetLeft);
+    setAvatarScrollStart(avatarSliderRef.current.scrollLeft);
+  };
+
+  const handleAvatarMouseMove = (e: React.MouseEvent) => {
+    if (!isAvatarDragging || !avatarSliderRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - avatarSliderRef.current.offsetLeft;
+    const walk = (x - avatarStartX) * 1.5;
+    avatarSliderRef.current.scrollLeft = avatarScrollStart - walk;
+  };
+
+  const handleAvatarMouseUpOrLeave = () => {
+    setIsAvatarDragging(false);
+  };
+
+  const handleAvatarWheel = (e: React.WheelEvent) => {
+    if (!avatarSliderRef.current) return;
+    if (e.deltaY !== 0) {
+      avatarSliderRef.current.scrollLeft += e.deltaY;
     }
   };
 
@@ -1040,25 +1070,25 @@ export default function CitizenProfile() {
               className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             />
 
-            {/* Modal Dialog */}
+            {/* Modal Dialog (Clean Unskewed Geometry) */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="relative w-full max-w-md z-10 -skew-x-2 sm:-skew-x-3"
+              className="relative w-full max-w-md z-10"
             >
-              <div className="w-full bg-surface border-2 border-brand-primary/60 rounded-sm p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+              <div className="w-full bg-surface/95 border-2 border-brand-primary/60 rounded-lg p-6 sm:p-7 shadow-2xl relative overflow-hidden backdrop-blur-xl">
                 <BorderBeam delay={0} color="#60A5FA" />
-                <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
+                <div className="absolute top-0 left-0 w-2.5 h-full bg-brand-primary" />
                 
-                {/* Upright Content Wrapper */}
-                <div className="skew-x-2 sm:skew-x-3 relative z-10 font-sans">
+                {/* Content Wrapper */}
+                <div className="relative z-10 font-sans">
                   {/* Modal Header */}
                   <div className="flex items-center justify-between pb-4 mb-4 border-b border-border-subtle">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-2 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
-                        <Lock className="w-4 h-4 skew-x-6" />
+                      <div className="p-2 bg-brand-primary/10 rounded-sm text-brand-primary shadow-xs">
+                        <Lock className="w-4 h-4" />
                       </div>
                       <div>
                         <h3 className="text-base font-heading font-bold uppercase tracking-wider text-text-primary">
@@ -1198,31 +1228,31 @@ export default function CitizenProfile() {
                       Must contain at least 6 characters. Your current session will remain authenticated.
                     </p>
 
-                    {/* Modal Actions */}
+                    {/* Modal Actions (Clean Unskewed Buttons) */}
                     <div className="flex items-center justify-end gap-3 pt-3 border-t border-border-subtle mt-5">
                       <button
                         type="button"
                         onClick={() => setIsPasswordModalOpen(false)}
                         disabled={isUpdatingPassword}
-                        className="px-4 py-2 border border-border-strong rounded-sm text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-app-bg transition-colors cursor-pointer -skew-x-3 sm:-skew-x-6"
+                        className="px-4 py-2 border border-border-strong rounded-sm text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-app-bg transition-colors cursor-pointer"
                       >
-                        <span className="skew-x-3 sm:skew-x-6 block">Cancel</span>
+                        Cancel
                       </button>
 
                       <button
                         type="submit"
                         disabled={isUpdatingPassword}
-                        className="px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
+                        className="px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs rounded-sm transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
                       >
                         {isUpdatingPassword ? (
                           <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin skew-x-3 sm:skew-x-6" />
-                            <span className="skew-x-3 sm:skew-x-6">Updating...</span>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Updating...</span>
                           </>
                         ) : (
                           <>
-                            <Check className="w-3.5 h-3.5 skew-x-3 sm:skew-x-6" />
-                            <span className="skew-x-3 sm:skew-x-6">Update Password</span>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Update Password</span>
                           </>
                         )}
                       </button>
@@ -1436,10 +1466,18 @@ export default function CitizenProfile() {
                       </div>
                     </div>
 
-                    {/* Horizontal Scroll / Swipe Container */}
+                    {/* Horizontal Scroll / Drag-to-Swipe Container */}
                     <div 
                       ref={avatarSliderRef}
-                      className="w-full flex items-center gap-2.5 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory select-none"
+                      onMouseDown={handleAvatarMouseDown}
+                      onMouseMove={handleAvatarMouseMove}
+                      onMouseUp={handleAvatarMouseUpOrLeave}
+                      onMouseLeave={handleAvatarMouseUpOrLeave}
+                      onWheel={handleAvatarWheel}
+                      className={twMerge(
+                        "w-full flex items-center gap-2.5 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory select-none transition-all",
+                        isAvatarDragging ? "cursor-grabbing" : "cursor-grab"
+                      )}
                       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
                       {/* Slot 0: Custom Device Upload */}
@@ -1499,7 +1537,7 @@ export default function CitizenProfile() {
                     </div>
 
                     <p className="text-[10px] text-text-muted text-center font-sans mt-1">
-                      Swipe or click to choose a preset, or upload your own.
+                      Drag, scroll, or click to choose a preset, or upload your own.
                     </p>
                   </div>
                 )}
