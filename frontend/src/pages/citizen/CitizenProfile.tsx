@@ -13,11 +13,13 @@ import {
   Check,
   Sparkles,
   Mail,
-  Cpu,
   X,
   Eye,
   EyeOff,
-  KeyRound
+  KeyRound,
+  RotateCw,
+  Maximize2,
+  ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
@@ -158,6 +160,10 @@ export default function CitizenProfile() {
   const [selectedAvatarIndex, setSelectedAvatarIndex] = useState<number>(1);
   const [customProfileImage, setCustomProfileImage] = useState<string | null>(null);
   const avatarSliderRef = useRef<HTMLDivElement>(null);
+
+  // Stewardship ID Modal & Flip State
+  const [isIdModalOpen, setIsIdModalOpen] = useState(false);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   // Change Password Modal State
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -562,6 +568,254 @@ export default function CitizenProfile() {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+            {/* Interactive 3D Stewardship ID Credential Modal */}
+      <AnimatePresence>
+        {isIdModalOpen && (
+          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+            {/* Backdrop Blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsIdModalOpen(false);
+                setIsCardFlipped(false);
+              }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
+            />
+
+            {/* Modal Dialog Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative z-10 w-full max-w-lg flex flex-col items-center gap-4"
+            >
+              {/* Modal Top Bar */}
+              <div className="w-full flex items-center justify-between text-white px-1">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-brand-primary" />
+                  <span className="text-xs sm:text-sm font-heading font-bold uppercase tracking-wider">
+                    Official Civic Credential
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCardFlipped(prev => !prev)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-surface/80 hover:bg-brand-primary/20 border border-border-strong text-text-primary hover:text-brand-primary transition-all text-xs font-sans font-medium cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                    <span>Flip Card</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsIdModalOpen(false);
+                      setIsCardFlipped(false);
+                    }}
+                    className="p-1.5 rounded-sm bg-surface/80 hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer"
+                    aria-label="Close credential viewer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 3D Flippable Physical ID Container */}
+              <div 
+                className="w-full h-[290px] sm:h-[320px] relative cursor-pointer select-none [perspective:1000px]"
+                onClick={() => setIsCardFlipped(prev => !prev)}
+                title="Click to flip credential"
+              >
+                <div 
+                  className={twMerge(
+                    "w-full h-full relative transition-transform duration-700 [transform-style:preserve-3d] rounded-xl shadow-2xl",
+                    isCardFlipped ? "[transform:rotateY(180deg)]" : ""
+                  )}
+                >
+                  {/* ====== FRONT FACE ====== */}
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] rounded-xl overflow-hidden border-2 border-brand-primary/50 bg-gradient-to-br from-slate-900 via-brand-dark/95 to-slate-950 p-5 sm:p-6 flex flex-col justify-between shadow-2xl">
+                    {/* Metallic Border Beam highlight */}
+                    <BorderBeam delay={0} color="#38BDF8" />
+                    <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-emerald-400" />
+                    <div className="absolute top-0 right-0 w-44 h-44 bg-gradient-to-bl from-brand-primary/25 via-brand-secondary/15 to-transparent pointer-events-none rounded-bl-full" />
+
+                    {/* Front Header */}
+                    <div className="flex items-start justify-between relative z-10 border-b border-border-subtle/80 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-widest text-brand-primary">
+                            REPUBLIC OF THE PHILIPPINES
+                          </span>
+                        </div>
+                        <h3 className="text-xs sm:text-sm font-heading font-extrabold uppercase tracking-wider text-text-primary mt-0.5">
+                          esteRoute Civic Estero Registry
+                        </h3>
+                      </div>
+
+                      {/* Golden Microchip */}
+                      <div className="w-12 h-9 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
+                        <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
+                          <div className="border-r border-b border-amber-800/50" />
+                          <div className="border-b border-amber-800/50" />
+                          <div className="border-r border-amber-800/50" />
+                          <div />
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Front Body: Photo & Credentials */}
+                    <div className="flex items-center gap-4 sm:gap-5 relative z-10 py-2">
+                      {/* Photo / Avatar frame */}
+                      <div className="w-18 h-22 sm:w-20 sm:h-24 rounded-sm border-2 border-brand-primary/60 bg-surface/70 shadow-md overflow-hidden shrink-0 relative flex items-center justify-center p-0.5">
+                        {profile.isGuest || !profile.avatarUrl ? (
+                          <div className="w-full h-full flex items-center justify-center bg-app-bg text-text-muted">
+                            <User className="w-10 h-10 text-text-muted/60" />
+                          </div>
+                        ) : (
+                          <img 
+                            src={profile.avatarUrl} 
+                            alt={profile.fullName} 
+                            className="w-full h-full object-cover rounded-xs"
+                          />
+                        )}
+                        <span className="absolute bottom-0 inset-x-0 bg-brand-primary/90 text-[8px] font-mono font-bold text-black uppercase text-center py-0.5 tracking-tighter">
+                          {profile.isGuest ? 'GUEST' : 'CITIZEN'}
+                        </span>
+                      </div>
+
+                      {/* Citizen Info & Stats */}
+                      <div className="flex-1 flex flex-col justify-center min-w-0">
+                        <span className="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-text-muted">
+                          STEWARD REGISTRY ID
+                        </span>
+                        <p className="text-base sm:text-xl font-mono font-bold text-brand-primary tracking-widest truncate">
+                          {profile.isGuest 
+                            ? 'EST-GUEST-SYS' 
+                            : `EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
+                        </p>
+
+                        <div className="mt-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-xs sm:text-sm font-heading font-bold text-text-primary block truncate">
+                              {profile.fullName || 'Citizen Reporter'}
+                            </span>
+                            {(() => {
+                              const currentTier = getStewardshipTier(profile.stewardshipScore);
+                              return (
+                                <span className={twMerge(
+                                  "text-[9px] font-semibold px-1.5 py-0.5 rounded-xs font-sans inline-flex items-center gap-1 border shrink-0",
+                                  currentTier.colorText,
+                                  currentTier.colorBg,
+                                  currentTier.colorBorder
+                                )}>
+                                  <span className={twMerge("w-1 h-1 rounded-full animate-pulse", currentTier.pulseColor)} />
+                                  {currentTier.name}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                          <span className="text-[10px] sm:text-xs text-text-muted font-sans block truncate">
+                            {profile.isGuest ? 'Anonymous Session' : (profile.email || 'Verified Volunteer')}
+                          </span>
+                        </div>
+
+                        {/* Credits & Clearance telemetry badge */}
+                        <div className="flex items-center gap-3 mt-2 font-mono text-[10px] sm:text-xs">
+                          <div className="bg-app-bg/80 px-2 py-0.5 rounded-xs border border-border-subtle">
+                            <span className="text-text-muted">CREDITS: </span>
+                            <span className="font-bold text-brand-primary">{profile.stewardshipScore} PTS</span>
+                          </div>
+                          <div className="bg-app-bg/80 px-2 py-0.5 rounded-xs border border-border-subtle">
+                            <span className="text-text-muted">CLEARED: </span>
+                            <span className="font-bold text-emerald-400">{profile.resolvedReportsCount}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Front Footer: Barcode & Hologram */}
+                    <div className="relative z-10 pt-2 border-t border-border-subtle/70 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center h-4 gap-0.5 opacity-70">
+                          {[3, 6, 2, 8, 4, 2, 7, 3, 5, 2, 8, 4, 3, 6, 2, 5, 8, 2, 4, 7, 3, 6, 2, 8, 3, 5].map((h, i) => (
+                            <span key={i} className="bg-text-muted inline-block w-0.5" style={{ height: `${h * 1.5}px` }} />
+                          ))}
+                        </div>
+                        <span className="text-[9px] font-mono text-text-muted tracking-tighter">SEC-VERIFIED</span>
+                      </div>
+                      <span className="text-[9px] font-sans text-brand-primary/80 hover:text-brand-primary flex items-center gap-1">
+                        <span>Click to flip</span>
+                        <RotateCw className="w-2.5 h-2.5" />
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ====== BACK FACE ====== */}
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden border-2 border-border-strong bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-5 sm:p-6 flex flex-col justify-between shadow-2xl">
+                    <BorderBeam delay={3} color="#60A5FA" />
+                    
+                    {/* Magnetic Stripe representation */}
+                    <div className="absolute top-4 inset-x-0 h-8 sm:h-9 bg-black/90 border-y border-border-subtle/50 pointer-events-none" />
+
+                    {/* Back Header */}
+                    <div className="pt-8 sm:pt-9 relative z-10">
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
+                        STEWARDSHIP PROGRAM GUIDELINES
+                      </span>
+                      <h4 className="text-xs sm:text-sm font-heading font-bold text-text-primary">
+                        How to Earn Credits & Waterway Honors
+                      </h4>
+                    </div>
+
+                    {/* Instructions List Skeleton */}
+                    <div className="flex flex-col gap-2 relative z-10 font-sans text-xs my-auto">
+                      <div className="flex items-start gap-2 bg-app-bg/60 p-2 rounded-xs border border-border-subtle">
+                        <span className="font-mono font-bold text-brand-primary shrink-0">+15 PTS</span>
+                        <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
+                          Submit verified blockage reports with clear photographic and geolocation telemetry.
+                        </span>
+                      </div>
+
+                      <div className="flex items-start gap-2 bg-app-bg/60 p-2 rounded-xs border border-border-subtle">
+                        <span className="font-mono font-bold text-emerald-400 shrink-0">+50 PTS</span>
+                        <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
+                          Clearance Bonus awarded when cleaning units officially resolve and unclog the waterway.
+                        </span>
+                      </div>
+
+                      <div className="flex items-start gap-2 bg-app-bg/60 p-2 rounded-xs border border-border-subtle">
+                        <span className="font-mono font-bold text-amber-400 shrink-0">LEVELS</span>
+                        <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
+                          Unlock trusted reporter standing, priority flood dispatch alerts, and barangay civic honors.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Back Disclaimer Footer */}
+                    <div className="relative z-10 pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[9px] text-text-muted font-sans">
+                      <span>Certified by esteRoute Waterway Network</span>
+                      <span className="text-brand-primary flex items-center gap-1 font-mono">
+                        <span>Flip back ↺</span>
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Modal Hint */}
+              <p className="text-xs text-text-muted text-center font-sans">
+                Click anywhere on the ID card to flip between front credentials and program rules.
+              </p>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -1006,12 +1260,16 @@ export default function CitizenProfile() {
             </div>
           </motion.div>
 
-          {/* Unique Civic Stewardship Smart Credential Card (Fills remaining height) */}
+          {/* Unique Civic Stewardship Smart Credential Card (Preview - Click to inspect full ID) */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.1 }}
-            className="w-full flex-1 flex flex-col min-h-0"
+            className="w-full flex-1 flex flex-col min-h-0 cursor-pointer"
+            onClick={() => {
+              setIsCardFlipped(false);
+              setIsIdModalOpen(true);
+            }}
           >
             <div className="w-full h-full flex-1 flex flex-col justify-between bg-gradient-to-br from-surface/90 via-app-bg/95 to-brand-primary/15 hover:from-surface hover:via-surface/80 hover:to-brand-primary/25 backdrop-blur-2xl border-2 border-brand-primary/50 hover:border-brand-primary rounded-sm p-5 sm:p-6 shadow-md hover:shadow-2xl hover:shadow-brand-primary/25 transition-all duration-500 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
               <BorderBeam delay={1.4} color="#38BDF8" />
@@ -1058,47 +1316,41 @@ export default function CitizenProfile() {
                     )}
                   </div>
 
-                  <div className="p-1.5 bg-brand-primary/10 border border-brand-primary/20 rounded-sm -skew-x-6 text-brand-primary shadow-xs">
-                    <Cpu className="w-4 h-4 skew-x-6" />
+                  {/* Open / Expand Indicator */}
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm bg-brand-primary/10 border border-brand-primary/20 text-brand-primary group-hover:bg-brand-primary group-hover:text-black transition-all -skew-x-6 shadow-xs">
+                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider skew-x-6 hidden sm:inline">
+                      View ID
+                    </span>
+                    <Maximize2 className="w-3.5 h-3.5 skew-x-6" />
                   </div>
                 </div>
 
-                {/* 2. Stewardship Credits Box (Embossed Centerpiece) */}
-                {(() => {
-                  const currentTier = getStewardshipTier(profile.stewardshipScore);
-                  return (
-                    <div className="bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-inner relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-brand-primary/10 to-transparent pointer-events-none" />
-                      <div className="flex flex-col relative z-10">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-text-muted font-sans flex items-center gap-1.5">
-                          <Award className="w-3.5 h-3.5 text-brand-primary" />
-                          Stewardship Credits
-                        </span>
-                        <div className="flex items-baseline gap-2 mt-1">
-                          <span className="text-3xl sm:text-4xl font-mono font-bold text-brand-primary tracking-tight">
-                            {profile.stewardshipScore}
-                          </span>
-                          <span className="text-xs font-bold text-text-muted uppercase tracking-wider">PTS</span>
-                        </div>
-                      </div>
-
-                      <div className="text-right relative z-10 flex flex-col items-end gap-1">
-                        <span className={twMerge(
-                          "text-xs font-semibold px-2.5 py-1 rounded-sm font-sans inline-flex items-center gap-1.5 shadow-xs border",
-                          currentTier.colorText,
-                          currentTier.colorBg,
-                          currentTier.colorBorder
-                        )}>
-                          <span className={twMerge("w-1.5 h-1.5 rounded-full animate-pulse", currentTier.pulseColor)} />
-                          {currentTier.name}
-                        </span>
-                        <span className="text-[10px] text-text-muted font-sans">
-                          +15 pts / report • +50 pts / cleared
-                        </span>
-                      </div>
+                {/* 2. Stewardship Credits Box (Uncluttered Professional Header) */}
+                <div className="bg-app-bg/80 p-4 border border-brand-primary/30 rounded-sm flex items-center justify-between shadow-inner relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-brand-primary/10 to-transparent pointer-events-none" />
+                  <div className="flex flex-col relative z-10">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-text-muted font-sans flex items-center gap-1.5">
+                      <Award className="w-3.5 h-3.5 text-brand-primary" />
+                      Stewardship Credits
+                    </span>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-3xl sm:text-4xl font-mono font-bold text-brand-primary tracking-tight">
+                        {profile.stewardshipScore}
+                      </span>
+                      <span className="text-xs font-bold text-text-muted uppercase tracking-wider">PTS</span>
                     </div>
-                  );
-                })()}
+                  </div>
+
+                  <div className="text-right relative z-10">
+                    <span className="text-[11px] font-mono font-semibold text-text-muted uppercase tracking-wider block">
+                      CIVIC CREDENTIAL
+                    </span>
+                    <span className="text-[10px] text-brand-primary font-sans mt-0.5 inline-flex items-center gap-1 group-hover:underline">
+                      <span>Click to expand</span>
+                      <span>&rarr;</span>
+                    </span>
+                  </div>
+                </div>
 
                 {/* 3. Community Impact Telemetry */}
                 <div className="grid grid-cols-2 gap-3">
@@ -1118,9 +1370,9 @@ export default function CitizenProfile() {
                 </div>
 
                 {/* 4. Digital Security Strip Footer */}
-                <div className="pt-3 border-t border-border-subtle/70 mt-auto">
+                <div className="pt-3 border-t border-border-subtle/70 mt-auto flex items-center justify-between">
                   {/* Micro Barcode Strip */}
-                  <div className="w-full flex items-center justify-between h-3.5 opacity-60 overflow-hidden px-0.5">
+                  <div className="flex-1 flex items-center justify-between h-3.5 opacity-60 overflow-hidden pr-3">
                     {[4, 2, 6, 2, 8, 3, 5, 2, 7, 4, 3, 8, 2, 5, 3, 7, 2, 6, 4, 8, 2, 5, 3, 6, 2, 7, 4, 2, 5, 8, 3, 6, 2, 4, 7, 3, 5, 2, 6, 4, 8, 2].map((height, i) => (
                       <span 
                         key={i} 
@@ -1129,6 +1381,9 @@ export default function CitizenProfile() {
                       />
                     ))}
                   </div>
+                  <span className="text-[9px] font-mono uppercase tracking-widest text-text-muted shrink-0">
+                    TAP CARD
+                  </span>
                 </div>
 
               </div>
