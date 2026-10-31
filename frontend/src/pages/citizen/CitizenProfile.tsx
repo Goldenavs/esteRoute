@@ -4,7 +4,6 @@ import {
   User, 
   Camera, 
   CheckCircle2, 
-  Bell, 
   LogOut, 
   Lock, 
   ChevronLeft,
@@ -121,14 +120,6 @@ export default function CitizenProfile() {
   const [selectedAvatarIndex, setSelectedAvatarIndex] = useState<number>(1);
   const [customProfileImage, setCustomProfileImage] = useState<string | null>(null);
   const avatarSliderRef = useRef<HTMLDivElement>(null);
-
-  // Preference Toggles (Local Storage Persisted)
-  const [smsUpdates, setSmsUpdates] = useState(() => {
-    return localStorage.getItem('esteroute_pref_sms') !== 'false';
-  });
-  const [pushNotifications, setPushNotifications] = useState(() => {
-    return localStorage.getItem('esteroute_pref_push') !== 'false';
-  });
 
   // Change Password Modal State
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -501,18 +492,6 @@ export default function CitizenProfile() {
     }
   };
 
-  // 5. Toggle Notification Preferences
-  const handleToggleSms = (val: boolean) => {
-    setSmsUpdates(val);
-    localStorage.setItem('esteroute_pref_sms', String(val));
-    showToast(`SMS updates ${val ? 'enabled' : 'disabled'}.`);
-  };
-
-  const handleTogglePush = (val: boolean) => {
-    setPushNotifications(val);
-    localStorage.setItem('esteroute_pref_push', String(val));
-    showToast(`Push notifications ${val ? 'enabled' : 'disabled'}.`);
-  };
 
   return (
     <div className="w-full flex-1 flex flex-col pb-12 font-sans">
@@ -839,17 +818,19 @@ export default function CitizenProfile() {
                     )}
                   </div>
 
-                  {/* Change Avatar Button */}
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploadingAvatar}
-                    className="absolute bottom-0 right-0 z-20 p-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer border-2 border-surface"
-                    title="Upload profile photo from device"
-                    aria-label="Upload profile photo from device"
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                  </button>
+                  {/* Change Avatar Button (Citizens Only) */}
+                  {!profile.isGuest && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      className="absolute bottom-0 right-0 z-20 p-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer border-2 border-surface"
+                      title="Upload profile photo from device"
+                      aria-label="Upload profile photo from device"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Citizen Name & Verification Badge */}
@@ -866,101 +847,116 @@ export default function CitizenProfile() {
                   {profile.email ? profile.email : profile.isGuest ? 'Anonymous Session' : '+63 ' + (profile.phone || '9XX XXX XXXX')}
                 </p>
 
-                {/* Avatar Presets Swiper & Device Upload Scroller */}
-                <div className="w-full mt-4 pt-3 border-t border-border-subtle/70">
-                  <div className="flex items-center justify-between mb-2 px-0.5">
-                    <span className="text-[11px] font-heading font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
-                      <Sparkles className="w-3 h-3 text-brand-primary" />
-                      Select Avatar Preset
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => scrollAvatars('left')}
-                        className="p-1 rounded-sm bg-app-bg hover:bg-brand-primary/20 text-text-muted hover:text-text-primary transition-colors cursor-pointer border border-border-subtle active:scale-95"
-                        title="Scroll left"
-                        aria-label="Scroll left"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => scrollAvatars('right')}
-                        className="p-1 rounded-sm bg-app-bg hover:bg-brand-primary/20 text-text-muted hover:text-text-primary transition-colors cursor-pointer border border-border-subtle active:scale-95"
-                        title="Scroll right"
-                        aria-label="Scroll right"
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Horizontal Scroll / Swipe Container */}
-                  <div 
-                    ref={avatarSliderRef}
-                    className="w-full flex items-center gap-2.5 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory select-none"
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                  >
-                    {/* Slot 0: Custom Device Upload */}
-                    <button
-                      type="button"
-                      onClick={() => handleSelectAvatar(0)}
-                      className={twMerge(
-                        "snap-center shrink-0 w-12 h-12 rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer relative overflow-hidden group/custom",
-                        selectedAvatarIndex === 0
-                          ? "border-2 border-brand-primary shadow-lg shadow-brand-primary/30 ring-2 ring-brand-primary/20 scale-105"
-                          : "border-2 border-dashed border-border-strong hover:border-brand-primary/70 bg-app-bg/60 opacity-80 hover:opacity-100"
-                      )}
-                      title={customProfileImage ? "Custom Device Photo (Click to re-select or change)" : "Upload from Device"}
+                {/* Avatar Presets Swiper & Device Upload Scroller (Citizens) vs Guest Banner */}
+                {profile.isGuest ? (
+                  <div className="w-full mt-4 pt-3 border-t border-border-subtle/70 text-center font-sans">
+                    <p className="text-xs text-text-muted">
+                      Customizing avatar presets is available for registered citizens.
+                    </p>
+                    <Link
+                      to="/login"
+                      className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-brand-primary hover:text-brand-secondary hover:underline transition-colors"
                     >
-                      {customProfileImage ? (
-                        <img 
-                          src={customProfileImage} 
-                          alt="Custom device avatar" 
-                          className="w-full h-full object-cover rounded-full"
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-text-muted group-hover/custom:text-brand-primary">
-                          <Camera className="w-4 h-4" />
-                        </div>
-                      )}
-                      <span className="absolute bottom-0 inset-x-0 bg-black/65 text-[7.5px] font-mono font-bold text-white text-center py-0.5 uppercase tracking-tighter">
-                        {customProfileImage ? 'Device' : 'Upload'}
-                      </span>
-                    </button>
-
-                    {/* Slots 1..10: Built-in Adventurer Avatars */}
-                    {AVATAR_OPTIONS.slice(1).map((avatarUrl, idx) => {
-                      const realIndex = idx + 1;
-                      const isSelected = selectedAvatarIndex === realIndex;
-                      return (
-                        <button
-                          key={avatarUrl}
-                          type="button"
-                          onClick={() => handleSelectAvatar(realIndex)}
-                          className={twMerge(
-                            "snap-center shrink-0 w-12 h-12 rounded-full transition-all duration-200 cursor-pointer relative overflow-hidden bg-app-bg",
-                            isSelected 
-                              ? "border-2 border-brand-primary shadow-lg shadow-brand-primary/30 ring-2 ring-brand-primary/20 scale-105" 
-                              : "border-2 border-border-subtle hover:border-brand-primary/50 opacity-70 hover:opacity-100 hover:scale-102"
-                          )}
-                          title={`Avatar Preset ${realIndex}`}
-                        >
-                          <img 
-                            src={avatarUrl} 
-                            alt={`Avatar ${realIndex}`}
-                            className="w-full h-full object-cover rounded-full pointer-events-none"
-                            loading="lazy"
-                          />
-                        </button>
-                      );
-                    })}
+                      <span>Sign in or register an account</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
+                ) : (
+                  <div className="w-full mt-4 pt-3 border-t border-border-subtle/70">
+                    <div className="flex items-center justify-between mb-2 px-0.5">
+                      <span className="text-[11px] font-heading font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-brand-primary" />
+                        Select Avatar Preset
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => scrollAvatars('left')}
+                          className="p-1 rounded-sm bg-app-bg hover:bg-brand-primary/20 text-text-muted hover:text-text-primary transition-colors cursor-pointer border border-border-subtle active:scale-95"
+                          title="Scroll left"
+                          aria-label="Scroll left"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => scrollAvatars('right')}
+                          className="p-1 rounded-sm bg-app-bg hover:bg-brand-primary/20 text-text-muted hover:text-text-primary transition-colors cursor-pointer border border-border-subtle active:scale-95"
+                          title="Scroll right"
+                          aria-label="Scroll right"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
 
-                  <p className="text-[10px] text-text-muted text-center font-sans mt-1">
-                    Swipe or click to choose a preset, or upload your own.
-                  </p>
-                </div>
+                    {/* Horizontal Scroll / Swipe Container */}
+                    <div 
+                      ref={avatarSliderRef}
+                      className="w-full flex items-center gap-2.5 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory select-none"
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      {/* Slot 0: Custom Device Upload */}
+                      <button
+                        type="button"
+                        onClick={() => handleSelectAvatar(0)}
+                        className={twMerge(
+                          "snap-center shrink-0 w-12 h-12 rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer relative overflow-hidden group/custom",
+                          selectedAvatarIndex === 0
+                            ? "border-2 border-brand-primary shadow-lg shadow-brand-primary/30 ring-2 ring-brand-primary/20 scale-105"
+                            : "border-2 border-dashed border-border-strong hover:border-brand-primary/70 bg-app-bg/60 opacity-80 hover:opacity-100"
+                        )}
+                        title={customProfileImage ? "Custom Device Photo (Click to re-select or change)" : "Upload from Device"}
+                      >
+                        {customProfileImage ? (
+                          <img 
+                            src={customProfileImage} 
+                            alt="Custom device avatar" 
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-text-muted group-hover/custom:text-brand-primary">
+                            <Camera className="w-4 h-4" />
+                          </div>
+                        )}
+                        <span className="absolute bottom-0 inset-x-0 bg-black/65 text-[7.5px] font-mono font-bold text-white text-center py-0.5 uppercase tracking-tighter">
+                          {customProfileImage ? 'Device' : 'Upload'}
+                        </span>
+                      </button>
+
+                      {/* Slots 1..10: Built-in Adventurer Avatars */}
+                      {AVATAR_OPTIONS.slice(1).map((avatarUrl, idx) => {
+                        const realIndex = idx + 1;
+                        const isSelected = selectedAvatarIndex === realIndex;
+                        return (
+                          <button
+                            key={avatarUrl}
+                            type="button"
+                            onClick={() => handleSelectAvatar(realIndex)}
+                            className={twMerge(
+                              "snap-center shrink-0 w-12 h-12 rounded-full transition-all duration-200 cursor-pointer relative overflow-hidden bg-app-bg",
+                              isSelected 
+                                ? "border-2 border-brand-primary shadow-lg shadow-brand-primary/30 ring-2 ring-brand-primary/20 scale-105" 
+                                : "border-2 border-border-subtle hover:border-brand-primary/50 opacity-70 hover:opacity-100 hover:scale-102"
+                            )}
+                            title={`Avatar Preset ${realIndex}`}
+                          >
+                            <img 
+                              src={avatarUrl} 
+                              alt={`Avatar ${realIndex}`}
+                              className="w-full h-full object-cover rounded-full pointer-events-none"
+                              loading="lazy"
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-[10px] text-text-muted text-center font-sans mt-1">
+                      Swipe or click to choose a preset, or upload your own.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -984,26 +980,42 @@ export default function CitizenProfile() {
                 {/* 1. Smart Microchip & Civic ID Header */}
                 <div className="flex items-center justify-between pt-1">
                   <div className="flex items-center gap-3">
-                    {/* Realistic Metallic Gold Contact Pad / Smart Microchip */}
-                    <div className="w-11 h-8 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
-                      <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
-                        <div className="border-r border-b border-amber-800/50" />
-                        <div className="border-b border-amber-800/50" />
-                        <div className="border-r border-amber-800/50" />
-                        <div />
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted block">
-                        STEWARD REGISTRY ID
-                      </span>
-                      <p className="text-base sm:text-lg font-mono font-bold text-text-primary tracking-widest">
-                        {profile.isGuest 
-                          ? 'EST-GUEST-SYS' 
-                          : `EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
-                      </p>
-                    </div>
+                    {profile.isGuest ? (
+                      <>
+                        <div className="w-11 h-8 rounded-sm bg-surface/60 border border-border-subtle shadow-xs relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
+                          <User className="w-4 h-4 text-text-muted" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted block">
+                            SESSION STATUS
+                          </span>
+                          <p className="text-sm sm:text-base font-mono font-bold text-text-muted tracking-wide">
+                            GUEST REPORTER
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Realistic Metallic Gold Contact Pad / Smart Microchip */}
+                        <div className="w-11 h-8 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
+                          <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
+                            <div className="border-r border-b border-amber-800/50" />
+                            <div className="border-b border-amber-800/50" />
+                            <div className="border-r border-amber-800/50" />
+                            <div />
+                          </div>
+                          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted block">
+                            STEWARD REGISTRY ID
+                          </span>
+                          <p className="text-base sm:text-lg font-mono font-bold text-text-primary tracking-widest">
+                            {`EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="p-1.5 bg-brand-primary/10 border border-brand-primary/20 rounded-sm -skew-x-6 text-brand-primary shadow-xs">
@@ -1098,6 +1110,23 @@ export default function CitizenProfile() {
                   </div>
                 </div>
                 
+                {profile.isGuest && (
+                  <div className="mb-5 p-3.5 rounded-sm bg-brand-primary/10 border border-brand-primary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs font-sans">
+                    <div className="flex items-center gap-2 text-text-secondary">
+                      <AlertCircle className="w-4 h-4 text-brand-primary shrink-0" />
+                      <span>
+                        You are in <strong>Guest Mode</strong>. Profile details and contact synchronization require an account.
+                      </span>
+                    </div>
+                    <Link
+                      to="/login"
+                      className="text-brand-primary hover:text-brand-secondary hover:underline font-semibold shrink-0"
+                    >
+                      Sign In / Register &rarr;
+                    </Link>
+                  </div>
+                )}
+
                 <form onSubmit={handleSaveChanges}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-sans">
                     {/* Full Name */}
@@ -1110,8 +1139,15 @@ export default function CitizenProfile() {
                         type="text" 
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
+                        disabled={profile.isGuest}
+                        readOnly={profile.isGuest}
                         placeholder="Enter your full name"
-                        className="w-full bg-app-bg border border-border-strong rounded-sm px-3.5 py-2.5 text-text-primary text-sm font-sans focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                        className={twMerge(
+                          "w-full bg-app-bg border rounded-sm px-3.5 py-2.5 text-sm font-sans transition-colors",
+                          profile.isGuest 
+                            ? "border-border-subtle text-text-muted bg-app-bg/50 cursor-not-allowed select-none" 
+                            : "border-border-strong text-text-primary focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                        )}
                       />
                     </div>
 
@@ -1149,9 +1185,16 @@ export default function CitizenProfile() {
                           type="tel" 
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
-                          placeholder="9XX XXX XXXX"
+                          disabled={profile.isGuest}
+                          readOnly={profile.isGuest}
+                          placeholder={profile.isGuest ? "Not configured in guest session" : "9XX XXX XXXX"}
                           maxLength={15}
-                          className="w-full bg-app-bg border border-border-strong rounded-sm pl-13 pr-4 py-2.5 text-text-primary text-sm font-mono focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" 
+                          className={twMerge(
+                            "w-full bg-app-bg border rounded-sm pl-13 pr-4 py-2.5 text-sm font-mono transition-colors",
+                            profile.isGuest 
+                              ? "border-border-subtle text-text-muted bg-app-bg/50 cursor-not-allowed select-none" 
+                              : "border-border-strong text-text-primary focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                          )}
                         />
                       </div>
                       <span className="text-xs text-text-muted mt-0.5 font-sans leading-normal">
@@ -1160,153 +1203,93 @@ export default function CitizenProfile() {
                     </div>
                   </div>
                   
-                  {/* Form Action Button */}
-                  <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-border-subtle">
-                    <button 
-                      type="submit"
-                      disabled={isSaving}
-                      className="px-6 py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs sm:text-sm rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin skew-x-3 sm:skew-x-6" />
-                          <span className="skew-x-3 sm:skew-x-6">Saving...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-4 h-4 skew-x-3 sm:skew-x-6" />
-                          <span className="skew-x-3 sm:skew-x-6">Save Changes</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  {/* Form Action Button (Citizens Only) */}
+                  {!profile.isGuest && (
+                    <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-border-subtle">
+                      <button 
+                        type="submit"
+                        disabled={isSaving}
+                        className="px-6 py-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase tracking-wider text-xs sm:text-sm rounded-sm transition-all -skew-x-3 sm:-skew-x-6 shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center gap-2"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin skew-x-3 sm:skew-x-6" />
+                            <span className="skew-x-3 sm:skew-x-6">Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4 skew-x-3 sm:skew-x-6" />
+                            <span className="skew-x-3 sm:skew-x-6">Save Changes</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </form>
               </div>
             </div>
           </motion.div>
 
-          {/* Settings & Security Grid (Stretched to match Civic Card height at bottom) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch shrink-0">
-            
-            {/* Notification Preferences */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.2 }}
-              className="w-full h-full flex flex-col"
-            >
-              <div className="w-full h-full flex-1 flex flex-col justify-between bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
-                <BorderBeam delay={2.1} color="#60A5FA" />
-                <div className="absolute top-0 left-0 w-2 h-full bg-brand-secondary" />
+          {/* Account & Security Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.2 }}
+            className="w-full shrink-0"
+          >
+            <div className="w-full bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
+              <BorderBeam delay={2.5} color="#60A5FA" />
+              <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
 
-                <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10">
-                  <div>
-                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-subtle">
-                      <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
-                        <div className="p-1.5 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-6 shadow-xs">
-                          <Bell className="w-4 h-4 skew-x-6" />
-                        </div>
-                        <span>Notifications</span>
-                      </h2>
+              <div className="skew-x-2 sm:skew-x-3 relative z-10">
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-subtle">
+                  <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
+                    <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
+                      <Lock className="w-4 h-4 skew-x-6" />
                     </div>
-
-                    <div className="flex flex-col gap-3 font-sans">
-                      <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 shadow-xs">
-                        <div className="flex flex-col pr-2">
-                          <span className="text-xs sm:text-sm font-medium text-text-primary">SMS Status Alerts</span>
-                          <span className="text-xs text-text-muted mt-0.5">Receive clearance updates on your reports</span>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={smsUpdates}
-                          onChange={(e) => handleToggleSms(e.target.checked)}
-                          className="accent-brand-primary w-4 h-4 cursor-pointer" 
-                        />
-                      </label>
-
-                      <label className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary/50 cursor-pointer transition-colors bg-app-bg/60 shadow-xs">
-                        <div className="flex flex-col pr-2">
-                          <span className="text-xs sm:text-sm font-medium text-text-primary">Basin Flood Alerts</span>
-                          <span className="text-xs text-text-muted mt-0.5">High water level waterway warnings</span>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={pushNotifications}
-                          onChange={(e) => handleTogglePush(e.target.checked)}
-                          className="accent-brand-primary w-4 h-4 cursor-pointer" 
-                        />
-                      </label>
-                    </div>
-                  </div>
+                    <span>Security & Session</span>
+                  </h2>
                 </div>
-              </div>
-            </motion.div>
 
-            {/* Account & Security Actions */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.25 }}
-              className="w-full h-full flex flex-col"
-            >
-              <div className="w-full h-full flex-1 flex flex-col justify-between bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 relative overflow-hidden group -skew-x-2 sm:-skew-x-3">
-                <BorderBeam delay={2.8} color="#60A5FA" />
-                <div className="absolute top-0 left-0 w-2 h-full bg-brand-primary" />
-
-                <div className="skew-x-2 sm:skew-x-3 flex flex-col justify-between h-full relative z-10">
-                  <div>
-                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-subtle">
-                      <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-text-primary flex items-center gap-2.5">
-                        <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary -skew-x-6 shadow-xs">
-                          <Lock className="w-4 h-4 skew-x-6" />
-                        </div>
-                        <span>Security & Session</span>
-                      </h2>
-                    </div>
-
-                    <div className="flex flex-col gap-3 font-sans">
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          if (profile.isGuest) {
-                            showToast('Guest accounts do not have a password. Please register an account.', 'error');
-                            return;
-                          }
-                          setPasswordError('');
-                          setNewPassword('');
-                          setConfirmPassword('');
-                          setShowNewPassword(false);
-                          setShowConfirmPassword(false);
-                          setIsPasswordModalOpen(true);
-                        }}
-                        className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary transition-colors bg-app-bg/60 text-left group/sec cursor-pointer shadow-xs w-full"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <KeyRound className="w-4 h-4 text-brand-primary/80 group-hover/sec:text-brand-primary transition-colors" />
-                          <span className="text-xs sm:text-sm font-medium text-text-primary group-hover/sec:text-brand-primary transition-colors">
-                            Change Password
-                          </span>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-text-muted group-hover/sec:text-brand-primary transition-colors" />
-                      </button>
-
-                      <button 
-                        type="button"
-                        onClick={handleSignOut}
-                        className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-semantic-urgent transition-colors bg-app-bg/60 text-left group/sec cursor-pointer w-full shadow-xs"
-                      >
-                        <span className="text-xs sm:text-sm font-medium text-semantic-urgent">
-                          {profile.isGuest ? 'Leave Guest Session' : 'Sign Out of esteRoute'}
+                <div className="flex flex-col gap-3 font-sans">
+                  {/* Change Password (Citizens Only) */}
+                  {!profile.isGuest && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setPasswordError('');
+                        setNewPassword('');
+                        setConfirmPassword('');
+                        setShowNewPassword(false);
+                        setShowConfirmPassword(false);
+                        setIsPasswordModalOpen(true);
+                      }}
+                      className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-brand-primary transition-colors bg-app-bg/60 text-left group/sec cursor-pointer shadow-xs w-full"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <KeyRound className="w-4 h-4 text-brand-primary/80 group-hover/sec:text-brand-primary transition-colors" />
+                        <span className="text-xs sm:text-sm font-medium text-text-primary group-hover/sec:text-brand-primary transition-colors">
+                          Change Password
                         </span>
-                        <LogOut className="w-4 h-4 text-semantic-urgent/70 group-hover/sec:text-semantic-urgent transition-colors" />
-                      </button>
-                    </div>
-                  </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-text-muted group-hover/sec:text-brand-primary transition-colors" />
+                    </button>
+                  )}
+
+                  <button 
+                    type="button"
+                    onClick={handleSignOut}
+                    className="flex items-center justify-between p-3 border border-border-subtle rounded-sm hover:border-semantic-urgent transition-colors bg-app-bg/60 text-left group/sec cursor-pointer w-full shadow-xs"
+                  >
+                    <span className="text-xs sm:text-sm font-medium text-semantic-urgent">
+                      {profile.isGuest ? 'Leave Guest Session' : 'Sign Out of esteRoute'}
+                    </span>
+                    <LogOut className="w-4 h-4 text-semantic-urgent/70 group-hover/sec:text-semantic-urgent transition-colors" />
+                  </button>
                 </div>
               </div>
-            </motion.div>
-
-          </div>
+            </div>
+          </motion.div>
 
         </div>
 
