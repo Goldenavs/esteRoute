@@ -19,7 +19,9 @@ import {
   KeyRound,
   RotateCw,
   Maximize2,
-  Trophy
+  Trophy,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
@@ -175,9 +177,11 @@ export default function CitizenProfile() {
   const [customProfileImage, setCustomProfileImage] = useState<string | null>(null);
   const avatarSliderRef = useRef<HTMLDivElement>(null);
 
-  // Stewardship ID Modal & Flip State
+  // Stewardship ID Modal, Levels Modal & Zoom State
   const [isIdModalOpen, setIsIdModalOpen] = useState(false);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [isLevelsModalOpen, setIsLevelsModalOpen] = useState(false);
+  const [isCardZoomed, setIsCardZoomed] = useState(false);
 
   // Change Password Modal State
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -585,7 +589,172 @@ export default function CitizenProfile() {
         )}
       </AnimatePresence>
 
-            {/* Interactive 3D Stewardship ID Credential Modal */}
+            {/* Dedicated Levels Progression Modal (Pushed ON TOP of Card) */}
+      <AnimatePresence>
+        {isLevelsModalOpen && (
+          <div className="fixed inset-0 z-[320] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsLevelsModalOpen(false)}
+              className="absolute inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative z-10 w-full max-w-lg bg-surface/95 border-2 border-brand-primary/50 backdrop-blur-2xl rounded-sm p-6 sm:p-7 shadow-2xl overflow-hidden -skew-x-2 sm:-skew-x-3"
+            >
+              <BorderBeam delay={0} color="#38BDF8" />
+              <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-amber-400" />
+
+              <div className="skew-x-2 sm:skew-x-3 flex flex-col gap-5 relative z-10">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary">
+                      <Trophy className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
+                        esteRoute Gamified Tiers
+                      </span>
+                      <h3 className="text-base sm:text-lg font-heading font-extrabold uppercase tracking-wider text-text-primary">
+                        Level Progression
+                      </h3>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsLevelsModalOpen(false)}
+                    className="p-1.5 rounded-sm bg-app-bg hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer"
+                    aria-label="Close levels viewer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Score & Next Milestone Card */}
+                {(() => {
+                  const currentTier = getStewardshipTier(profile.stewardshipScore);
+                  return (
+                    <div className="bg-app-bg/80 p-4 rounded-sm border border-brand-primary/30 flex items-center justify-between">
+                      <div>
+                        <span className="text-[11px] font-mono uppercase text-text-muted block">
+                          Current Stewardship Credits
+                        </span>
+                        <div className="flex items-baseline gap-2 mt-0.5">
+                          <span className="text-2xl sm:text-3xl font-mono font-bold text-brand-primary">
+                            {profile.stewardshipScore}
+                          </span>
+                          <span className="text-xs font-bold text-text-muted uppercase">PTS</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className={twMerge(
+                          "text-xs font-heading font-bold uppercase tracking-wider block",
+                          currentTier.titleColor
+                        )}>
+                          Rank: {currentTier.title}
+                        </span>
+                        <span className="text-[10px] text-text-muted font-sans mt-0.5 block">
+                          {currentTier.nextPts
+                            ? `${currentTier.nextPts - profile.stewardshipScore} PTS to ${currentTier.nextTitle}`
+                            : 'Maximum Rank Achieved!'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Progress Bar (0 to 500 PTS) */}
+                <div className="flex flex-col gap-1.5 font-sans">
+                  <div className="flex items-center justify-between text-[11px] text-text-muted font-mono">
+                    <span>PROGRESSION TOWARDS GUARDIAN</span>
+                    <span>{Math.min(100, Math.round((profile.stewardshipScore / 500) * 100))}%</span>
+                  </div>
+                  <div className="w-full bg-app-bg h-2.5 rounded-full overflow-hidden border border-border-subtle p-0.5">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-amber-400 rounded-full transition-all duration-700"
+                      style={{ width: `${Math.min(100, Math.max(4, (profile.stewardshipScore / 500) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* All 4 Tiers List */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {ALL_STEWARD_TIERS.map((tier) => {
+                    const isUnlocked = profile.stewardshipScore >= tier.minPts;
+                    const isCurrent = getStewardshipTier(profile.stewardshipScore).title === tier.title;
+
+                    return (
+                      <div
+                        key={tier.title}
+                        className={twMerge(
+                          "flex flex-col items-center text-center p-3 rounded-sm border transition-all",
+                          isCurrent
+                            ? "bg-brand-primary/15 border-brand-primary shadow-lg ring-1 ring-brand-primary/40"
+                            : isUnlocked
+                              ? "bg-app-bg/70 border-border-subtle"
+                              : "bg-app-bg/30 border-border-subtle/50 opacity-60"
+                        )}
+                      >
+                        <div className={twMerge(
+                          "w-6 h-6 rounded-full flex items-center justify-center text-xs mb-1.5",
+                          isUnlocked ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-surface text-text-muted border border-border-subtle"
+                        )}>
+                          {isUnlocked ? <Check className="w-3.5 h-3.5" /> : <Lock className="w-3 h-3" />}
+                        </div>
+
+                        <span className={twMerge(
+                          "text-xs font-heading font-bold uppercase tracking-wider block",
+                          isCurrent ? "text-brand-primary" : isUnlocked ? tier.color : "text-text-muted"
+                        )}>
+                          {tier.title}
+                        </span>
+
+                        <span className="text-[10px] font-mono text-text-muted mt-1 block">
+                          {tier.minPts} PTS
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* How to Earn Points Info */}
+                <div className="p-3 bg-app-bg/60 rounded-sm border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-sans text-text-secondary">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-brand-primary">+15 PTS</span>
+                    <span>per verified blockage report</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-emerald-400">+50 PTS</span>
+                    <span>per cleared waterway</span>
+                  </div>
+                </div>
+
+                {/* Back to Card button */}
+                <div className="flex justify-end pt-2 border-t border-border-subtle">
+                  <button
+                    type="button"
+                    onClick={() => setIsLevelsModalOpen(false)}
+                    className="px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-heading font-semibold uppercase text-xs rounded-sm transition-all shadow-xs cursor-pointer active:scale-95"
+                  >
+                    Back to Card
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Interactive 3D Stewardship ID Credential Modal */}
       <AnimatePresence>
         {isIdModalOpen && (
           <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
@@ -597,17 +766,21 @@ export default function CitizenProfile() {
               onClick={() => {
                 setIsIdModalOpen(false);
                 setIsCardFlipped(false);
+                setIsCardZoomed(false);
               }}
               className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
             />
 
-            {/* Modal Dialog Content */}
+            {/* Modal Dialog Content (Adjusts Width on Zoom) */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative z-10 w-full max-w-lg flex flex-col items-center gap-4"
+              className={twMerge(
+                "relative z-10 w-full flex flex-col items-center gap-3 transition-all duration-300",
+                isCardZoomed ? "max-w-2xl sm:max-w-3xl" : "max-w-lg"
+              )}
             >
               {/* Modal Top Bar */}
               <div className="w-full flex items-center justify-between text-white px-1">
@@ -617,19 +790,42 @@ export default function CitizenProfile() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Zoom In / Zoom Out UX Button */}
                   <button
                     type="button"
-                    onClick={() => setIsCardFlipped(prev => !prev)}
+                    onClick={() => setIsCardZoomed(prev => !prev)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-surface/80 hover:bg-brand-primary/20 border border-border-strong text-text-primary hover:text-brand-primary transition-all text-xs font-sans font-medium cursor-pointer shadow-xs active:scale-95"
+                    title={isCardZoomed ? "Reset card size" : "Zoom in card for easier reading"}
+                  >
+                    {isCardZoomed ? (
+                      <>
+                        <ZoomOut className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Zoom Out</span>
+                      </>
+                    ) : (
+                      <>
+                        <ZoomIn className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Zoom In</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* View Levels Button (Pushes Levels Modal on Top) */}
+                  <button
+                    type="button"
+                    onClick={() => setIsLevelsModalOpen(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand-primary/10 hover:bg-brand-primary/25 border border-brand-primary/30 text-brand-primary transition-all text-xs font-heading font-semibold uppercase tracking-wider cursor-pointer shadow-xs active:scale-95"
                   >
                     <Trophy className="w-3.5 h-3.5" />
-                    <span>{isCardFlipped ? 'View Card' : 'View Levels'}</span>
+                    <span>View Levels</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => {
                       setIsIdModalOpen(false);
                       setIsCardFlipped(false);
+                      setIsCardZoomed(false);
                     }}
                     className="p-1.5 rounded-sm bg-surface/80 hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer"
                     aria-label="Close credential viewer"
@@ -639,11 +835,14 @@ export default function CitizenProfile() {
                 </div>
               </div>
 
-              {/* 3D Flippable Physical ID Container */}
+              {/* 3D Flippable Physical ID Container (Scales up when Zoomed) */}
               <div 
-                className="w-full h-[290px] sm:h-[320px] relative cursor-pointer select-none [perspective:1000px]"
+                className={twMerge(
+                  "w-full relative cursor-pointer select-none [perspective:1000px] transition-all duration-300",
+                  isCardZoomed ? "h-[370px] sm:h-[430px]" : "h-[290px] sm:h-[320px]"
+                )}
                 onClick={() => setIsCardFlipped(prev => !prev)}
-                title="Click to flip credential"
+                title="Click anywhere to flip credential"
               >
                 <div 
                   className={twMerge(
@@ -652,25 +851,36 @@ export default function CitizenProfile() {
                   )}
                 >
                   {/* ====== FRONT FACE ====== */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] rounded-xl overflow-hidden border-2 border-brand-primary/50 bg-gradient-to-br from-slate-900 via-brand-dark/95 to-slate-950 p-5 sm:p-6 flex flex-col justify-between shadow-2xl">
-                    {/* Metallic Border Beam highlight */}
+                  <div className={twMerge(
+                    "absolute inset-0 w-full h-full [backface-visibility:hidden] rounded-xl overflow-hidden border-2 border-brand-primary/50 bg-gradient-to-br from-slate-900 via-brand-dark/95 to-slate-950 flex flex-col justify-between shadow-2xl transition-all",
+                    isCardZoomed ? "p-6 sm:p-8" : "p-5 sm:p-6"
+                  )}>
                     <BorderBeam delay={0} color="#38BDF8" />
                     <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-emerald-400" />
                     <div className="absolute top-0 right-0 w-44 h-44 bg-gradient-to-bl from-brand-primary/25 via-brand-secondary/15 to-transparent pointer-events-none rounded-bl-full" />
 
-                    {/* Front Header */}
+                    {/* Front Header: Clean esteRoute / Civic Card */}
                     <div className="flex items-start justify-between relative z-10 border-b border-border-subtle/80 pb-3">
                       <div>
-                        <span className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-widest text-brand-primary block">
+                        <span className={twMerge(
+                          "font-mono font-bold uppercase tracking-widest text-brand-primary block",
+                          isCardZoomed ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs"
+                        )}>
                           esteRoute
                         </span>
-                        <h3 className="text-xs sm:text-sm font-heading font-extrabold uppercase tracking-wider text-text-primary mt-0.5">
+                        <h3 className={twMerge(
+                          "font-heading font-extrabold uppercase tracking-wider text-text-primary mt-0.5",
+                          isCardZoomed ? "text-base sm:text-lg" : "text-xs sm:text-sm"
+                        )}>
                           Civic Card
                         </h3>
                       </div>
 
                       {/* Golden Microchip */}
-                      <div className="w-12 h-9 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
+                      <div className={twMerge(
+                        "rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center transition-all",
+                        isCardZoomed ? "w-14 h-11" : "w-12 h-9"
+                      )}>
                         <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
                           <div className="border-r border-b border-amber-800/50" />
                           <div className="border-b border-amber-800/50" />
@@ -682,12 +892,18 @@ export default function CitizenProfile() {
                     </div>
 
                     {/* Front Body: Photo & Credentials */}
-                    <div className="flex items-center gap-4 sm:gap-5 relative z-10 py-2">
+                    <div className={twMerge(
+                      "flex items-center relative z-10 py-2 transition-all",
+                      isCardZoomed ? "gap-6" : "gap-4 sm:gap-5"
+                    )}>
                       {/* Photo / Avatar frame */}
-                      <div className="w-18 h-22 sm:w-20 sm:h-24 rounded-sm border-2 border-brand-primary/60 bg-surface/70 shadow-md overflow-hidden shrink-0 relative flex items-center justify-center p-0.5">
+                      <div className={twMerge(
+                        "rounded-sm border-2 border-brand-primary/60 bg-surface/70 shadow-md overflow-hidden shrink-0 relative flex items-center justify-center p-0.5 transition-all",
+                        isCardZoomed ? "w-24 h-30 sm:w-28 sm:h-34" : "w-18 h-22 sm:w-20 sm:h-24"
+                      )}>
                         {profile.isGuest || !profile.avatarUrl ? (
                           <div className="w-full h-full flex items-center justify-center bg-app-bg text-text-muted">
-                            <User className="w-10 h-10 text-text-muted/60" />
+                            <User className={isCardZoomed ? "w-14 h-14 text-text-muted/60" : "w-10 h-10 text-text-muted/60"} />
                           </div>
                         ) : (
                           <img 
@@ -703,10 +919,16 @@ export default function CitizenProfile() {
 
                       {/* Citizen Info & Stats */}
                       <div className="flex-1 flex flex-col justify-center min-w-0">
-                        <span className="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-text-muted">
+                        <span className={twMerge(
+                          "font-mono uppercase tracking-widest text-text-muted",
+                          isCardZoomed ? "text-[11px]" : "text-[9px] sm:text-[10px]"
+                        )}>
                           STEWARD REGISTRY ID
                         </span>
-                        <p className="text-base sm:text-xl font-mono font-bold text-brand-primary tracking-widest truncate">
+                        <p className={twMerge(
+                          "font-mono font-bold text-brand-primary tracking-widest truncate",
+                          isCardZoomed ? "text-xl sm:text-2xl" : "text-base sm:text-xl"
+                        )}>
                           {profile.isGuest 
                             ? 'EST-GUEST-SYS' 
                             : `EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
@@ -714,15 +936,19 @@ export default function CitizenProfile() {
 
                         <div className="mt-1">
                           <div className="flex items-baseline justify-between gap-2">
-                            <span className="text-xs sm:text-sm font-heading font-bold text-text-primary block truncate">
+                            <span className={twMerge(
+                              "font-heading font-bold text-text-primary block truncate",
+                              isCardZoomed ? "text-base sm:text-lg" : "text-xs sm:text-sm"
+                            )}>
                               {profile.fullName || 'Citizen Reporter'}
                             </span>
-                            {/* Level Name Display (No Basic Pill) */}
+                            {/* Clean Level Name Display (No Basic Pill) */}
                             {(() => {
                               const currentTier = getStewardshipTier(profile.stewardshipScore);
                               return (
                                 <span className={twMerge(
-                                  "text-xs sm:text-sm font-heading font-bold uppercase tracking-wider shrink-0",
+                                  "font-heading font-bold uppercase tracking-wider shrink-0",
+                                  isCardZoomed ? "text-sm sm:text-base" : "text-xs sm:text-sm",
                                   currentTier.titleColor
                                 )}>
                                   {currentTier.title}
@@ -730,18 +956,24 @@ export default function CitizenProfile() {
                               );
                             })()}
                           </div>
-                          <span className="text-[10px] sm:text-xs text-text-muted font-sans block truncate">
+                          <span className={twMerge(
+                            "text-text-muted font-sans block truncate",
+                            isCardZoomed ? "text-xs" : "text-[10px] sm:text-xs"
+                          )}>
                             {profile.isGuest ? 'Anonymous Session' : (profile.email || 'Verified Volunteer')}
                           </span>
                         </div>
 
                         {/* Credits & Clearance telemetry badge */}
-                        <div className="flex items-center gap-3 mt-2 font-mono text-[10px] sm:text-xs">
-                          <div className="bg-app-bg/80 px-2 py-0.5 rounded-xs border border-border-subtle">
+                        <div className={twMerge(
+                          "flex items-center gap-3 mt-2 font-mono",
+                          isCardZoomed ? "text-xs sm:text-sm" : "text-[10px] sm:text-xs"
+                        )}>
+                          <div className="bg-app-bg/80 px-2.5 py-1 rounded-xs border border-border-subtle">
                             <span className="text-text-muted">CREDITS: </span>
                             <span className="font-bold text-brand-primary">{profile.stewardshipScore} PTS</span>
                           </div>
-                          <div className="bg-app-bg/80 px-2 py-0.5 rounded-xs border border-border-subtle">
+                          <div className="bg-app-bg/80 px-2.5 py-1 rounded-xs border border-border-subtle">
                             <span className="text-text-muted">CLEARED: </span>
                             <span className="font-bold text-emerald-400">{profile.resolvedReportsCount}</span>
                           </div>
@@ -757,100 +989,64 @@ export default function CitizenProfile() {
                         ))}
                       </div>
                       <span className="text-[10px] font-heading font-semibold uppercase tracking-wider text-brand-primary/80 hover:text-brand-primary flex items-center gap-1">
-                        <span>View Levels</span>
+                        <span>Click to flip</span>
                         <RotateCw className="w-2.5 h-2.5" />
                       </span>
                     </div>
                   </div>
 
-                  {/* ====== BACK FACE: GAMIFIED LEVEL PROGRESSION ====== */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden border-2 border-brand-primary/40 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-5 sm:p-6 flex flex-col justify-between shadow-2xl">
-                    <BorderBeam delay={2} color="#38BDF8" />
+                  {/* ====== BACK FACE: ORIGINAL REVERTED PROGRAM GUIDELINES ====== */}
+                  <div className={twMerge(
+                    "absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden border-2 border-border-strong bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col justify-between shadow-2xl transition-all",
+                    isCardZoomed ? "p-6 sm:p-8" : "p-5 sm:p-6"
+                  )}>
+                    <BorderBeam delay={3} color="#60A5FA" />
                     
-                    {/* Progression Header */}
-                    <div className="relative z-10 border-b border-border-subtle/80 pb-2.5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
-                            LEVEL PROGRESSION
-                          </span>
-                          <h4 className="text-sm font-heading font-extrabold uppercase tracking-wider text-text-primary">
-                            {profile.stewardshipScore} Points Earned
-                          </h4>
-                        </div>
-                        {(() => {
-                          const tier = getStewardshipTier(profile.stewardshipScore);
-                          return (
-                            <div className="text-right">
-                              <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-brand-primary block">
-                                {tier.nextPts 
-                                  ? `${tier.nextPts - profile.stewardshipScore} PTS TO ${tier.nextTitle?.toUpperCase()}`
-                                  : 'MAX TIER ACHIEVED'}
-                              </span>
-                              <span className="text-[9px] text-text-muted font-sans block">
-                                Current: {tier.title}
-                              </span>
-                            </div>
-                          );
-                        })()}
+                    {/* Magnetic Stripe representation */}
+                    <div className={twMerge(
+                      "absolute inset-x-0 bg-black/90 border-y border-border-subtle/50 pointer-events-none",
+                      isCardZoomed ? "top-5 h-10 sm:h-12" : "top-4 h-8 sm:h-9"
+                    )} />
+
+                    {/* Back Header */}
+                    <div className={twMerge("relative z-10", isCardZoomed ? "pt-12 sm:pt-14" : "pt-8 sm:pt-9")}>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
+                        STEWARDSHIP PROGRAM GUIDELINES
+                      </span>
+                      <h4 className={twMerge("font-heading font-bold text-text-primary", isCardZoomed ? "text-sm sm:text-base" : "text-xs sm:text-sm")}>
+                        How to Earn Credits & Waterway Honors
+                      </h4>
+                    </div>
+
+                    {/* Instructions List (Original Structure) */}
+                    <div className="flex flex-col gap-2 relative z-10 font-sans text-xs my-auto">
+                      <div className="flex items-start gap-2 bg-app-bg/60 p-2.5 rounded-xs border border-border-subtle">
+                        <span className="font-mono font-bold text-brand-primary shrink-0">+15 PTS</span>
+                        <span className={twMerge("text-text-secondary leading-tight", isCardZoomed ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs")}>
+                          Submit verified blockage reports with clear photographic and geolocation telemetry.
+                        </span>
                       </div>
 
-                      {/* Continuous Visual Progress Bar (0 to 500 PTS) */}
-                      <div className="w-full bg-app-bg/80 h-2 rounded-full mt-3 overflow-hidden border border-border-subtle relative p-0.5">
-                        <div 
-                          className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-amber-400 rounded-full transition-all duration-700"
-                          style={{ width: `${Math.min(100, Math.max(5, (profile.stewardshipScore / 500) * 100))}%` }}
-                        />
+                      <div className="flex items-start gap-2 bg-app-bg/60 p-2.5 rounded-xs border border-border-subtle">
+                        <span className="font-mono font-bold text-emerald-400 shrink-0">+50 PTS</span>
+                        <span className={twMerge("text-text-secondary leading-tight", isCardZoomed ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs")}>
+                          Clearance Bonus awarded when cleaning units officially resolve and unclog the waterway.
+                        </span>
+                      </div>
+
+                      <div className="flex items-start gap-2 bg-app-bg/60 p-2.5 rounded-xs border border-border-subtle">
+                        <span className="font-mono font-bold text-amber-400 shrink-0">LEVELS</span>
+                        <span className={twMerge("text-text-secondary leading-tight", isCardZoomed ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs")}>
+                          Unlock trusted reporter standing, priority flood dispatch alerts, and barangay civic honors.
+                        </span>
                       </div>
                     </div>
 
-                    {/* Gamified 4-Tier Grid */}
-                    <div className="grid grid-cols-4 gap-2 relative z-10 my-auto py-2">
-                      {ALL_STEWARD_TIERS.map((tier) => {
-                        const isUnlocked = profile.stewardshipScore >= tier.minPts;
-                        const isCurrent = getStewardshipTier(profile.stewardshipScore).title === tier.title;
-
-                        return (
-                          <div
-                            key={tier.title}
-                            className={twMerge(
-                              "flex flex-col items-center text-center p-2 rounded-sm border transition-all duration-300 relative",
-                              isCurrent
-                                ? "bg-brand-primary/10 border-brand-primary shadow-md ring-1 ring-brand-primary/30"
-                                : isUnlocked
-                                  ? "bg-app-bg/70 border-border-subtle/80"
-                                  : "bg-app-bg/30 border-border-subtle/40 opacity-55"
-                            )}
-                          >
-                            {/* Checkmark or Lock Status */}
-                            <div className={twMerge(
-                              "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mb-1",
-                              isUnlocked ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-surface text-text-muted border border-border-subtle"
-                            )}>
-                              {isUnlocked ? <Check className="w-3 h-3 text-emerald-400" /> : <Lock className="w-2.5 h-2.5 text-text-muted" />}
-                            </div>
-
-                            <span className={twMerge(
-                              "text-xs font-heading font-bold uppercase tracking-wider block",
-                              isCurrent ? "text-brand-primary" : isUnlocked ? tier.color : "text-text-muted"
-                            )}>
-                              {tier.title}
-                            </span>
-
-                            <span className="text-[10px] font-mono text-text-muted mt-0.5 block">
-                              {tier.minPts} PTS
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Progression Quick Info & Flip back */}
+                    {/* Back Disclaimer Footer */}
                     <div className="relative z-10 pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[10px] text-text-muted font-sans">
-                      <span>+15 pts / report • +50 pts / clearance</span>
-                      <span className="text-brand-primary font-heading font-semibold uppercase tracking-wider flex items-center gap-1 cursor-pointer hover:underline">
-                        <span>Card View</span>
-                        <RotateCw className="w-2.5 h-2.5" />
+                      <span>Certified by esteRoute Waterway Network</span>
+                      <span className="text-brand-primary flex items-center gap-1 font-mono hover:underline">
+                        <span>Flip back ↺</span>
                       </span>
                     </div>
                   </div>
@@ -860,7 +1056,7 @@ export default function CitizenProfile() {
 
               {/* Modal Hint */}
               <p className="text-xs text-text-muted text-center font-sans">
-                Click anywhere on the ID card to flip between front credentials and program rules.
+                Click anywhere on the ID card to flip. Click &apos;View Levels&apos; to view gamified rank progression.
               </p>
             </motion.div>
           </div>
