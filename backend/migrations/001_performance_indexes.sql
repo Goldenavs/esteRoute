@@ -32,3 +32,21 @@ CREATE INDEX IF NOT EXISTS idx_agent_results_report_type
 CREATE INDEX IF NOT EXISTS idx_dispatch_log_report_created 
   ON public.dispatch_status_log (report_id, created_at DESC);
 
+
+-- 7. Realtime Replication for instant UI synchronization (triage and status changes)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'reports'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.reports;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'agent_results'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_results;
+  END IF;
+END $$;

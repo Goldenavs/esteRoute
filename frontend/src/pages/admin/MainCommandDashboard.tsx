@@ -24,7 +24,10 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Search,
+  ArrowUpDown,
+  X
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
@@ -223,6 +226,18 @@ export default function MainCommandDashboard() {
   const [isMapDark, setIsMapDark] = useState<boolean>(true);
   const [mapType, setMapType] = useState<MapTileType>('standard');
   const [statusFilter, setStatusFilter] = useState<'all' | 'critical' | 'review' | 'pending' | 'resolved'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const activePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Clean up active polling interval on unmount
+  useEffect(() => {
+    return () => {
+      if (activePollRef.current) {
+        clearInterval(activePollRef.current);
+      }
+    };
+  }, []);
 
   // Computed metric counts
   const totalCount = reports.length;
@@ -297,21 +312,35 @@ export default function MainCommandDashboard() {
 
   // Filtered reports for both the Map Markers and the Right Dispatch Queue
   const filteredReports = useMemo(() => {
-    if (statusFilter === 'all') return reportsWithDisplayCoords;
+    let result = reportsWithDisplayCoords;
+
     if (statusFilter === 'critical') {
-      return reportsWithDisplayCoords.filter(r => r.priority_score >= 70 && r.status === 'triaged');
+      result = result.filter(r => r.priority_score >= 70 && r.status === 'triaged');
+    } else if (statusFilter === 'review') {
+      result = result.filter(r => r.status === 'failed_analysis' || r.needs_human_review);
+    } else if (statusFilter === 'pending') {
+      result = result.filter(r => r.status === 'pending_analysis');
+    } else if (statusFilter === 'resolved') {
+      result = result.filter(r => r.status === 'resolved');
     }
-    if (statusFilter === 'review') {
-      return reportsWithDisplayCoords.filter(r => r.status === 'failed_analysis' || r.needs_human_review);
+
+    // Filter by tracking reference or notes search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(r => 
+        (r.tracking_reference && r.tracking_reference.toLowerCase().includes(q)) ||
+        (r.report_id && r.report_id.toLowerCase().includes(q)) ||
+        (r.citizen_notes && r.citizen_notes.toLowerCase().includes(q))
+      );
     }
-    if (statusFilter === 'pending') {
-      return reportsWithDisplayCoords.filter(r => r.status === 'pending_analysis');
-    }
-    if (statusFilter === 'resolved') {
-      return reportsWithDisplayCoords.filter(r => r.status === 'resolved');
-    }
-    return reportsWithDisplayCoords;
-  }, [reportsWithDisplayCoords, statusFilter]);
+
+    // Sort by created_at newest or oldest
+    return [...result].sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
+    });
+  }, [reportsWithDisplayCoords, statusFilter, searchQuery, sortOrder]);
 
   const selectedReport = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
 
@@ -350,13 +379,51 @@ export default function MainCommandDashboard() {
         // Optimistically set status to pending_analysis & clear existing vision result
         setReports(prev => prev.map(r => r.report_id === reportId ? { ...r, status: 'pending_analysis', needs_human_review: false } : r));
         setVisionResult(null);
+
+        // Clear any prior poll
+        if (activePollRef.current) clearInterval(activePollRef.current);
+
+        // Active poll watcher: check report status every 1.5s to ensure immediate UI update on success or failure without page refresh
+        let attempts = 0;
+        const maxAttempts = 20; // 20 * 1.5s = 30s
+        activePollRef.current = setInterval(async () => {
+          attempts += 1;
+          try {
+            const { data: updatedReport, error: pollErr } = await supabase
+              .from('reports')
+              .select('*')
+              .eq('report_id', reportId)
+              .maybeSingle();
+
+            if (!pollErr && updatedReport) {
+              if (updatedReport.status !== 'pending_analysis') {
+                if (activePollRef.current) clearInterval(activePollRef.current);
+                // Instantly update reports state so the UI reflects the result (triaged or failed_analysis)
+                setReports(prev => prev.map(r => r.report_id === reportId ? { ...r, ...updatedReport } : r));
+                if (updatedReport.status === 'triaged') {
+                  fetchVisionResult(reportId);
+                } else if (updatedReport.status === 'failed_analysis') {
+                  setVisionResult(null);
+                }
+                setIsReAssessing(false);
+              }
+            }
+          } catch (pollCheckErr) {
+            console.warn("Status watcher check error:", pollCheckErr);
+          }
+
+          if (attempts >= maxAttempts) {
+            if (activePollRef.current) clearInterval(activePollRef.current);
+            setIsReAssessing(false);
+          }
+        }, 1500);
       } else {
         const errData = await res.json().catch(() => ({}));
         console.error("Failed to re-assess report:", errData);
+        setIsReAssessing(false);
       }
     } catch (error) {
       console.error("Failed to re-assess report:", error);
-    } finally {
       setIsReAssessing(false);
     }
   };
@@ -441,12 +508,18 @@ export default function MainCommandDashboard() {
 
     const channel = supabase
       .channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (payload) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updated = payload.new as any;
+        if (updated && updated.report_id) {
+          setReports(prev => prev.map(r => r.report_id === updated.report_id ? { ...r, ...updated } : r));
+          if (updated.status === 'triaged') {
+            fetchVisionResult(updated.report_id);
+          } else if (updated.status === 'failed_analysis') {
+            setVisionResult(null);
+          }
+        }
         fetchReports();
-        setSelectedReportId(currentId => {
-          if (currentId) fetchVisionResult(currentId);
-          return currentId;
-        });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_results' }, (payload) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1080,25 +1153,82 @@ export default function MainCommandDashboard() {
               </button>
             </div>
 
+            {/* Reference Number Search & Newest/Oldest Sort Controls */}
+            <div className="p-3 border-b border-border-subtle bg-surface/60 space-y-2 relative z-20">
+              <div className="relative flex items-center">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 text-text-muted pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search ref # (e.g. ER-2026)..."
+                  className="w-full bg-app-bg/80 border border-border-subtle focus:border-brand-primary text-text-primary text-xs pl-8 pr-8 py-1.5 rounded-sm outline-none transition-colors font-mono placeholder:text-text-muted/60"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 text-text-muted hover:text-text-primary cursor-pointer p-0.5"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] font-mono">
+                <span className="text-text-muted">
+                  Showing <span className="font-bold text-text-primary">{filteredReports.length}</span> of {reports.length}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
+                  className="flex items-center gap-1.5 px-2 py-0.5 bg-surface hover:bg-brand-primary/15 border border-border-subtle hover:border-brand-primary/40 rounded-xs text-text-secondary hover:text-brand-primary transition-all cursor-pointer font-bold uppercase tracking-wider"
+                  title={`Sorted by ${sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}. Click to toggle.`}
+                >
+                  <ArrowUpDown className="w-3 h-3 text-brand-primary" />
+                  <span>{sortOrder === 'newest' ? 'Newest' : 'Oldest'}</span>
+                </button>
+              </div>
+            </div>
+
             {/* Queue List */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
               {filteredReports.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 text-center p-6 border border-dashed border-border-subtle rounded-sm bg-app-bg/40">
                   <CheckCircle className="w-8 h-8 text-text-muted mb-2 opacity-50" />
                   <p className="font-heading text-xs font-bold uppercase tracking-widest text-text-secondary">
-                    No {statusFilter !== 'all' ? statusFilter : ''} Reports
+                    {searchQuery ? 'No Matching Reports' : `No ${statusFilter !== 'all' ? statusFilter : ''} Reports`}
                   </p>
                   <p className="text-[11px] text-text-muted mt-1">
-                    {statusFilter !== 'all' ? `No reports match the "${statusFilter}" filter.` : 'No reports available in queue.'}
+                    {searchQuery 
+                      ? `No incidents found matching "${searchQuery}".` 
+                      : statusFilter !== 'all' 
+                        ? `No reports match the "${statusFilter}" filter.` 
+                        : 'No reports available in queue.'}
                   </p>
-                  {statusFilter !== 'all' && (
-                    <button
-                      type="button"
-                      onClick={() => setStatusFilter('all')}
-                      className="mt-3 text-[10px] font-bold text-brand-primary hover:underline uppercase tracking-wider cursor-pointer"
-                    >
-                      Clear Filter (Show All)
-                    </button>
+                  {(searchQuery || statusFilter !== 'all') && (
+                    <div className="flex items-center gap-3 mt-3">
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="text-[10px] font-bold text-brand-primary hover:underline uppercase tracking-wider cursor-pointer"
+                        >
+                          Clear Search
+                        </button>
+                      )}
+                      {statusFilter !== 'all' && (
+                        <button
+                          type="button"
+                          onClick={() => setStatusFilter('all')}
+                          className="text-[10px] font-bold text-brand-primary hover:underline uppercase tracking-wider cursor-pointer"
+                        >
+                          Clear Filter
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : (
