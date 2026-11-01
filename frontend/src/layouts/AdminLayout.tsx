@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SystemLogsModal from '../components/admin/SystemLogsModal';
 import TacticalBackground from '../components/common/TacticalBackground';
 
@@ -43,6 +43,12 @@ export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isNavVisible, setIsNavVisible] = useState(true);
+  const isNavVisibleRef = useRef(true);
+  const isNavHoveredRef = useRef(false);
+
+  useEffect(() => {
+    isNavVisibleRef.current = isNavVisible;
+  }, [isNavVisible]);
   const [isLogsOpen, setIsLogsOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -54,18 +60,26 @@ export default function AdminLayout() {
     let timeout: ReturnType<typeof setTimeout> | null = null;
     
     const handleMouseMove = (e: MouseEvent) => {
-      if (e.clientY <= 120) {
+      // Tight edge hover:
+      // When navbar is hidden, only touching the extreme top edge (<= 20px) reveals it.
+      // When navbar is open, keep it open if cursor is within navbar area (<= 90px) or hovering the bar.
+      const triggerThreshold = isNavVisibleRef.current ? 90 : 20;
+
+      if (e.clientY <= triggerThreshold || isNavHoveredRef.current) {
         setIsNavVisible(true);
         if (timeout) {
           clearTimeout(timeout);
           timeout = null;
         }
       } else {
-        if (!timeout) {
+        // If we move away from the top/navbar, start the hide countdown
+        if (!timeout && !isNavHoveredRef.current) {
           timeout = setTimeout(() => {
-            setIsNavVisible(false);
+            if (!isNavHoveredRef.current) {
+              setIsNavVisible(false);
+            }
             timeout = null;
-          }, 1000);
+          }, 800);
         }
       }
     };
@@ -73,7 +87,9 @@ export default function AdminLayout() {
     window.addEventListener('mousemove', handleMouseMove);
 
     timeout = setTimeout(() => {
-      setIsNavVisible(false);
+      if (!isNavHoveredRef.current) {
+        setIsNavVisible(false);
+      }
       timeout = null;
     }, 2500);
 
@@ -95,7 +111,8 @@ export default function AdminLayout() {
       <TacticalBackground />
       
       {/* Invisible Hover Zone (Top of Screen) */}
-      <div className="fixed top-0 left-0 w-full h-12 z-[999] md:block hidden pointer-events-none" />
+      {/* Tight Hover Zone (Top 20px Edge) to catch rapid mouse movements */}
+      <div className="fixed top-0 left-0 w-full h-5 z-[999] md:block hidden pointer-events-none" />
 
       {/* Top Navbar (Desktop Only) - Follows AuthNavbar / Citizen Style */}
       <div 
@@ -108,7 +125,16 @@ export default function AdminLayout() {
       >
         <div className="flex flex-col items-center px-4 md:px-6">
           <div className="w-full max-w-[95%] xl:max-w-7xl relative pointer-events-none">
-            <div className="w-full flex items-center justify-between pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12">
+            <div 
+              onMouseEnter={() => {
+                isNavHoveredRef.current = true;
+                setIsNavVisible(true);
+              }}
+              onMouseLeave={() => {
+                isNavHoveredRef.current = false;
+              }}
+              className="w-full flex items-center justify-between pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12"
+            >
               
               {/* Left: Brand Logo (Non-clickable, matching landing page hover effect & styling) */}
               <div className="flex-1 flex justify-start skew-x-12">
