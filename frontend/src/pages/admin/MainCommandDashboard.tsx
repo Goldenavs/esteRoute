@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -9,6 +9,8 @@ import {
   ShieldAlert, 
   Truck, 
   MapPin, 
+  RefreshCw,
+  Loader2, 
   Maximize2, 
   Minimize2, 
   CheckCircle, 
@@ -151,6 +153,7 @@ export default function MainCommandDashboard() {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [visionResult, setVisionResult] = useState<any>(null);
+  const [isReAssessing, setIsReAssessing] = useState<boolean>(false);
   
   const mapRef = useRef<L.Map>(null);
   const markerRefs = useRef<{ [key: string]: L.Marker | null }>({});
@@ -312,6 +315,52 @@ export default function MainCommandDashboard() {
 
   const selectedReport = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
 
+  const fetchVisionResult = useCallback(async (reportId: string) => {
+    const { data, error } = await supabase
+      .from('agent_results')
+      .select('*')
+      .eq('report_id', reportId)
+      .eq('agent_type', 'vision_triage')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    if (!error && data) {
+      setVisionResult(data.result_json);
+    } else {
+      setVisionResult(null);
+    }
+  }, []);
+
+  const handleReAssess = async (reportId: string) => {
+    if (isReAssessing) return;
+    setIsReAssessing(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(`${API_URL}/api/reports/${reportId}/re-assess`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      if (res.ok) {
+        // Optimistically set status to pending_analysis & clear existing vision result
+        setReports(prev => prev.map(r => r.report_id === reportId ? { ...r, status: 'pending_analysis', needs_human_review: false } : r));
+        setVisionResult(null);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error("Failed to re-assess report:", errData);
+      }
+    } catch (error) {
+      console.error("Failed to re-assess report:", error);
+    } finally {
+      setIsReAssessing(false);
+    }
+  };
+
   useEffect(() => {
     if (!selectedReportId) {
       // eslint-disable-next-line
@@ -341,25 +390,9 @@ export default function MainCommandDashboard() {
       return () => clearTimeout(timer);
     }
     
-    const fetchVisionResult = async () => {
-      const { data, error } = await supabase
-        .from('agent_results')
-        .select('*')
-        .eq('report_id', selectedReportId)
-        .eq('agent_type', 'vision_triage')
-        .single();
-        
-      if (!error && data) {
-        setVisionResult(data.result_json);
-      } else {
-        setVisionResult(null);
-      }
-    };
-    
-    fetchVisionResult();
+    fetchVisionResult(selectedReportId);
     setIsAnalysisOpen(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedReportId]);
+  }, [selectedReportId, fetchVisionResult, reportsWithDisplayCoords]);
 
   const updateStatus = async (reportId: string, newStatus: string) => {
     try {
@@ -405,13 +438,29 @@ export default function MainCommandDashboard() {
       .channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
         fetchReports();
+        setSelectedReportId(currentId => {
+          if (currentId) fetchVisionResult(currentId);
+          return currentId;
+        });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_results' }, (payload) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newRecord = payload.new as any;
+        if (newRecord && newRecord.agent_type === 'vision_triage') {
+          setSelectedReportId(currentId => {
+            if (currentId === newRecord.report_id) {
+              setVisionResult(newRecord.result_json);
+            }
+            return currentId;
+          });
+        }
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchVisionResult]);
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-app-bg text-text-primary select-none">
@@ -849,14 +898,26 @@ export default function MainCommandDashboard() {
                     <div className="flex-1 bg-surface-subtle p-3 rounded-sm border border-border-subtle shadow-sm transform -skew-x-[6deg]">
                        <div className="transform skew-x-[6deg]">
                          <div className="text-[9px] uppercase font-bold text-text-muted mb-1 tracking-widest">Blockage Severity</div>
-                         <div className="text-2xl font-black text-semantic-warning leading-none">{visionResult?.blockage_severity_score ?? selectedReport.priority_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></div>
+                         <div className="text-2xl font-black text-semantic-warning leading-none">
+                           {selectedReport.status === 'pending_analysis' ? (
+                             <span className="text-sm font-mono text-brand-primary animate-pulse flex items-center gap-1">
+                               <Loader2 className="w-3.5 h-3.5 animate-spin" /> Scanning...
+                             </span>
+                           ) : (
+                             <>{visionResult?.blockage_severity_score ?? selectedReport.priority_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></>
+                           )}
+                         </div>
                        </div>
                     </div>
                     <div className="flex-1 bg-surface-subtle p-3 rounded-sm border border-border-subtle shadow-sm transform -skew-x-[6deg]">
                        <div className="transform skew-x-[6deg]">
                          <div className="text-[9px] uppercase font-bold text-text-muted mb-1 tracking-widest">Detected Waste</div>
                          <div className="flex flex-wrap gap-1 mt-1.5">
-                           {(visionResult?.waste_categories || []).length > 0 ? (
+                           {selectedReport.status === 'pending_analysis' ? (
+                             <span className="text-[9px] text-brand-primary font-mono italic flex items-center gap-1 animate-pulse">
+                               Detecting...
+                             </span>
+                           ) : (visionResult?.waste_categories || []).length > 0 ? (
                              (visionResult.waste_categories).map((c: string) => (
                                 <span key={c} className="text-[8px] bg-brand-primary/10 border border-brand-primary/30 text-brand-primary px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider">{c}</span>
                              ))
@@ -870,11 +931,28 @@ export default function MainCommandDashboard() {
                   
                   {/* AI Rationale */}
                   <div>
-                    <div className="text-[10px] uppercase font-bold text-brand-primary mb-2 tracking-widest flex items-center gap-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5" /> AI Assessment
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-[10px] uppercase font-bold text-brand-primary tracking-widest flex items-center gap-1.5">
+                        <ShieldAlert className="w-3.5 h-3.5" /> AI Assessment
+                      </div>
+                      {selectedReport.status === 'failed_analysis' && (
+                        <span className="text-[9px] font-mono text-amber-500 font-bold uppercase tracking-wider">
+                          Analysis Failed
+                        </span>
+                      )}
+                      {selectedReport.status === 'pending_analysis' && (
+                        <span className="text-[9px] font-mono text-brand-primary font-bold uppercase tracking-wider flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Pipeline Active
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-text-primary leading-relaxed bg-surface p-4 border-l-2 border-brand-primary italic shadow-md">
-                      "{visionResult?.rationale || 'Awaiting full AI visual analysis...'}"
+                      {selectedReport.status === 'pending_analysis'
+                        ? 'AI Triage in progress... Analyzing canal photo, waste categorization, and meteorological flood risk.'
+                        : (selectedReport.status === 'failed_analysis' && !visionResult?.rationale)
+                          ? 'Automated visual analysis failed due to timeout or low clarity. Click "Re-run AI Analysis" below to retry, or proceed with manual dispatch.'
+                          : `"${visionResult?.rationale || 'Awaiting full AI visual analysis...'}"`
+                      }
                     </p>
                   </div>
 
@@ -890,7 +968,22 @@ export default function MainCommandDashboard() {
 
                   {/* Dispatcher Actions */}
                   <div className="pt-3 border-t border-border-subtle mt-auto">
-                    <div className="text-[9px] uppercase font-bold text-text-muted mb-2 tracking-widest">Command Controls</div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[9px] uppercase font-bold text-text-muted tracking-widest">Command Controls</span>
+                      
+                      {/* Re-run AI Analysis Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleReAssess(selectedReport.report_id)}
+                        disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                        title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
+                      >
+                        <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
+                        <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
+                      </button>
+                    </div>
+
                     <div className="flex gap-2">
                       {selectedReport.status !== 'in_progress' && selectedReport.status !== 'resolved' && (
                         <button 

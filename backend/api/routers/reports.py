@@ -174,3 +174,67 @@ async def update_report_status(
         return {"message": f"Status updated to {payload.status}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update status: {str(e)}")
+
+@router.post("/{report_id}/re-assess")
+async def reassess_report(
+    report_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: AuthenticatedUser = Depends(require_admin_or_dispatcher),
+):
+    """
+    Re-run the AI Vision & Multi-Agent Triage Pipeline for a given report.
+    Resets status to 'pending_analysis', clears old agent results, and launches
+    triage_report_pipeline in the background.
+    Restricted to Admin and Dispatcher personnel.
+    """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase is not configured in backend .env")
+
+    try:
+        # 1. Fetch report details
+        res = supabase.table("reports").select("*").eq("report_id", report_id).execute()
+        if not res.data or len(res.data) == 0:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        report = res.data[0]
+
+        # 2. Clear old agent results to ensure fresh analysis output
+        supabase.table("agent_results").delete().eq("report_id", report_id).execute()
+
+        # 3. Reset report status to pending_analysis & clear human review flag
+        supabase.table("reports").update({
+            "status": "pending_analysis",
+            "needs_human_review": False
+        }).eq("report_id", report_id).execute()
+
+        # 4. Insert transition into dispatch status log
+        supabase.table("dispatch_status_log").insert({
+            "report_id": report_id,
+            "to_status": "pending_analysis"
+        }).execute()
+
+        # 5. Log transaction audit
+        log_transaction(
+            f"[{report_id}] AI Re-assessment triggered by {current_user.email} (Role: {current_user.role})"
+        )
+
+        # 6. Re-run triage pipeline in background
+        background_tasks.add_task(
+            triage_report_pipeline,
+            report_id=report_id,
+            image_url=report["image_url"],
+            latitude=float(report["latitude"]),
+            longitude=float(report["longitude"]),
+            citizen_notes=report.get("citizen_notes")
+        )
+
+        return {
+            "message": "AI triage re-assessment initiated in background",
+            "report_id": report_id,
+            "status": "pending_analysis"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initiate re-assessment: {str(e)}")
+
