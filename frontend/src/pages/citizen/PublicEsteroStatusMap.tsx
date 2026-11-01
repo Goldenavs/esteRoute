@@ -1029,7 +1029,7 @@ export default function PublicEsteroStatusMap() {
               <button
                 key={metric.label}
                 type="button"
-                onClick={() => setStatusFilter(metric.filter)}
+                onClick={() => setStatusFilter(prev => prev === metric.filter ? 'all' : metric.filter)}
                 className={twMerge(
                   "group relative overflow-hidden flex h-10 sm:min-h-[56px] items-center border bg-surface/75 shadow-md backdrop-blur-md transition-all duration-300 hover:border-brand-primary -skew-x-2 sm:-skew-x-6 cursor-pointer text-left active:opacity-90",
                   metric.border,
@@ -1261,6 +1261,48 @@ export default function PublicEsteroStatusMap() {
             </AnimatePresence>
           </div>
         </div>
+
+        {/* Fullscreen Quick-Filter Pill Group (Barrier 4) */}
+        {isFullscreen && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[400] flex items-center gap-1 bg-surface/90 backdrop-blur-md border border-border-subtle p-1 rounded-sm shadow-xl -skew-x-3 pointer-events-auto">
+            <div className="flex items-center gap-1 skew-x-3 text-[10px] font-mono font-bold uppercase">
+              {kpiMetrics.map((m) => {
+                const isSelected = statusFilter === m.filter;
+                return (
+                  <button
+                    key={m.filter}
+                    type="button"
+                    onClick={() => setStatusFilter(prev => prev === m.filter ? 'all' : m.filter)}
+                    className={twMerge(
+                      "px-2 sm:px-2.5 py-1 rounded-xs transition-colors cursor-pointer flex items-center gap-1",
+                      isSelected 
+                        ? "bg-brand-primary text-white shadow-xs font-black" 
+                        : "text-text-secondary hover:text-text-primary hover:bg-surface/50"
+                    )}
+                  >
+                    <span>{m.shortLabel}</span>
+                    <span className="opacity-75">({m.value})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Active Filter Indicator Badge with Quick Reset */}
+        {statusFilter !== 'all' && (
+          <div className="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 z-[400] bg-brand-primary/95 text-white backdrop-blur-md px-3 py-1 rounded-sm shadow-lg flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-wider -skew-x-3 pointer-events-auto border border-white/20">
+            <span className="skew-x-3">Filter: {statusFilter}</span>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('all')}
+              className="skew-x-3 text-white/80 hover:text-white underline cursor-pointer ml-1"
+              title="Reset to Show All"
+            >
+              Reset
+            </button>
+          </div>
+        )}
 
         {/* 6. Map Style & Mode Indicator (Top Left on mobile to prevent overlapping with bottom right legend, Bottom Left on desktop) */}
         <div className="absolute top-3 left-3 sm:top-auto sm:bottom-4 sm:left-4 z-[400] bg-surface/90 backdrop-blur-md border border-border-subtle px-2.5 py-1 rounded-sm shadow-md flex items-center gap-1.5 -skew-x-3 pointer-events-none text-[10px] font-mono font-bold text-text-secondary uppercase tracking-wider">
