@@ -8,7 +8,7 @@ import {
   Search, 
   Copy, 
   Check, 
-  ArrowDown, 
+  ArrowUpDown, 
   Code, 
   ListFilter,
   ShieldAlert, 
@@ -30,6 +30,7 @@ interface Props {
 
 export interface ParsedLog {
   id: string;
+  index: number;
   raw: string;
   timestamp: string;
   level: 'INFO' | 'WARN' | 'ERROR';
@@ -61,6 +62,7 @@ function parseLogLine(line: string, index: number): ParsedLog {
 
     return {
       id: `${index}-${timestamp}`,
+      index,
       raw: line,
       timestamp,
       level: (level?.toUpperCase() === 'ERROR' ? 'ERROR' : level?.toUpperCase() === 'WARN' ? 'WARN' : 'INFO'),
@@ -73,6 +75,7 @@ function parseLogLine(line: string, index: number): ParsedLog {
   // Fallback for custom or multi-line entries
   return {
     id: `raw-${index}`,
+    index,
     raw: line,
     timestamp: '',
     level: 'INFO',
@@ -88,10 +91,9 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | 'triage' | 'alert' | 'user' | 'weather'>('all');
   const [viewMode, setViewMode] = useState<'structured' | 'raw'>('structured');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [isCopied, setIsCopied] = useState(false);
-  const [isAutoScroll, setIsAutoScroll] = useState(true);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchLogs = useCallback(async (isManual = false) => {
@@ -139,7 +141,7 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
       .map((line, idx) => parseLogLine(line, idx));
   }, [logs]);
 
-  // Filter logs by active category and search keyword
+  // Filter and sort logs by active category, search keyword, and newest/oldest order
   const filteredLogs = useMemo(() => {
     let result = parsedLogs;
 
@@ -156,29 +158,28 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
       );
     }
 
-    return result;
-  }, [parsedLogs, activeCategory, searchQuery]);
-
-  // Handle auto-scroll to bottom on new logs if enabled
-  useEffect(() => {
-    if (isOpen && isAutoScroll && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [filteredLogs, isOpen, isAutoScroll, viewMode]);
+    return [...result].sort((a, b) => {
+      if (a.timestamp && b.timestamp) {
+        const timeA = new Date(a.timestamp.replace(' ', 'T')).getTime();
+        const timeB = new Date(b.timestamp.replace(' ', 'T')).getTime();
+        if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
+          return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
+        }
+      }
+      return sortOrder === 'newest' ? b.index - a.index : a.index - b.index;
+    });
+  }, [parsedLogs, activeCategory, searchQuery, sortOrder]);
 
   const handleCopyLogs = async () => {
-    if (!logs) return;
+    const textToCopy = filteredLogs.map(l => l.raw).join('\n') || logs;
+    if (!textToCopy) return;
     try {
-      await navigator.clipboard.writeText(logs);
+      await navigator.clipboard.writeText(textToCopy);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (e) {
       console.error('Copy failed:', e);
     }
-  };
-
-  const scrollToBottom = () => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   // Keyboard shortcut: Escape to close
@@ -226,33 +227,24 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
                   <Activity className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-heading font-black text-sm sm:text-base tracking-wider uppercase text-text-primary">
-                      Agent Activity & Audit Logs
-                    </h2>
-                    <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold">
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-                      </span>
-                      Live Stream
-                    </span>
-                  </div>
+                  <h2 className="font-heading font-black text-sm sm:text-base tracking-wider uppercase text-text-primary">
+                    Agent Activity & Audit Logs
+                  </h2>
                   <p className="text-[11px] text-text-muted font-sans">
                     Autonomous Vision, Meteorological & Dispatch Pipeline Telemetry
                   </p>
                 </div>
               </div>
 
-              {/* Right Modal Actions */}
+              {/* Right Modal Actions (Uniform 32px / h-8 height) */}
               <div className="flex items-center gap-2">
                 {/* View Mode Toggle */}
-                <div className="flex items-center bg-app-bg/80 border border-border-subtle rounded-sm p-0.5 text-xs font-mono">
+                <div className="h-8 flex items-center bg-app-bg/80 border border-border-subtle rounded-sm p-0.5 text-xs font-mono">
                   <button
                     type="button"
                     onClick={() => setViewMode('structured')}
                     className={twMerge(
-                      "px-2.5 py-1 rounded-xs flex items-center gap-1.5 transition-all cursor-pointer font-bold uppercase tracking-wider text-[10px]",
+                      "h-full px-2.5 rounded-xs flex items-center gap-1.5 transition-all cursor-pointer font-bold uppercase tracking-wider text-[10px]",
                       viewMode === 'structured'
                         ? "bg-brand-primary text-white shadow-xs"
                         : "text-text-muted hover:text-text-primary"
@@ -266,7 +258,7 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
                     type="button"
                     onClick={() => setViewMode('raw')}
                     className={twMerge(
-                      "px-2.5 py-1 rounded-xs flex items-center gap-1.5 transition-all cursor-pointer font-bold uppercase tracking-wider text-[10px]",
+                      "h-full px-2.5 rounded-xs flex items-center gap-1.5 transition-all cursor-pointer font-bold uppercase tracking-wider text-[10px]",
                       viewMode === 'raw'
                         ? "bg-brand-primary text-white shadow-xs"
                         : "text-text-muted hover:text-text-primary"
@@ -278,22 +270,22 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
                   </button>
                 </div>
 
-                {/* Copy All Logs */}
+                {/* Copy Logs */}
                 <button
                   type="button"
                   onClick={handleCopyLogs}
-                  className="p-1.5 sm:px-2.5 sm:py-1 rounded-sm bg-surface hover:bg-surface-subtle border border-border-subtle text-text-secondary hover:text-text-primary text-xs font-mono font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                  title="Copy complete log buffer"
+                  className="h-8 px-2.5 flex items-center gap-1.5 rounded-sm bg-surface hover:bg-surface-subtle border border-border-subtle text-text-secondary hover:text-text-primary text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
+                  title="Copy log buffer to clipboard"
                 >
                   {isCopied ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="hidden sm:inline text-emerald-400 text-[10px]">Copied</span>
+                      <span className="text-emerald-400">Copied</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline text-[10px]">Copy</span>
+                      <Copy className="w-3.5 h-3.5 text-brand-primary" />
+                      <span>Copy</span>
                     </>
                   )}
                 </button>
@@ -303,7 +295,7 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
                   type="button"
                   onClick={() => void fetchLogs(true)}
                   disabled={isRefreshing}
-                  className="p-1.5 rounded-sm bg-surface hover:bg-surface-subtle border border-border-subtle text-text-muted hover:text-brand-primary transition-all cursor-pointer shadow-2xs"
+                  className="h-8 w-8 flex items-center justify-center rounded-sm bg-surface hover:bg-surface-subtle border border-border-subtle text-text-muted hover:text-brand-primary transition-all cursor-pointer shadow-2xs"
                   title="Refresh logs from server"
                 >
                   <RefreshCw className={twMerge("w-3.5 h-3.5", isRefreshing && "animate-spin text-brand-primary")} />
@@ -313,7 +305,7 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1.5 rounded-sm bg-surface hover:bg-semantic-urgent/20 border border-border-subtle hover:border-semantic-urgent/40 text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer shadow-2xs"
+                  className="h-8 w-8 flex items-center justify-center rounded-sm bg-surface hover:bg-semantic-urgent/20 border border-border-subtle hover:border-semantic-urgent/40 text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer shadow-2xs"
                   aria-label="Close logs dialog"
                 >
                   <X className="w-4 h-4" />
@@ -353,26 +345,40 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
                 })}
               </div>
 
-              {/* Search Bar */}
-              <div className="relative flex items-center min-w-[200px] sm:min-w-[260px] flex-1 sm:flex-initial">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 text-text-muted pointer-events-none" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter by ref#, ID, or text..."
-                  className="w-full bg-app-bg/80 border border-border-subtle focus:border-brand-primary text-text-primary text-xs pl-8 pr-7 py-1 rounded-sm outline-none transition-colors font-mono placeholder:text-text-muted/60"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 text-text-muted hover:text-text-primary cursor-pointer p-0.5"
-                    title="Clear search"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
+              {/* Search & Sort Controls */}
+              <div className="flex items-center gap-2 min-w-[240px] sm:min-w-[320px] flex-1 sm:flex-initial">
+                {/* Search Bar */}
+                <div className="relative flex items-center flex-1">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 text-text-muted pointer-events-none" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Filter by ref#, ID, or text..."
+                    className="w-full h-8 bg-app-bg/80 border border-border-subtle focus:border-brand-primary text-text-primary text-xs pl-8 pr-7 rounded-sm outline-none transition-colors font-mono placeholder:text-text-muted/60"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 text-text-muted hover:text-text-primary cursor-pointer p-0.5"
+                      title="Clear search"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Sort Newest / Oldest Button */}
+                <button
+                  type="button"
+                  onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
+                  className="h-8 flex items-center gap-1.5 px-2.5 bg-surface hover:bg-brand-primary/15 border border-border-subtle hover:border-brand-primary/40 rounded-sm text-text-secondary hover:text-brand-primary transition-all cursor-pointer font-bold uppercase tracking-wider text-[10px] font-mono shrink-0 shadow-2xs"
+                  title={`Sorted by ${sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}. Click to toggle.`}
+                >
+                  <ArrowUpDown className="w-3 h-3 text-brand-primary" />
+                  <span>{sortOrder === 'newest' ? 'Newest' : 'Oldest'}</span>
+                </button>
               </div>
 
             </div>
@@ -490,13 +496,11 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
                       </div>
                     );
                   })}
-                  <div ref={bottomRef} />
                 </div>
               ) : (
                 /* Raw Monospace Console View (Formatted with dark surface theme matching esteRoute) */
                 <div className="bg-[#0b1322] border border-border-strong/60 p-4 rounded-sm font-mono text-xs text-emerald-400 overflow-x-auto shadow-inner leading-relaxed">
-                  <pre className="whitespace-pre-wrap select-text">{logs}</pre>
-                  <div ref={bottomRef} />
+                  <pre className="whitespace-pre-wrap select-text">{filteredLogs.map(l => l.raw).join('\n') || logs}</pre>
                 </div>
               )}
             </div>
@@ -514,29 +518,9 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAutoScroll(prev => !prev)}
-                  className={twMerge(
-                    "px-2 py-0.5 rounded-xs border text-[10px] uppercase font-bold tracking-wider transition-colors cursor-pointer",
-                    isAutoScroll 
-                      ? "bg-brand-primary/15 border-brand-primary/40 text-brand-primary" 
-                      : "bg-surface border-border-subtle text-text-muted hover:text-text-primary"
-                  )}
-                  title={isAutoScroll ? "Disable automatic scroll to latest events" : "Enable automatic scroll to latest events"}
-                >
-                  Auto-Scroll: {isAutoScroll ? 'ON' : 'OFF'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={scrollToBottom}
-                  className="flex items-center gap-1 px-2 py-0.5 bg-surface hover:bg-surface-subtle border border-border-subtle text-text-secondary hover:text-text-primary rounded-xs text-[10px] uppercase font-bold tracking-wider transition-colors cursor-pointer"
-                  title="Scroll to latest entry"
-                >
-                  <ArrowDown className="w-3 h-3 text-brand-primary" />
-                  <span>Bottom</span>
-                </button>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-text-muted">
+                  Order: <span className="text-brand-primary">{sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}</span>
+                </span>
               </div>
             </div>
 
