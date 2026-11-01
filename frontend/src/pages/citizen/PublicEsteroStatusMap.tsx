@@ -701,9 +701,12 @@ export default function PublicEsteroStatusMap() {
         // Resolved blockages are only loaded if recent (within 30 days) to prevent thousands of obsolete pins.
         const thirtyDaysAgoIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
+        // Anti-Spoofing & Safety Barrier 1: Only query verified canal reports ('triaged', 'dispatched', 'resolved')
+        // Excludes 'failed_analysis' (spoofed/rejected images) and 'pending_analysis' from ever becoming public pins
         const { data, error } = await supabase
           .from('reports')
           .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
+          .in('status', ['triaged', 'dispatched', 'resolved'])
           .or(`status.neq.resolved,created_at.gte.${thirtyDaysAgoIso}`)
           .order('created_at', { ascending: false })
           .limit(100);
@@ -711,7 +714,9 @@ export default function PublicEsteroStatusMap() {
         let mapped: PublicReportItem[] = [];
 
         if (!error && data && data.length > 0) {
-          mapped = data.map((item) => {
+          mapped = data
+            .filter((item) => item.status === 'triaged' || item.status === 'dispatched' || item.status === 'resolved')
+            .map((item) => {
             let mappedStatus: 'blocked' | 'dispatched' | 'resolved' = 'blocked';
             if (item.status === 'resolved') mappedStatus = 'resolved';
             else if (item.status === 'dispatched') mappedStatus = 'dispatched';

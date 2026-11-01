@@ -970,6 +970,22 @@ export default function MainCommandDashboard() {
                       <span className="bg-black/50 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded">Vision Source</span>
                     </div>
                   </div>
+
+                  {/* Anti-Spoofing: Non-Waterway Warning Banner */}
+                  {(visionResult?.is_valid_waterway === false || (selectedReport.status === 'failed_analysis' && visionResult?.rejection_reason)) && (
+                    <div className="bg-amber-500/10 border-2 border-amber-500/50 p-3 rounded-sm text-amber-500 flex flex-col gap-1.5 shadow-md">
+                      <div className="flex items-center gap-1.5 font-heading font-black text-xs uppercase tracking-wider text-amber-500">
+                        <ShieldAlert className="w-4 h-4 shrink-0 text-amber-500" />
+                        <span>Non-Waterway Image Detected (Quarantined)</span>
+                      </div>
+                      <p className="text-[11px] font-sans text-text-primary leading-relaxed">
+                        AI verified this image does not depict an outdoor canal, estero, or drainage channel (Reason: <span className="font-mono font-bold text-amber-500 uppercase">{visionResult?.rejection_reason || 'non_waterway'}</span>).
+                      </p>
+                      <div className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-xs w-fit">
+                        ✓ Automatically quarantined from Public Map pins
+                      </div>
+                    </div>
+                  )}
                   
                   {/* AI Scores & Details */}
                   <div className="flex gap-3">
@@ -982,7 +998,13 @@ export default function MainCommandDashboard() {
                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Scanning...
                              </span>
                            ) : (
-                             <>{visionResult?.blockage_severity_score ?? selectedReport.priority_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></>
+                             visionResult?.is_valid_waterway === false ? (
+                              <span className="text-base font-mono text-red-500 font-bold">
+                                0 <span className="text-xs text-red-400 font-sans uppercase">(REJECTED)</span>
+                              </span>
+                            ) : (
+                              <>{visionResult?.blockage_severity_score ?? selectedReport.priority_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></>
+                            )
                            )}
                          </div>
                        </div>
@@ -1267,7 +1289,7 @@ export default function MainCommandDashboard() {
                         isResolved ? 'bg-emerald-600 text-white' :
                         'bg-surface-subtle text-text-secondary border border-border-subtle'
                       }`}>
-                        {needsReview ? 'NEEDS REVIEW' : isPending ? 'PENDING' : report.status.replace('_', ' ')}
+                        {report.status === 'failed_analysis' ? 'NON-WATERWAY' : needsReview ? 'NEEDS REVIEW' : isPending ? 'PENDING' : report.status.replace('_', ' ')}
                       </span>
                     </div>
                     
