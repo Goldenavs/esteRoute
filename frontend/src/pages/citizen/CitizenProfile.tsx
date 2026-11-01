@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ArrowRight, Award, 
   User, 
@@ -644,45 +645,54 @@ export default function CitizenProfile() {
         )}
       </AnimatePresence>
 
-            {/* Dedicated Levels Progression Modal (Pushed ON TOP of Card) */}
-      <AnimatePresence>
-        {isLevelsModalOpen && (
-          <div className="fixed inset-0 z-[320] flex items-center justify-center p-3 sm:p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsLevelsModalOpen(false)}
-              className="absolute inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
-            />
+            {/* Dedicated Levels Progression Modal (Pushed ON TOP of Card via Portal to ensure full mobile coverage) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isLevelsModalOpen && (
+            <div className="fixed inset-0 z-[320] flex items-center justify-center p-3 sm:p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsLevelsModalOpen(false)}
+                className="absolute inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
+              />
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative z-10 w-full max-w-lg max-h-[88dvh] flex flex-col bg-surface/95 border-2 border-brand-primary/50 backdrop-blur-2xl rounded-lg shadow-2xl overflow-hidden"
-            >
-              <BorderBeam delay={0} color="#38BDF8" />
-              <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-amber-400" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="relative z-10 w-full max-w-lg max-h-[85dvh] sm:max-h-[88dvh] flex flex-col bg-surface/95 border-2 border-brand-primary/50 backdrop-blur-2xl rounded-lg shadow-2xl overflow-hidden"
+              >
+                <BorderBeam delay={0} color="#38BDF8" />
+                <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-amber-400" />
 
-              <div className="flex flex-col gap-3.5 sm:gap-5 p-4 sm:p-7 overflow-y-auto custom-scrollbar relative z-10">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary">
-                      <Trophy className="w-4 h-4" />
+                <div className="flex flex-col gap-3.5 sm:gap-5 p-4 sm:p-7 overflow-y-auto custom-scrollbar relative z-10">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary">
+                        <Trophy className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
+                          esteRoute Gamified Tiers
+                        </span>
+                        <h3 className="text-base sm:text-lg font-heading font-extrabold uppercase tracking-wider text-text-primary">
+                          Level Progression
+                        </h3>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
-                        esteRoute Gamified Tiers
-                      </span>
-                      <h3 className="text-base sm:text-lg font-heading font-extrabold uppercase tracking-wider text-text-primary">
-                        Level Progression
-                      </h3>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsLevelsModalOpen(false)}
+                      className="p-1.5 rounded-sm bg-surface/80 hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer"
+                      aria-label="Close level progression modal"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
 
                 {/* Score & Next Milestone Card */}
                 {(() => {
@@ -798,85 +808,88 @@ export default function CitizenProfile() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
-      {/* Interactive 3D Stewardship ID Credential Modal */}
-      <AnimatePresence>
-        {!profile.isGuest && isIdModalOpen && (
-          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-            {/* Backdrop Blur */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                setIsIdModalOpen(false);
-                setIsCardFlipped(false);
-                setIsCardZoomed(false);
-              }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
-            />
+      {/* Interactive 3D Stewardship ID Credential Modal (Portaled to document.body) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {!profile.isGuest && isIdModalOpen && (
+            <div className="fixed inset-0 z-[250] flex items-center justify-center p-3 sm:p-4">
+              {/* Backdrop Blur */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => {
+                  setIsIdModalOpen(false);
+                  setIsCardFlipped(false);
+                  setIsCardZoomed(false);
+                }}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
+              />
 
-            {/* Modal Dialog Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative z-10 w-full max-w-lg flex flex-col items-center gap-3 transition-all duration-300"
-            >
-              {/* Modal Top Bar */}
-              <div className="w-full flex items-center justify-between text-white px-1">
-                <div>
-                  <span className="text-xs sm:text-sm font-heading font-bold uppercase tracking-wider text-white">
-                    Civic Credential
-                  </span>
+              {/* Modal Dialog Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="relative z-10 w-full max-w-lg flex flex-col items-center gap-3 transition-all duration-300"
+              >
+                {/* Modal Top Bar */}
+                <div className="w-full flex items-center justify-between gap-2 text-white px-1">
+                  <div className="shrink-0">
+                    <span className="text-xs sm:text-sm font-heading font-bold uppercase tracking-wider text-white">
+                      Civic Credential
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
+                    {/* Zoom In / Zoom Out UX Button - Desktop Only */}
+                    <button
+                      type="button"
+                      onClick={() => setIsCardZoomed(prev => !prev)}
+                      className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-surface/80 hover:bg-brand-primary/20 border border-border-strong text-text-primary hover:text-brand-primary transition-all text-xs font-sans font-medium cursor-pointer shadow-xs active:scale-95 shrink-0"
+                      title={isCardZoomed ? "Reset card scale" : "Zoom in card for easier reading"}
+                    >
+                      {isCardZoomed ? (
+                        <>
+                          <ZoomOut className="w-3.5 h-3.5" />
+                          <span>Zoom Out</span>
+                        </>
+                      ) : (
+                        <>
+                          <ZoomIn className="w-3.5 h-3.5" />
+                          <span>Zoom In</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* View Levels Button (Pushes Levels Modal on Top) - Stretches on mobile to fill zoom button space */}
+                    <button
+                      type="button"
+                      onClick={() => setIsLevelsModalOpen(true)}
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-sm bg-brand-primary/10 hover:bg-brand-primary/25 border border-brand-primary/30 text-brand-primary transition-all text-xs font-heading font-semibold uppercase tracking-wider cursor-pointer shadow-xs active:scale-95"
+                    >
+                      <Trophy className="w-3.5 h-3.5 shrink-0" />
+                      <span>View Levels</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsIdModalOpen(false);
+                        setIsCardFlipped(false);
+                        setIsCardZoomed(false);
+                      }}
+                      className="p-1.5 rounded-sm bg-surface/80 hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer shrink-0"
+                      aria-label="Close credential viewer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {/* Zoom In / Zoom Out UX Button */}
-                  <button
-                    type="button"
-                    onClick={() => setIsCardZoomed(prev => !prev)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-surface/80 hover:bg-brand-primary/20 border border-border-strong text-text-primary hover:text-brand-primary transition-all text-xs font-sans font-medium cursor-pointer shadow-xs active:scale-95"
-                    title={isCardZoomed ? "Reset card scale" : "Zoom in card for easier reading"}
-                  >
-                    {isCardZoomed ? (
-                      <>
-                        <ZoomOut className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Zoom Out</span>
-                      </>
-                    ) : (
-                      <>
-                        <ZoomIn className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Zoom In</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* View Levels Button (Pushes Levels Modal on Top) */}
-                  <button
-                    type="button"
-                    onClick={() => setIsLevelsModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand-primary/10 hover:bg-brand-primary/25 border border-brand-primary/30 text-brand-primary transition-all text-xs font-heading font-semibold uppercase tracking-wider cursor-pointer shadow-xs active:scale-95"
-                  >
-                    <Trophy className="w-3.5 h-3.5" />
-                    <span>View Levels</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsIdModalOpen(false);
-                      setIsCardFlipped(false);
-                      setIsCardZoomed(false);
-                    }}
-                    className="p-1.5 rounded-sm bg-surface/80 hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer"
-                    aria-label="Close credential viewer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
 
               {/* Scalable Zoom Container (Maintains Perfect Aspect Ratio & Layout via CSS Scale Transform) */}
               <div className={twMerge(
@@ -1069,11 +1082,14 @@ export default function CitizenProfile() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
       {/* Change Password Modal */}
-      <AnimatePresence>
-        {isPasswordModalOpen && (
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isPasswordModalOpen && (
           <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div
@@ -1278,7 +1294,9 @@ export default function CitizenProfile() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
       {/* Hidden File Input for Avatar Upload */}
       <input

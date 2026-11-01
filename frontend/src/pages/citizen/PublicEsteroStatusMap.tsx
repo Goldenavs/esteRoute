@@ -1043,8 +1043,8 @@ export default function PublicEsteroStatusMap() {
           </div>
         </div>
 
-        {/* 6. Map Style & Mode Indicator (Bottom Left, mirroring BlockageSubmissionForm) */}
-        <div className="absolute bottom-3 left-3 z-[400] bg-surface/90 backdrop-blur-md border border-border-subtle px-2.5 py-1 rounded-sm shadow-md flex items-center gap-1.5 -skew-x-3 pointer-events-none text-[10px] font-mono font-bold text-text-secondary uppercase tracking-wider">
+        {/* 6. Map Style & Mode Indicator (Top Left on mobile to prevent overlapping with bottom right legend, Bottom Left on desktop) */}
+        <div className="absolute top-3 left-3 sm:top-auto sm:bottom-4 sm:left-4 z-[400] bg-surface/90 backdrop-blur-md border border-border-subtle px-2.5 py-1 rounded-sm shadow-md flex items-center gap-1.5 -skew-x-3 pointer-events-none text-[10px] font-mono font-bold text-text-secondary uppercase tracking-wider">
           <span className="skew-x-3 flex items-center gap-1.5">
             <span>{mapTileType === 'detailed' ? 'Map 1' : 'Map 2'}</span>
             <span className="text-text-muted opacity-40">|</span>

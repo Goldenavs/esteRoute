@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, LogOut } from 'lucide-react';
 
@@ -32,7 +33,7 @@ export default function ConfirmExitModal({
 
   const isAuthAction = intent === 'login' || intent === 'register';
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
@@ -121,6 +122,7 @@ export default function ConfirmExitModal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
