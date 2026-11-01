@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -9,6 +9,8 @@ import {
   ShieldAlert, 
   Truck, 
   MapPin, 
+  RefreshCw,
+  Loader2, 
   Maximize2, 
   Minimize2, 
   CheckCircle, 
@@ -22,7 +24,10 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Search,
+  ArrowUpDown,
+  X
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
@@ -151,6 +156,7 @@ export default function MainCommandDashboard() {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [visionResult, setVisionResult] = useState<any>(null);
+  const [isReAssessing, setIsReAssessing] = useState<boolean>(false);
   
   const mapRef = useRef<L.Map>(null);
   const markerRefs = useRef<{ [key: string]: L.Marker | null }>({});
@@ -220,6 +226,18 @@ export default function MainCommandDashboard() {
   const [isMapDark, setIsMapDark] = useState<boolean>(true);
   const [mapType, setMapType] = useState<MapTileType>('standard');
   const [statusFilter, setStatusFilter] = useState<'all' | 'critical' | 'review' | 'pending' | 'resolved'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const activePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Clean up active polling interval on unmount
+  useEffect(() => {
+    return () => {
+      if (activePollRef.current) {
+        clearInterval(activePollRef.current);
+      }
+    };
+  }, []);
 
   // Computed metric counts
   const totalCount = reports.length;
@@ -294,23 +312,121 @@ export default function MainCommandDashboard() {
 
   // Filtered reports for both the Map Markers and the Right Dispatch Queue
   const filteredReports = useMemo(() => {
-    if (statusFilter === 'all') return reportsWithDisplayCoords;
+    let result = reportsWithDisplayCoords;
+
     if (statusFilter === 'critical') {
-      return reportsWithDisplayCoords.filter(r => r.priority_score >= 70 && r.status === 'triaged');
+      result = result.filter(r => r.priority_score >= 70 && r.status === 'triaged');
+    } else if (statusFilter === 'review') {
+      result = result.filter(r => r.status === 'failed_analysis' || r.needs_human_review);
+    } else if (statusFilter === 'pending') {
+      result = result.filter(r => r.status === 'pending_analysis');
+    } else if (statusFilter === 'resolved') {
+      result = result.filter(r => r.status === 'resolved');
     }
-    if (statusFilter === 'review') {
-      return reportsWithDisplayCoords.filter(r => r.status === 'failed_analysis' || r.needs_human_review);
+
+    // Filter by tracking reference or notes search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(r => 
+        (r.tracking_reference && r.tracking_reference.toLowerCase().includes(q)) ||
+        (r.report_id && r.report_id.toLowerCase().includes(q)) ||
+        (r.citizen_notes && r.citizen_notes.toLowerCase().includes(q))
+      );
     }
-    if (statusFilter === 'pending') {
-      return reportsWithDisplayCoords.filter(r => r.status === 'pending_analysis');
-    }
-    if (statusFilter === 'resolved') {
-      return reportsWithDisplayCoords.filter(r => r.status === 'resolved');
-    }
-    return reportsWithDisplayCoords;
-  }, [reportsWithDisplayCoords, statusFilter]);
+
+    // Sort by created_at newest or oldest
+    return [...result].sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
+    });
+  }, [reportsWithDisplayCoords, statusFilter, searchQuery, sortOrder]);
 
   const selectedReport = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
+
+  const fetchVisionResult = useCallback(async (reportId: string) => {
+    const { data, error } = await supabase
+      .from('agent_results')
+      .select('*')
+      .eq('report_id', reportId)
+      .eq('agent_type', 'vision_triage')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    if (!error && data) {
+      setVisionResult(data.result_json);
+    } else {
+      setVisionResult(null);
+    }
+  }, []);
+
+  const handleReAssess = async (reportId: string) => {
+    if (isReAssessing) return;
+    setIsReAssessing(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(`${API_URL}/api/reports/${reportId}/re-assess`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      if (res.ok) {
+        // Optimistically set status to pending_analysis & clear existing vision result
+        setReports(prev => prev.map(r => r.report_id === reportId ? { ...r, status: 'pending_analysis', needs_human_review: false } : r));
+        setVisionResult(null);
+
+        // Clear any prior poll
+        if (activePollRef.current) clearInterval(activePollRef.current);
+
+        // Active poll watcher: check report status every 1.5s to ensure immediate UI update on success or failure without page refresh
+        let attempts = 0;
+        const maxAttempts = 20; // 20 * 1.5s = 30s
+        activePollRef.current = setInterval(async () => {
+          attempts += 1;
+          try {
+            const { data: updatedReport, error: pollErr } = await supabase
+              .from('reports')
+              .select('*')
+              .eq('report_id', reportId)
+              .maybeSingle();
+
+            if (!pollErr && updatedReport) {
+              if (updatedReport.status !== 'pending_analysis') {
+                if (activePollRef.current) clearInterval(activePollRef.current);
+                // Instantly update reports state so the UI reflects the result (triaged or failed_analysis)
+                setReports(prev => prev.map(r => r.report_id === reportId ? { ...r, ...updatedReport } : r));
+                if (updatedReport.status === 'triaged') {
+                  fetchVisionResult(reportId);
+                } else if (updatedReport.status === 'failed_analysis') {
+                  setVisionResult(null);
+                }
+                setIsReAssessing(false);
+              }
+            }
+          } catch (pollCheckErr) {
+            console.warn("Status watcher check error:", pollCheckErr);
+          }
+
+          if (attempts >= maxAttempts) {
+            if (activePollRef.current) clearInterval(activePollRef.current);
+            setIsReAssessing(false);
+          }
+        }, 1500);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error("Failed to re-assess report:", errData);
+        setIsReAssessing(false);
+      }
+    } catch (error) {
+      console.error("Failed to re-assess report:", error);
+      setIsReAssessing(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedReportId) {
@@ -341,25 +457,9 @@ export default function MainCommandDashboard() {
       return () => clearTimeout(timer);
     }
     
-    const fetchVisionResult = async () => {
-      const { data, error } = await supabase
-        .from('agent_results')
-        .select('*')
-        .eq('report_id', selectedReportId)
-        .eq('agent_type', 'vision_triage')
-        .single();
-        
-      if (!error && data) {
-        setVisionResult(data.result_json);
-      } else {
-        setVisionResult(null);
-      }
-    };
-    
-    fetchVisionResult();
+    fetchVisionResult(selectedReportId);
     setIsAnalysisOpen(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedReportId]);
+  }, [selectedReportId, fetchVisionResult, reportsWithDisplayCoords]);
 
   const updateStatus = async (reportId: string, newStatus: string) => {
     try {
@@ -384,10 +484,15 @@ export default function MainCommandDashboard() {
 
   useEffect(() => {
     const fetchReports = async () => {
+      // Safety Barrier 1: Active-first incident triage & bounded retention query
+      // Real-time command dashboard prioritizes all active cases plus recent resolved cases (<14 days).
+      const fourteenDaysAgoIso = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from('reports')
         .select('*')
-        .order('created_at', { ascending: false });
+        .or(`status.neq.resolved,created_at.gte.${fourteenDaysAgoIso}`)
+        .order('created_at', { ascending: false })
+        .limit(150);
       
       if (!error && data) {
         setReports(data);
@@ -403,15 +508,37 @@ export default function MainCommandDashboard() {
 
     const channel = supabase
       .channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (payload) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updated = payload.new as any;
+        if (updated && updated.report_id) {
+          setReports(prev => prev.map(r => r.report_id === updated.report_id ? { ...r, ...updated } : r));
+          if (updated.status === 'triaged') {
+            fetchVisionResult(updated.report_id);
+          } else if (updated.status === 'failed_analysis') {
+            setVisionResult(null);
+          }
+        }
         fetchReports();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_results' }, (payload) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newRecord = payload.new as any;
+        if (newRecord && newRecord.agent_type === 'vision_triage') {
+          setSelectedReportId(currentId => {
+            if (currentId === newRecord.report_id) {
+              setVisionResult(newRecord.result_json);
+            }
+            return currentId;
+          });
+        }
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchVisionResult]);
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-app-bg text-text-primary select-none">
@@ -843,20 +970,54 @@ export default function MainCommandDashboard() {
                       <span className="bg-black/50 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded">Vision Source</span>
                     </div>
                   </div>
+
+                  {/* Anti-Spoofing: Non-Waterway Warning Banner */}
+                  {(visionResult?.is_valid_waterway === false || (selectedReport.status === 'failed_analysis' && visionResult?.rejection_reason)) && (
+                    <div className="bg-amber-500/10 border-2 border-amber-500/50 p-3 rounded-sm text-amber-500 flex flex-col gap-1.5 shadow-md">
+                      <div className="flex items-center gap-1.5 font-heading font-black text-xs uppercase tracking-wider text-amber-500">
+                        <ShieldAlert className="w-4 h-4 shrink-0 text-amber-500" />
+                        <span>Non-Waterway Image Detected (Quarantined)</span>
+                      </div>
+                      <p className="text-[11px] font-sans text-text-primary leading-relaxed">
+                        AI verified this image does not depict an outdoor canal, estero, or drainage channel (Reason: <span className="font-mono font-bold text-amber-500 uppercase">{visionResult?.rejection_reason || 'non_waterway'}</span>).
+                      </p>
+                      <div className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-xs w-fit">
+                        ✓ Automatically quarantined from Public Map pins
+                      </div>
+                    </div>
+                  )}
                   
                   {/* AI Scores & Details */}
                   <div className="flex gap-3">
                     <div className="flex-1 bg-surface-subtle p-3 rounded-sm border border-border-subtle shadow-sm transform -skew-x-[6deg]">
                        <div className="transform skew-x-[6deg]">
                          <div className="text-[9px] uppercase font-bold text-text-muted mb-1 tracking-widest">Blockage Severity</div>
-                         <div className="text-2xl font-black text-semantic-warning leading-none">{visionResult?.blockage_severity_score ?? selectedReport.priority_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></div>
+                         <div className="text-2xl font-black text-semantic-warning leading-none">
+                           {selectedReport.status === 'pending_analysis' ? (
+                             <span className="text-sm font-mono text-brand-primary animate-pulse flex items-center gap-1">
+                               <Loader2 className="w-3.5 h-3.5 animate-spin" /> Scanning...
+                             </span>
+                           ) : (
+                             visionResult?.is_valid_waterway === false ? (
+                              <span className="text-base font-mono text-red-500 font-bold">
+                                0 <span className="text-xs text-red-400 font-sans uppercase">(REJECTED)</span>
+                              </span>
+                            ) : (
+                              <>{visionResult?.blockage_severity_score ?? selectedReport.priority_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></>
+                            )
+                           )}
+                         </div>
                        </div>
                     </div>
                     <div className="flex-1 bg-surface-subtle p-3 rounded-sm border border-border-subtle shadow-sm transform -skew-x-[6deg]">
                        <div className="transform skew-x-[6deg]">
                          <div className="text-[9px] uppercase font-bold text-text-muted mb-1 tracking-widest">Detected Waste</div>
                          <div className="flex flex-wrap gap-1 mt-1.5">
-                           {(visionResult?.waste_categories || []).length > 0 ? (
+                           {selectedReport.status === 'pending_analysis' ? (
+                             <span className="text-[9px] text-brand-primary font-mono italic flex items-center gap-1 animate-pulse">
+                               Detecting...
+                             </span>
+                           ) : (visionResult?.waste_categories || []).length > 0 ? (
                              (visionResult.waste_categories).map((c: string) => (
                                 <span key={c} className="text-[8px] bg-brand-primary/10 border border-brand-primary/30 text-brand-primary px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider">{c}</span>
                              ))
@@ -870,11 +1031,28 @@ export default function MainCommandDashboard() {
                   
                   {/* AI Rationale */}
                   <div>
-                    <div className="text-[10px] uppercase font-bold text-brand-primary mb-2 tracking-widest flex items-center gap-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5" /> AI Assessment
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-[10px] uppercase font-bold text-brand-primary tracking-widest flex items-center gap-1.5">
+                        <ShieldAlert className="w-3.5 h-3.5" /> AI Assessment
+                      </div>
+                      {selectedReport.status === 'failed_analysis' && (
+                        <span className="text-[9px] font-mono text-amber-500 font-bold uppercase tracking-wider">
+                          Analysis Failed
+                        </span>
+                      )}
+                      {selectedReport.status === 'pending_analysis' && (
+                        <span className="text-[9px] font-mono text-brand-primary font-bold uppercase tracking-wider flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Pipeline Active
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-text-primary leading-relaxed bg-surface p-4 border-l-2 border-brand-primary italic shadow-md">
-                      "{visionResult?.rationale || 'Awaiting full AI visual analysis...'}"
+                      {selectedReport.status === 'pending_analysis'
+                        ? 'AI Triage in progress... Analyzing canal photo, waste categorization, and meteorological flood risk.'
+                        : (selectedReport.status === 'failed_analysis' && !visionResult?.rationale)
+                          ? 'Automated visual analysis failed due to timeout or low clarity. Click "Re-run AI Analysis" below to retry, or proceed with manual dispatch.'
+                          : `"${visionResult?.rationale || 'Awaiting full AI visual analysis...'}"`
+                      }
                     </p>
                   </div>
 
@@ -890,7 +1068,22 @@ export default function MainCommandDashboard() {
 
                   {/* Dispatcher Actions */}
                   <div className="pt-3 border-t border-border-subtle mt-auto">
-                    <div className="text-[9px] uppercase font-bold text-text-muted mb-2 tracking-widest">Command Controls</div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[9px] uppercase font-bold text-text-muted tracking-widest">Command Controls</span>
+                      
+                      {/* Re-run AI Analysis Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleReAssess(selectedReport.report_id)}
+                        disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                        title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
+                      >
+                        <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
+                        <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
+                      </button>
+                    </div>
+
                     <div className="flex gap-2">
                       {selectedReport.status !== 'in_progress' && selectedReport.status !== 'resolved' && (
                         <button 
@@ -982,25 +1175,82 @@ export default function MainCommandDashboard() {
               </button>
             </div>
 
+            {/* Reference Number Search & Newest/Oldest Sort Controls */}
+            <div className="p-3 border-b border-border-subtle bg-surface/60 space-y-2 relative z-20">
+              <div className="relative flex items-center">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 text-text-muted pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search ref # (e.g. ER-2026)..."
+                  className="w-full bg-app-bg/80 border border-border-subtle focus:border-brand-primary text-text-primary text-xs pl-8 pr-8 py-1.5 rounded-sm outline-none transition-colors font-mono placeholder:text-text-muted/60"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 text-text-muted hover:text-text-primary cursor-pointer p-0.5"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] font-mono">
+                <span className="text-text-muted">
+                  Showing <span className="font-bold text-text-primary">{filteredReports.length}</span> of {reports.length}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
+                  className="flex items-center gap-1.5 px-2 py-0.5 bg-surface hover:bg-brand-primary/15 border border-border-subtle hover:border-brand-primary/40 rounded-xs text-text-secondary hover:text-brand-primary transition-all cursor-pointer font-bold uppercase tracking-wider"
+                  title={`Sorted by ${sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}. Click to toggle.`}
+                >
+                  <ArrowUpDown className="w-3 h-3 text-brand-primary" />
+                  <span>{sortOrder === 'newest' ? 'Newest' : 'Oldest'}</span>
+                </button>
+              </div>
+            </div>
+
             {/* Queue List */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
               {filteredReports.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 text-center p-6 border border-dashed border-border-subtle rounded-sm bg-app-bg/40">
                   <CheckCircle className="w-8 h-8 text-text-muted mb-2 opacity-50" />
                   <p className="font-heading text-xs font-bold uppercase tracking-widest text-text-secondary">
-                    No {statusFilter !== 'all' ? statusFilter : ''} Reports
+                    {searchQuery ? 'No Matching Reports' : `No ${statusFilter !== 'all' ? statusFilter : ''} Reports`}
                   </p>
                   <p className="text-[11px] text-text-muted mt-1">
-                    {statusFilter !== 'all' ? `No reports match the "${statusFilter}" filter.` : 'No reports available in queue.'}
+                    {searchQuery 
+                      ? `No incidents found matching "${searchQuery}".` 
+                      : statusFilter !== 'all' 
+                        ? `No reports match the "${statusFilter}" filter.` 
+                        : 'No reports available in queue.'}
                   </p>
-                  {statusFilter !== 'all' && (
-                    <button
-                      type="button"
-                      onClick={() => setStatusFilter('all')}
-                      className="mt-3 text-[10px] font-bold text-brand-primary hover:underline uppercase tracking-wider cursor-pointer"
-                    >
-                      Clear Filter (Show All)
-                    </button>
+                  {(searchQuery || statusFilter !== 'all') && (
+                    <div className="flex items-center gap-3 mt-3">
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="text-[10px] font-bold text-brand-primary hover:underline uppercase tracking-wider cursor-pointer"
+                        >
+                          Clear Search
+                        </button>
+                      )}
+                      {statusFilter !== 'all' && (
+                        <button
+                          type="button"
+                          onClick={() => setStatusFilter('all')}
+                          className="text-[10px] font-bold text-brand-primary hover:underline uppercase tracking-wider cursor-pointer"
+                        >
+                          Clear Filter
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : (
@@ -1039,7 +1289,7 @@ export default function MainCommandDashboard() {
                         isResolved ? 'bg-emerald-600 text-white' :
                         'bg-surface-subtle text-text-secondary border border-border-subtle'
                       }`}>
-                        {needsReview ? 'NEEDS REVIEW' : isPending ? 'PENDING' : report.status.replace('_', ' ')}
+                        {report.status === 'failed_analysis' ? 'NON-WATERWAY' : needsReview ? 'NEEDS REVIEW' : isPending ? 'PENDING' : report.status.replace('_', ' ')}
                       </span>
                     </div>
                     

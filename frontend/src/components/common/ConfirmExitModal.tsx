@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, LogOut, X } from 'lucide-react';
+import { AlertTriangle, LogOut } from 'lucide-react';
 
 interface ConfirmExitModalProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ export default function ConfirmExitModal({
 
   const isAuthAction = intent === 'login' || intent === 'register';
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
@@ -56,36 +57,25 @@ export default function ConfirmExitModal({
             {/* Top Accent Strip */}
             <div className={`absolute top-0 left-0 right-0 h-1.5 ${isGuest ? 'bg-amber-500' : 'bg-semantic-urgent'}`} />
 
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div className="flex items-center gap-3">
-                <div className={`p-2.5 rounded-sm border shrink-0 ${
-                  isGuest 
-                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' 
-                    : 'bg-semantic-urgent/10 border-semantic-urgent/30 text-semantic-urgent'
-                }`}>
-                  {isGuest ? <AlertTriangle className="w-5 h-5" /> : <LogOut className="w-5 h-5" />}
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-heading font-bold text-text-primary uppercase tracking-wider">
-                    {isGuest 
-                      ? (isAuthAction ? 'Leave Guest Session to Continue?' : 'End Guest Session?') 
-                      : 'Sign Out of esteRoute?'}
-                  </h3>
-                  <span className="text-[11px] font-mono text-text-muted block mt-0.5">
-                    {isGuest ? 'Guest Session Warning' : 'Session Termination'}
-                  </span>
-                </div>
+            {/* Modal Header (No redundant X button) */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`p-2.5 rounded-sm border shrink-0 ${
+                isGuest 
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' 
+                  : 'bg-semantic-urgent/10 border-semantic-urgent/30 text-semantic-urgent'
+              }`}>
+                {isGuest ? <AlertTriangle className="w-5 h-5" /> : <LogOut className="w-5 h-5" />}
               </div>
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-subtle rounded-xs transition-colors cursor-pointer"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div>
+                <h3 className="text-sm sm:text-base font-heading font-bold text-text-primary uppercase tracking-wider">
+                  {isGuest 
+                    ? (isAuthAction ? 'Leave Guest Session to Continue?' : 'End Guest Session?') 
+                    : 'Sign Out of esteRoute?'}
+                </h3>
+                <span className="text-[11px] font-mono text-text-muted block mt-0.5">
+                  {isGuest ? 'Guest Session Warning' : 'Session Termination'}
+                </span>
+              </div>
             </div>
 
             {/* Modal Warning Body */}
@@ -132,7 +122,7 @@ export default function ConfirmExitModal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
-

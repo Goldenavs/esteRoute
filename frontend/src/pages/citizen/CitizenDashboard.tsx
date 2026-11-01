@@ -228,7 +228,8 @@ export default function CitizenDashboard() {
         let query = supabase
           .from('reports')
           .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(60);
 
         if (user) {
           // Authenticated citizen: query by user ID, plus any guest reports submitted prior to login

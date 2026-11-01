@@ -17,17 +17,31 @@ if not api_key:
     print("WARNING: GEMINI_API_KEY not found in backend .env")
 client = genai.Client(api_key=api_key) if api_key else None
 
-# Strict Prompt to guarantee JSON output
+# Strict Prompt to guarantee JSON output with Anti-Spoofing / Domain Gate
 SYSTEM_PROMPT = """
-You are an AI assistant analyzing images of urban canals (esteros) for flood risk triage.
-Your goal is to identify blockages, debris, and waste in the canal.
+You are an AI assistant analyzing images of urban canals (esteros), rivers, culverts, and drainage channels for flood risk triage.
+
+CRITICAL FIRST TASK - WATERWAY AUTHENTICITY CHECK:
+You must first determine whether the image depicts an outdoor canal, estero, river, drainage inlet, culvert, or storm drain infrastructure.
+- If the image depicts an indoor scene (bedroom, office, kitchen), a selfie, an animal/pet, a vehicle, a dry road/pavement with NO drainage inlet or canal, a screenshot, or unrelated everyday objects:
+  -> Set "is_valid_waterway": false
+  -> Set "rejection_reason": "non_waterway" (or "indoor", "unrelated_object", "blurry_unusable")
+  -> Set "waste_categories": []
+  -> Set "blockage_severity_score": 0
+  -> Set "rationale": "State clearly that this image is not a waterway/canal and explain what it actually depicts."
+- If the image genuinely depicts an outdoor canal, estero, drainage inlet, culvert, or waterway:
+  -> Set "is_valid_waterway": true
+  -> Set "rejection_reason": null
+  -> Identify waste categories and evaluate blockage severity.
 
 Return your response ONLY as a strict JSON object with the exact following schema:
 {
-  "waste_categories": ["Plastic", "Organic", "Silt", "Construction", "Other"], // Array of string categories found
-  "blockage_severity_score": <number 0-100>, // Estimate how obstructed the water flow is (0 = clear, 100 = completely blocked)
+  "is_valid_waterway": <true or false>, // MUST be false if image does not depict an outdoor waterway or canal infrastructure
+  "rejection_reason": <null or "non_waterway" | "indoor" | "unrelated_object" | "blurry_unusable">,
+  "waste_categories": ["Plastic", "Organic", "Silt", "Construction", "Other"], // Array of string categories (empty [] if not a waterway)
+  "blockage_severity_score": <number 0-100>, // 0 if not a waterway, otherwise estimate obstruction (0 = clear, 100 = blocked)
   "confidence": "<high or low>", // How confident are you in this assessment based on image clarity?
-  "rationale": "<string>" // A concise, one-sentence rationale for the severity score.
+  "rationale": "<string>" // A concise, one-sentence rationale explaining the blockage score or why the image was rejected.
 }
 Do not include markdown blocks or any other text outside the JSON.
 """
@@ -93,9 +107,20 @@ async def run_vision_triage(report_id: str, image_url: str, citizen_notes: Optio
                 
                 result = json.loads(response.text)
                 
-                # CLAMP score to [0, 100]
-                score = result.get("blockage_severity_score", 0)
-                result["blockage_severity_score"] = max(0, min(100, float(score)))
+                # Anti-Spoofing: Validate is_valid_waterway flag
+                is_valid = bool(result.get("is_valid_waterway", True))
+                result["is_valid_waterway"] = is_valid
+
+                if not is_valid:
+                    result["blockage_severity_score"] = 0.0
+                    result["waste_categories"] = []
+                    if not result.get("rejection_reason"):
+                        result["rejection_reason"] = "non_waterway"
+                else:
+                    # CLAMP score to [0, 100]
+                    score = result.get("blockage_severity_score", 0)
+                    result["blockage_severity_score"] = max(0, min(100, float(score)))
+                    result["rejection_reason"] = None
                 
                 # Attach the report_id
                 result["report_id"] = report_id

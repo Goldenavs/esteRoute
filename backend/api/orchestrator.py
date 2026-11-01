@@ -46,6 +46,27 @@ async def triage_report_pipeline(report_id: str, image_url: str, latitude: float
     }).execute()
     log_transaction(f"[{report_id}] Vision Triage completed. Confidence: {vision_result.get('confidence', 'unknown').upper()}")
 
+    # Anti-Spoofing Domain Gate: Check if the photo is authentic waterway/canal infrastructure
+    if not vision_result.get("is_valid_waterway", True):
+        rejection_reason = vision_result.get("rejection_reason", "non_waterway")
+        rationale = vision_result.get("rationale", "Image does not depict a waterway or canal.")
+        log_transaction(f"[{report_id}] SPOOF DETECTED: Non-waterway image ({rejection_reason}). Rationale: {rationale}. Quarantining report.")
+
+        # Quarantine: Mark as failed_analysis with zero priority score (excluded from public map pins)
+        supabase.table("reports").update({
+            "status": "failed_analysis",
+            "priority_score": 0.0,
+            "needs_human_review": True
+        }).eq("report_id", report_id).execute()
+
+        supabase.table("dispatch_status_log").insert({
+            "report_id": report_id,
+            "to_status": "failed_analysis"
+        }).execute()
+
+        log_transaction(f"[{report_id}] Report quarantined. Excluded from public live map.")
+        return
+
     # Step 2: Meteorological Agent
     weather_result = await run_meteorological_agent(report_id, latitude, longitude)
     

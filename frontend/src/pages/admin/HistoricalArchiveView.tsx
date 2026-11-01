@@ -80,15 +80,18 @@ export default function HistoricalArchiveView() {
   const fetchArchiveData = async () => {
     setIsLoading(true);
     try {
+      // Safety Barrier 1: Safe bounded queries on archive data
       const [repRes, agentRes] = await Promise.all([
         supabase
           .from('reports')
           .select('*')
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(200),
         supabase
           .from('agent_results')
           .select('*')
           .eq('agent_type', 'vision_triage')
+          .limit(200)
       ]);
 
       if (repRes.data) setReports(repRes.data);
@@ -104,15 +107,18 @@ export default function HistoricalArchiveView() {
     let isMounted = true;
     const initialLoad = async () => {
       try {
+        // Safety Barrier 1: Safe bounded queries on archive data
         const [repRes, agentRes] = await Promise.all([
           supabase
             .from('reports')
             .select('*')
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false })
+            .limit(200),
           supabase
             .from('agent_results')
             .select('*')
             .eq('agent_type', 'vision_triage')
+            .limit(200)
         ]);
         if (!isMounted) return;
         if (repRes.data) setReports(repRes.data);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ArrowRight, Award, 
   User, 
@@ -644,45 +645,54 @@ export default function CitizenProfile() {
         )}
       </AnimatePresence>
 
-            {/* Dedicated Levels Progression Modal (Pushed ON TOP of Card) */}
-      <AnimatePresence>
-        {isLevelsModalOpen && (
-          <div className="fixed inset-0 z-[320] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsLevelsModalOpen(false)}
-              className="absolute inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
-            />
+            {/* Dedicated Levels Progression Modal (Pushed ON TOP of Card via Portal to ensure full mobile coverage) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isLevelsModalOpen && (
+            <div className="fixed inset-0 z-[320] flex items-center justify-center p-3 sm:p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsLevelsModalOpen(false)}
+                className="absolute inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
+              />
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative z-10 w-full max-w-lg bg-surface/95 border-2 border-brand-primary/50 backdrop-blur-2xl rounded-lg p-6 sm:p-7 shadow-2xl overflow-hidden"
-            >
-              <BorderBeam delay={0} color="#38BDF8" />
-              <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-amber-400" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="relative z-10 w-full max-w-lg max-h-[85dvh] sm:max-h-[88dvh] flex flex-col bg-surface/95 border-2 border-brand-primary/50 backdrop-blur-2xl rounded-lg shadow-2xl overflow-hidden"
+              >
+                <BorderBeam delay={0} color="#38BDF8" />
+                <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-amber-400" />
 
-              <div className="flex flex-col gap-5 relative z-10">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary">
-                      <Trophy className="w-4 h-4" />
+                <div className="flex flex-col gap-3.5 sm:gap-5 p-4 sm:p-7 overflow-y-auto custom-scrollbar relative z-10">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 bg-brand-primary/10 rounded-sm text-brand-primary">
+                        <Trophy className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
+                          esteRoute Gamified Tiers
+                        </span>
+                        <h3 className="text-base sm:text-lg font-heading font-extrabold uppercase tracking-wider text-text-primary">
+                          Level Progression
+                        </h3>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
-                        esteRoute Gamified Tiers
-                      </span>
-                      <h3 className="text-base sm:text-lg font-heading font-extrabold uppercase tracking-wider text-text-primary">
-                        Level Progression
-                      </h3>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsLevelsModalOpen(false)}
+                      className="p-1.5 rounded-sm bg-surface/80 hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer"
+                      aria-label="Close level progression modal"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
 
                 {/* Score & Next Milestone Card */}
                 {(() => {
@@ -798,95 +808,98 @@ export default function CitizenProfile() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
-      {/* Interactive 3D Stewardship ID Credential Modal */}
-      <AnimatePresence>
-        {!profile.isGuest && isIdModalOpen && (
-          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-            {/* Backdrop Blur */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                setIsIdModalOpen(false);
-                setIsCardFlipped(false);
-                setIsCardZoomed(false);
-              }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
-            />
+      {/* Interactive 3D Stewardship ID Credential Modal (Portaled to document.body) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {!profile.isGuest && isIdModalOpen && (
+            <div className="fixed inset-0 z-[250] flex items-center justify-center p-3 sm:p-4">
+              {/* Backdrop Blur */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => {
+                  setIsIdModalOpen(false);
+                  setIsCardFlipped(false);
+                  setIsCardZoomed(false);
+                }}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
+              />
 
-            {/* Modal Dialog Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative z-10 w-full max-w-lg flex flex-col items-center gap-3 transition-all duration-300"
-            >
-              {/* Modal Top Bar */}
-              <div className="w-full flex items-center justify-between text-white px-1">
-                <div>
-                  <span className="text-xs sm:text-sm font-heading font-bold uppercase tracking-wider text-white">
-                    Civic Credential
-                  </span>
+              {/* Modal Dialog Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="relative z-10 w-full max-w-lg flex flex-col items-center gap-3 transition-all duration-300"
+              >
+                {/* Modal Top Bar */}
+                <div className="w-full flex items-center justify-between gap-2 text-white px-1">
+                  <div className="shrink-0">
+                    <span className="text-xs sm:text-sm font-heading font-bold uppercase tracking-wider text-white">
+                      Civic Credential
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
+                    {/* Zoom In / Zoom Out UX Button - Desktop Only */}
+                    <button
+                      type="button"
+                      onClick={() => setIsCardZoomed(prev => !prev)}
+                      className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-surface/80 hover:bg-brand-primary/20 border border-border-strong text-text-primary hover:text-brand-primary transition-all text-xs font-sans font-medium cursor-pointer shadow-xs active:scale-95 shrink-0"
+                      title={isCardZoomed ? "Reset card scale" : "Zoom in card for easier reading"}
+                    >
+                      {isCardZoomed ? (
+                        <>
+                          <ZoomOut className="w-3.5 h-3.5" />
+                          <span>Zoom Out</span>
+                        </>
+                      ) : (
+                        <>
+                          <ZoomIn className="w-3.5 h-3.5" />
+                          <span>Zoom In</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* View Levels Button (Pushes Levels Modal on Top) - Stretches on mobile to fill zoom button space */}
+                    <button
+                      type="button"
+                      onClick={() => setIsLevelsModalOpen(true)}
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-sm bg-brand-primary/10 hover:bg-brand-primary/25 border border-brand-primary/30 text-brand-primary transition-all text-xs font-heading font-semibold uppercase tracking-wider cursor-pointer shadow-xs active:scale-95"
+                    >
+                      <Trophy className="w-3.5 h-3.5 shrink-0" />
+                      <span>View Levels</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsIdModalOpen(false);
+                        setIsCardFlipped(false);
+                        setIsCardZoomed(false);
+                      }}
+                      className="p-1.5 rounded-sm bg-surface/80 hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer shrink-0"
+                      aria-label="Close credential viewer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {/* Zoom In / Zoom Out UX Button */}
-                  <button
-                    type="button"
-                    onClick={() => setIsCardZoomed(prev => !prev)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-surface/80 hover:bg-brand-primary/20 border border-border-strong text-text-primary hover:text-brand-primary transition-all text-xs font-sans font-medium cursor-pointer shadow-xs active:scale-95"
-                    title={isCardZoomed ? "Reset card scale" : "Zoom in card for easier reading"}
-                  >
-                    {isCardZoomed ? (
-                      <>
-                        <ZoomOut className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Zoom Out</span>
-                      </>
-                    ) : (
-                      <>
-                        <ZoomIn className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Zoom In</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* View Levels Button (Pushes Levels Modal on Top) */}
-                  <button
-                    type="button"
-                    onClick={() => setIsLevelsModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand-primary/10 hover:bg-brand-primary/25 border border-brand-primary/30 text-brand-primary transition-all text-xs font-heading font-semibold uppercase tracking-wider cursor-pointer shadow-xs active:scale-95"
-                  >
-                    <Trophy className="w-3.5 h-3.5" />
-                    <span>View Levels</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsIdModalOpen(false);
-                      setIsCardFlipped(false);
-                      setIsCardZoomed(false);
-                    }}
-                    className="p-1.5 rounded-sm bg-surface/80 hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer"
-                    aria-label="Close credential viewer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
 
               {/* Scalable Zoom Container (Maintains Perfect Aspect Ratio & Layout via CSS Scale Transform) */}
               <div className={twMerge(
                 "w-full flex items-center justify-center transition-all duration-300",
-                isCardZoomed ? "my-6 sm:my-10" : "my-0"
+                isCardZoomed ? "my-3 sm:my-10" : "my-0"
               )}>
                 <div 
                   className={twMerge(
-                    "w-full max-w-[480px] h-[300px] sm:h-[304px] relative cursor-pointer select-none [perspective:1000px] transition-transform duration-300 origin-center",
-                    isCardZoomed ? "scale-[1.18] sm:scale-[1.32]" : "scale-100"
+                    "w-full max-w-[480px] aspect-[85.6/54] relative cursor-pointer select-none [perspective:1000px] transition-transform duration-300 origin-center",
+                    isCardZoomed ? "scale-[1.06] sm:scale-[1.32]" : "scale-100"
                   )}
                   onClick={() => setIsCardFlipped(prev => !prev)}
                   title="Click anywhere to flip credential"
@@ -898,15 +911,15 @@ export default function CitizenProfile() {
                     )}
                   >
                     {/* ====== FRONT FACE (Theme Adaptive: Pearl/Silver in Light, Sapphire/Dark in Dark) ====== */}
-                    <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] rounded-xl overflow-hidden border-2 border-brand-primary/50 bg-gradient-to-br from-white via-surface to-brand-light/40 dark:from-[#0B1E36] dark:via-[#112D4E] dark:to-[#071322] p-5 sm:p-6 flex flex-col justify-between shadow-2xl transition-colors">
+                    <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] rounded-xl overflow-hidden border-2 border-brand-primary/50 bg-gradient-to-br from-white via-surface to-brand-light/40 dark:from-[#0B1E36] dark:via-[#112D4E] dark:to-[#071322] p-3.5 sm:p-6 flex flex-col justify-between shadow-2xl transition-colors">
                       <BorderBeam delay={0} color="#38BDF8" />
                       <div className="absolute top-0 left-0 w-2.5 h-full bg-gradient-to-b from-brand-secondary via-brand-primary to-emerald-400" />
                       <div className="absolute top-0 right-0 w-44 h-44 bg-gradient-to-bl from-brand-primary/25 via-brand-secondary/15 to-transparent pointer-events-none rounded-bl-full" />
 
                       {/* Front Header: Clean esteRoute / Civic Card */}
-                      <div className="flex items-start justify-between relative z-10 border-b border-border-subtle/80 pb-3">
+                      <div className="flex items-start justify-between relative z-10 border-b border-border-subtle/80 pb-1.5 sm:pb-3">
                         <div>
-                          <span className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-widest text-brand-primary block">
+                          <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-widest text-brand-primary block">
                             esteRoute
                           </span>
                           <h3 className="text-xs sm:text-sm font-heading font-extrabold uppercase tracking-wider text-text-primary mt-0.5">
@@ -915,7 +928,7 @@ export default function CitizenProfile() {
                         </div>
 
                         {/* Golden Microchip */}
-                        <div className="w-12 h-9 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
+                        <div className="w-9 h-7 sm:w-12 sm:h-9 rounded-sm bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/80 shadow-md relative overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
                           <div className="w-full h-full border border-amber-800/40 rounded-xs grid grid-cols-2 grid-rows-2 gap-0.5 opacity-85 bg-amber-400/20">
                             <div className="border-r border-b border-amber-800/50" />
                             <div className="border-b border-amber-800/50" />
@@ -927,12 +940,12 @@ export default function CitizenProfile() {
                       </div>
 
                       {/* Front Body: Photo & Credentials */}
-                      <div className="flex items-center gap-4 sm:gap-5 relative z-10 py-2">
+                      <div className="flex items-center gap-3 sm:gap-5 relative z-10 py-1 sm:py-2">
                         {/* Photo / Avatar frame */}
-                        <div className="w-18 h-22 sm:w-20 sm:h-24 rounded-sm border-2 border-brand-primary/60 bg-surface/70 shadow-md overflow-hidden shrink-0 relative flex items-center justify-center p-0.5">
+                        <div className="w-14 h-18 sm:w-20 sm:h-24 rounded-sm border-2 border-brand-primary/60 bg-surface/70 shadow-md overflow-hidden shrink-0 relative flex items-center justify-center p-0.5">
                           {profile.isGuest || !profile.avatarUrl ? (
                             <div className="w-full h-full flex items-center justify-center bg-surface-subtle/60 dark:bg-app-bg text-text-muted">
-                              <User className="w-10 h-10 text-text-muted/60" />
+                              <User className="w-8 h-8 sm:w-10 sm:h-10 text-text-muted/60" />
                             </div>
                           ) : (
                             <img 
@@ -941,24 +954,24 @@ export default function CitizenProfile() {
                               className="w-full h-full object-cover rounded-xs"
                             />
                           )}
-                          <span className="absolute bottom-0 inset-x-0 bg-brand-primary/90 text-[8px] font-mono font-bold text-black uppercase text-center py-0.5 tracking-tighter">
+                          <span className="absolute bottom-0 inset-x-0 bg-brand-primary/90 text-[7px] sm:text-[8px] font-mono font-bold text-black uppercase text-center py-0.5 tracking-tighter">
                             {profile.isGuest ? 'GUEST' : 'CITIZEN'}
                           </span>
                         </div>
 
                         {/* Citizen Info & Stats */}
                         <div className="flex-1 flex flex-col justify-center min-w-0">
-                          <span className="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-text-muted">
+                          <span className="text-[8px] sm:text-[10px] font-mono uppercase tracking-widest text-text-muted">
                             STEWARD REGISTRY ID
                           </span>
-                          <p className="text-base sm:text-xl font-mono font-bold text-brand-primary tracking-widest truncate">
+                          <p className="text-xs sm:text-xl font-mono font-bold text-brand-primary tracking-widest truncate">
                             {profile.isGuest 
                               ? 'EST-GUEST-SYS' 
                               : `EST-${profile.id.replace(/-/g, '').slice(0, 7).toUpperCase()}`}
                           </p>
 
-                          <div className="mt-1">
-                            <div className="flex items-baseline justify-between gap-2">
+                          <div className="mt-0.5 sm:mt-1">
+                            <div className="flex items-baseline justify-between gap-1.5 sm:gap-2">
                               <span className="text-xs sm:text-sm font-heading font-bold text-text-primary block truncate">
                                 {profile.fullName || 'Citizen Reporter'}
                               </span>
@@ -967,7 +980,7 @@ export default function CitizenProfile() {
                                 const currentTier = getStewardshipTier(profile.stewardshipScore);
                                 return (
                                   <span className={twMerge(
-                                    "text-xs sm:text-sm font-heading font-bold uppercase tracking-wider shrink-0",
+                                    "text-[10px] sm:text-sm font-heading font-bold uppercase tracking-wider shrink-0",
                                     currentTier.titleColor
                                   )}>
                                     {currentTier.title}
@@ -975,18 +988,18 @@ export default function CitizenProfile() {
                                 );
                               })()}
                             </div>
-                            <span className="text-[10px] sm:text-xs text-text-muted font-sans block truncate">
+                            <span className="text-[9px] sm:text-xs text-text-muted font-sans block truncate">
                               {profile.isGuest ? 'Anonymous Session' : (profile.email || 'Verified Volunteer')}
                             </span>
                           </div>
 
                           {/* Credits & Clearance telemetry badge */}
-                          <div className="flex items-center gap-3 mt-2 font-mono text-[10px] sm:text-xs">
-                            <div className="bg-surface/90 dark:bg-app-bg/80 px-2.5 py-1 rounded-xs border border-border-subtle shadow-xs">
+                          <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-2 font-mono text-[9px] sm:text-xs">
+                            <div className="bg-surface/90 dark:bg-app-bg/80 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xs border border-border-subtle shadow-xs">
                               <span className="text-text-muted">CREDITS: </span>
                               <span className="font-bold text-brand-primary">{profile.stewardshipScore} PTS</span>
                             </div>
-                            <div className="bg-surface/90 dark:bg-app-bg/80 px-2.5 py-1 rounded-xs border border-border-subtle shadow-xs">
+                            <div className="bg-surface/90 dark:bg-app-bg/80 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xs border border-border-subtle shadow-xs">
                               <span className="text-text-muted">CLEARED: </span>
                               <span className="font-bold text-emerald-600 dark:text-emerald-400">{profile.resolvedReportsCount}</span>
                             </div>
@@ -995,13 +1008,13 @@ export default function CitizenProfile() {
                       </div>
 
                       {/* Front Footer: Clean Barcode (No SEC-VERIFIED clutter) */}
-                      <div className="relative z-10 pt-2 border-t border-border-subtle/70 flex items-center justify-between">
-                        <div className="flex items-center h-4 gap-0.5 opacity-70">
+                      <div className="relative z-10 pt-1.5 sm:pt-2 border-t border-border-subtle/70 flex items-center justify-between">
+                        <div className="flex items-center h-2.5 sm:h-4 gap-0.5 opacity-70">
                           {[3, 6, 2, 8, 4, 2, 7, 3, 5, 2, 8, 4, 3, 6, 2, 5, 8, 2, 4, 7, 3, 6, 2, 8, 3, 5].map((h, i) => (
                             <span key={i} className="bg-text-muted inline-block w-0.5" style={{ height: `${h * 1.5}px` }} />
                           ))}
                         </div>
-                        <span className="text-[10px] font-heading font-semibold uppercase tracking-wider text-brand-primary/80 hover:text-brand-primary flex items-center gap-1">
+                        <span className="text-[9px] sm:text-[10px] font-heading font-semibold uppercase tracking-wider text-brand-primary/80 hover:text-brand-primary flex items-center gap-1">
                           <span>Click to flip</span>
                           <RotateCw className="w-2.5 h-2.5" />
                         </span>
@@ -1009,48 +1022,48 @@ export default function CitizenProfile() {
                     </div>
 
                     {/* ====== BACK FACE: ORIGINAL REVERTED PROGRAM GUIDELINES (Theme Adaptive) ====== */}
-                    <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden border-2 border-border-strong dark:border-brand-primary/40 bg-gradient-to-br from-[#F8FAFC] via-surface to-[#F1F5F9] dark:from-[#071322] dark:via-[#0B1E36] dark:to-[#071322] p-5 sm:p-6 flex flex-col justify-between shadow-2xl transition-colors">
+                    <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden border-2 border-border-strong dark:border-brand-primary/40 bg-gradient-to-br from-[#F8FAFC] via-surface to-[#F1F5F9] dark:from-[#071322] dark:via-[#0B1E36] dark:to-[#071322] p-3.5 sm:p-6 flex flex-col justify-between shadow-2xl transition-colors">
                       <BorderBeam delay={3} color="#60A5FA" />
                       
                       {/* Magnetic Stripe representation */}
-                      <div className="absolute top-4 inset-x-0 h-8 sm:h-9 bg-slate-800 dark:bg-black/90 border-y border-border-subtle/50 pointer-events-none" />
+                      <div className="absolute top-2.5 sm:top-4 inset-x-0 h-6 sm:h-9 bg-slate-800 dark:bg-black/90 border-y border-border-subtle/50 pointer-events-none" />
 
                       {/* Back Header */}
-                      <div className="pt-8 sm:pt-9 relative z-10">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
+                      <div className="pt-6 sm:pt-9 relative z-10">
+                        <span className="text-[8.5px] sm:text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
                           STEWARDSHIP PROGRAM GUIDELINES
                         </span>
-                        <h4 className="text-xs sm:text-sm font-heading font-bold text-text-primary">
+                        <h4 className="text-[11px] sm:text-sm font-heading font-bold text-text-primary">
                           How to Earn Credits & Waterway Honors
                         </h4>
                       </div>
 
                       {/* Instructions List (Original Structure) */}
-                      <div className="flex flex-col gap-2 relative z-10 font-sans text-xs my-auto">
-                        <div className="flex items-start gap-2 bg-surface/90 dark:bg-app-bg/70 p-2.5 rounded-xs border border-border-subtle shadow-xs">
-                          <span className="font-mono font-bold text-brand-primary shrink-0">+15 PTS</span>
-                          <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
+                      <div className="flex flex-col gap-1.5 sm:gap-2 relative z-10 font-sans text-xs my-auto">
+                        <div className="flex items-start gap-1.5 sm:gap-2 bg-surface/90 dark:bg-app-bg/70 p-1.5 sm:p-2.5 rounded-xs border border-border-subtle shadow-xs">
+                          <span className="font-mono font-bold text-brand-primary shrink-0 text-[10px] sm:text-xs">+15 PTS</span>
+                          <span className="text-[9.5px] sm:text-xs text-text-secondary leading-tight">
                             Submit verified blockage reports with clear photographic and geolocation telemetry.
                           </span>
                         </div>
 
-                        <div className="flex items-start gap-2 bg-surface/90 dark:bg-app-bg/70 p-2.5 rounded-xs border border-border-subtle shadow-xs">
-                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0">+50 PTS</span>
-                          <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
+                        <div className="flex items-start gap-1.5 sm:gap-2 bg-surface/90 dark:bg-app-bg/70 p-1.5 sm:p-2.5 rounded-xs border border-border-subtle shadow-xs">
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0 text-[10px] sm:text-xs">+50 PTS</span>
+                          <span className="text-[9.5px] sm:text-xs text-text-secondary leading-tight">
                             Clearance Bonus awarded when cleaning units officially resolve and unclog the waterway.
                           </span>
                         </div>
 
-                        <div className="flex items-start gap-2 bg-surface/90 dark:bg-app-bg/70 p-2.5 rounded-xs border border-border-subtle shadow-xs">
-                          <span className="font-mono font-bold text-amber-600 dark:text-amber-400 shrink-0">LEVELS</span>
-                          <span className="text-[11px] sm:text-xs text-text-secondary leading-tight">
+                        <div className="flex items-start gap-1.5 sm:gap-2 bg-surface/90 dark:bg-app-bg/70 p-1.5 sm:p-2.5 rounded-xs border border-border-subtle shadow-xs">
+                          <span className="font-mono font-bold text-amber-600 dark:text-amber-400 shrink-0 text-[10px] sm:text-xs">LEVELS</span>
+                          <span className="text-[9.5px] sm:text-xs text-text-secondary leading-tight">
                             Unlock trusted reporter standing, priority flood dispatch alerts, and barangay civic honors.
                           </span>
                         </div>
                       </div>
 
                       {/* Back Disclaimer Footer */}
-                      <div className="relative z-10 pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[10px] text-text-muted font-sans">
+                      <div className="relative z-10 pt-1 sm:pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[8.5px] sm:text-[10px] text-text-muted font-sans">
                         <span>Certified by esteRoute Waterway Network</span>
                         <span className="text-brand-primary flex items-center gap-1 font-mono hover:underline">
                           <span>Flip back ↺</span>
@@ -1069,11 +1082,14 @@ export default function CitizenProfile() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
       {/* Change Password Modal */}
-      <AnimatePresence>
-        {isPasswordModalOpen && (
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isPasswordModalOpen && (
           <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div
@@ -1278,7 +1294,9 @@ export default function CitizenProfile() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
       {/* Hidden File Input for Avatar Upload */}
       <input
