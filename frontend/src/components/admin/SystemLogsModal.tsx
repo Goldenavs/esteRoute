@@ -213,12 +213,12 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ type: "spring", damping: 25, stiffness: 320 }}
-            className="relative z-10 w-full max-w-5xl h-[86dvh] flex flex-col bg-surface/95 border-2 border-brand-primary/50 backdrop-blur-2xl rounded-lg shadow-2xl overflow-hidden -skew-x-1 sm:-skew-x-2"
+            className="relative z-10 w-full max-w-5xl h-[86dvh] flex flex-col bg-surface/95 border-2 border-brand-primary/50 backdrop-blur-2xl rounded-lg shadow-2xl overflow-hidden"
           >
             <BorderBeam delay={0} color="#38BDF8" />
             
             {/* Modal Header */}
-            <div className="px-4 sm:px-6 py-3.5 border-b border-border-subtle bg-surface-subtle/90 flex flex-wrap items-center justify-between gap-3 skew-x-1 sm:skew-x-2 relative z-20">
+            <div className="px-4 sm:px-6 py-3.5 border-b border-border-subtle bg-surface-subtle/90 flex flex-wrap items-center justify-between gap-3 relative z-20">
               
               {/* Left Brand & Title */}
               <div className="flex items-center gap-3">
@@ -323,7 +323,7 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
             </div>
 
             {/* Filter & Search Toolbar */}
-            <div className="px-4 sm:px-6 py-2.5 bg-surface/70 border-b border-border-subtle/80 flex flex-wrap items-center justify-between gap-2.5 skew-x-1 sm:skew-x-2 relative z-10">
+            <div className="px-4 sm:px-6 py-2.5 bg-surface/70 border-b border-border-subtle/80 flex flex-wrap items-center justify-between gap-2.5 relative z-10">
               
               {/* Category Filter Chips */}
               <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto custom-scrollbar pb-0.5">
@@ -380,7 +380,7 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
             {/* Modal Body: Structured Timeline or Raw View */}
             <div 
               ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-5 skew-x-1 sm:skew-x-2 bg-app-bg/60"
+              className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-5 bg-app-bg/60"
             >
               {filteredLogs.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-8 border border-dashed border-border-subtle rounded-sm bg-surface/30">
@@ -502,7 +502,7 @@ export default function SystemLogsModal({ isOpen, onClose }: Props) {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-4 sm:px-6 py-2.5 bg-surface-subtle border-t border-border-subtle flex items-center justify-between text-[11px] font-mono text-text-muted skew-x-1 sm:skew-x-2 relative z-20">
+            <div className="px-4 sm:px-6 py-2.5 bg-surface-subtle border-t border-border-subtle flex items-center justify-between text-[11px] font-mono text-text-muted relative z-20">
               <div className="flex items-center gap-3">
                 <span>
                   Showing <strong className="text-text-primary">{filteredLogs.length}</strong> of {parsedLogs.length} events
