@@ -250,6 +250,50 @@ const createCitizenIcon = (status: 'blocked' | 'dispatched' | 'resolved') => {
   });
 };
 
+// Tactical Cluster Marker Generator (Displays aggregated incident count with severity styling)
+const createClusterIcon = (count: number, highestStatus: 'blocked' | 'dispatched' | 'resolved') => {
+  const colorMap = {
+    blocked: {
+      bg: 'linear-gradient(135deg, #EF4444, #B91C1C)',
+      border: '#F87171',
+      shadow: 'rgba(239, 68, 68, 0.45)',
+    },
+    dispatched: {
+      bg: 'linear-gradient(135deg, #F59E0B, #B45309)',
+      border: '#FBBF24',
+      shadow: 'rgba(245, 158, 11, 0.45)',
+    },
+    resolved: {
+      bg: 'linear-gradient(135deg, #10B981, #047857)',
+      border: '#34D399',
+      shadow: 'rgba(16, 185, 129, 0.45)',
+    },
+  };
+
+  const style = colorMap[highestStatus] || colorMap.blocked;
+  const size = count >= 50 ? 44 : count >= 10 ? 38 : 32;
+
+  return L.divIcon({
+    className: 'custom-cluster-marker',
+    html: `
+      <div class="relative flex items-center justify-center -translate-x-1/2 -translate-y-1/2 cursor-pointer group select-none">
+        <div style="
+          width: ${size}px; 
+          height: ${size}px; 
+          background: ${style.bg}; 
+          border: 2px solid ${style.border}; 
+          box-shadow: 0 4px 14px ${style.shadow};
+        " class="rounded-full flex items-center justify-center text-white font-mono font-black text-xs transition-transform duration-200 group-hover:scale-115">
+          <span>${count}</span>
+        </div>
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+};
+
 // Waterway Basin Corridors in Cebu City
 export interface BasinCorridor {
   id: string;
@@ -354,6 +398,272 @@ function MapTargetFlyer({ targetLat, targetLng }: { targetLat: number | null; ta
 }
 
 export type StatusFilterType = 'all' | 'blocked' | 'dispatched' | 'resolved';
+
+interface ClusteredMarkersProps {
+  reports: PublicReportItem[];
+  targetRef: string | null;
+  effectiveLat: number | null;
+  effectiveLng: number | null;
+  targetMarkerInstance: React.MutableRefObject<L.Marker | null>;
+  hasAutoOpenedRef: React.MutableRefObject<string | null>;
+  targetKey: string | null;
+}
+
+function ProximityClusteredMarkers({
+  reports,
+  targetRef,
+  effectiveLat,
+  effectiveLng,
+  targetMarkerInstance,
+  hasAutoOpenedRef,
+  targetKey,
+}: ClusteredMarkersProps) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+
+  useEffect(() => {
+    const handleZoom = () => setZoom(map.getZoom());
+    map.on('zoomend', handleZoom);
+    return () => {
+      map.off('zoomend', handleZoom);
+    };
+  }, [map]);
+
+  const clusters = useMemo(() => {
+    if (zoom >= 15) {
+      const coordCounts: Record<string, number> = {};
+      return reports.map(report => {
+        const coordKey = `${report.lat.toFixed(4)},${report.lng.toFixed(4)}`;
+        const indexAtCoord = coordCounts[coordKey] || 0;
+        coordCounts[coordKey] = indexAtCoord + 1;
+
+        let displayLat = report.lat;
+        let displayLng = report.lng;
+        if (indexAtCoord > 0) {
+          const angle = (2 * Math.PI * indexAtCoord) / 6;
+          const radius = 0.00018; // ~20 meters
+          displayLat = report.lat + radius * Math.sin(angle);
+          displayLng = report.lng + radius * Math.cos(angle);
+        }
+
+        return {
+          id: report.id,
+          lat: displayLat,
+          lng: displayLng,
+          reports: [report],
+          highestStatus: report.status,
+        };
+      });
+    }
+
+    // Zoom < 15: Spatial proximity clustering
+    const clusterRadius = 45 / Math.pow(2, zoom);
+    const clusterList: {
+      id: string;
+      lat: number;
+      lng: number;
+      reports: PublicReportItem[];
+      highestStatus: 'blocked' | 'dispatched' | 'resolved';
+    }[] = [];
+    const visited = new Set<string>();
+
+    for (let i = 0; i < reports.length; i++) {
+      const report = reports[i];
+      if (visited.has(report.id)) continue;
+
+      const nearby: PublicReportItem[] = [report];
+      visited.add(report.id);
+
+      for (let j = i + 1; j < reports.length; j++) {
+        const other = reports[j];
+        if (visited.has(other.id)) continue;
+
+        const dLat = report.lat - other.lat;
+        const dLng = report.lng - other.lng;
+        const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+
+        if (dist < clusterRadius) {
+          nearby.push(other);
+          visited.add(other.id);
+        }
+      }
+
+      const avgLat = nearby.reduce((sum, r) => sum + r.lat, 0) / nearby.length;
+      const avgLng = nearby.reduce((sum, r) => sum + r.lng, 0) / nearby.length;
+
+      let highestStatus: 'blocked' | 'dispatched' | 'resolved' = 'resolved';
+      if (nearby.some(r => r.status === 'blocked')) highestStatus = 'blocked';
+      else if (nearby.some(r => r.status === 'dispatched')) highestStatus = 'dispatched';
+
+      clusterList.push({
+        id: nearby.length === 1 ? report.id : `cluster-${report.id}-${nearby.length}`,
+        lat: avgLat,
+        lng: avgLng,
+        reports: nearby,
+        highestStatus,
+      });
+    }
+
+    return clusterList;
+  }, [reports, zoom]);
+
+  return (
+    <>
+      {clusters.map((cluster) => {
+        // Multi-pin Cluster Marker
+        if (cluster.reports.length > 1) {
+          return (
+            <Marker
+              key={cluster.id}
+              position={[cluster.lat, cluster.lng]}
+              icon={createClusterIcon(cluster.reports.length, cluster.highestStatus)}
+              eventHandlers={{
+                click: () => {
+                  map.setView([cluster.lat, cluster.lng], Math.min(zoom + 2, 16), { animate: true });
+                },
+              }}
+            >
+              <Popup className="custom-popup" closeButton={false}>
+                <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-60 text-text-primary font-sans -skew-x-2">
+                  <div className="flex items-center justify-between border-b border-border-subtle pb-2 mb-2">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-primary">
+                      Canal Cluster
+                    </span>
+                    <span className={twMerge(
+                      "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm",
+                      cluster.highestStatus === 'blocked' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                      cluster.highestStatus === 'dispatched' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                      "bg-green-500/20 text-green-400 border border-green-500/30"
+                    )}>
+                      {cluster.reports.length} Incidents
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-secondary mb-3 leading-snug">
+                    {cluster.reports.length} community obstruction reports grouped in this waterway sector. Zoom in to view individual case details.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => map.setView([cluster.lat, cluster.lng], Math.min(zoom + 2, 16), { animate: true })}
+                    className="w-full py-1.5 px-2 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black text-xs font-mono font-bold uppercase tracking-wider rounded-sm transition-colors text-center cursor-pointer shadow-sm active:scale-95"
+                  >
+                    Zoom in to View ({cluster.reports.length})
+                  </button>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        }
+
+        // Single Report Pin Marker
+        const report = cluster.reports[0];
+        const isTarget = Boolean(
+          (targetRef && (report.trackingRef.toLowerCase() === targetRef.toLowerCase() || report.id === targetRef)) ||
+          (effectiveLat !== null && effectiveLng !== null &&
+            Math.abs(report.lat - effectiveLat) < 0.0005 &&
+            Math.abs(report.lng - effectiveLng) < 0.0005)
+        );
+
+        return (
+          <Marker
+            key={report.id}
+            position={[cluster.lat, cluster.lng]}
+            icon={createCitizenIcon(report.status)}
+            ref={(marker) => {
+              if (isTarget && marker) {
+                targetMarkerInstance.current = marker;
+                if (hasAutoOpenedRef.current !== targetKey) {
+                  hasAutoOpenedRef.current = targetKey;
+                  setTimeout(() => {
+                    try {
+                      if (!marker.isPopupOpen()) {
+                        marker.openPopup();
+                      }
+                    } catch (e) {
+                      console.warn('Could not auto-open marker popup:', e);
+                    }
+                  }, 400);
+                }
+              }
+            }}
+          >
+            <Popup className="custom-popup" closeButton={false}>
+              <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-1 mb-2 border-b border-border-subtle pb-2">
+                  <div>
+                    <div className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
+                      {report.trackingRef}
+                    </div>
+                    <div className="text-xs font-heading font-black text-text-primary">
+                      {report.status === 'resolved' 
+                        ? 'Cleared Waterway' 
+                        : report.status === 'dispatched' 
+                          ? 'Cleanup Dispatched' 
+                          : 'Active Constriction'}
+                    </div>
+                  </div>
+
+                  <span className={twMerge(
+                    "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider",
+                    report.status === 'resolved' 
+                      ? "bg-green-500/20 text-green-400 border border-green-500/30" 
+                      : report.status === 'dispatched' 
+                        ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" 
+                        : "bg-red-500/20 text-red-400 border border-red-500/30"
+                  )}>
+                    {report.status}
+                  </span>
+                </div>
+
+                {/* Image Preview if available */}
+                {report.imageUrl && (
+                  <div className="w-full h-28 mb-2.5 rounded-sm overflow-hidden border border-border-subtle bg-black/40 relative">
+                    <img 
+                      src={report.imageUrl} 
+                      alt="Canal Condition" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Notes */}
+                <p className="text-[11px] text-text-secondary line-clamp-3 mb-2 leading-relaxed">
+                  "{report.notes}"
+                </p>
+
+                {/* Footer Info */}
+                <div className="flex items-center justify-between text-[10px] font-mono text-text-muted pt-1 border-t border-border-subtle">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {report.createdAt}
+                  </span>
+                  <span className="text-brand-primary font-bold">
+                    {report.severity === 'high' ? 'High Impact' : report.severity === 'low' ? 'Low Impact' : 'Moderate'}
+                  </span>
+                </div>
+
+                {/* Action: Immediately Redirect to My Reports Detailed View */}
+                <div className="mt-2.5 pt-2 border-t border-border-subtle">
+                  <Link
+                    to={`/citizen/dashboard?report=${encodeURIComponent(report.trackingRef)}`}
+                    className="w-full py-2 px-2.5 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black border border-brand-primary hover:border-brand-secondary transition-all rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer -skew-x-3 active:scale-95 group"
+                    title="Open detailed case view in My Reports"
+                  >
+                    <FileText className="w-3.5 h-3.5 skew-x-3 !text-white group-hover:!text-black group-hover:scale-110 transition-transform" />
+                    <span className="skew-x-3 !text-white group-hover:!text-black font-bold">View in My Reports</span>
+                  </Link>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
 
 export default function PublicEsteroStatusMap() {
   const { theme: globalTheme } = useTheme();
@@ -886,113 +1196,16 @@ export default function PublicEsteroStatusMap() {
               </Polyline>
             ))}
 
-            {/* Community Blockage & Cleanup Markers */}
-            {filteredReports.map((report) => {
-              const isTarget = Boolean(
-                (targetRef && (report.trackingRef.toLowerCase() === targetRef.toLowerCase() || report.id === targetRef)) ||
-                (effectiveLat !== null && effectiveLng !== null &&
-                  Math.abs(report.lat - effectiveLat) < 0.0005 &&
-                  Math.abs(report.lng - effectiveLng) < 0.0005)
-              );
-
-              return (
-                <Marker
-                  key={report.id}
-                  position={[report.lat, report.lng]}
-                  icon={createCitizenIcon(report.status)}
-                  ref={(marker) => {
-                    if (isTarget && marker) {
-                      targetMarkerInstance.current = marker;
-                      if (hasAutoOpenedRef.current !== targetKey) {
-                        hasAutoOpenedRef.current = targetKey;
-                        setTimeout(() => {
-                          try {
-                            if (!marker.isPopupOpen()) {
-                              marker.openPopup();
-                            }
-                          } catch (e) {
-                            console.warn('Could not auto-open marker popup:', e);
-                          }
-                        }, 400);
-                      }
-                    }
-                  }}
-                >
-                  <Popup className="custom-popup" closeButton={false}>
-                    <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary">
-                      {/* Header */}
-                      <div className="flex items-center justify-between gap-1 mb-2 border-b border-border-subtle pb-2">
-                        <div>
-                          <div className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
-                            {report.trackingRef}
-                          </div>
-                          <div className="text-xs font-heading font-black text-text-primary">
-                            {report.status === 'resolved' 
-                              ? 'Cleared Waterway' 
-                              : report.status === 'dispatched' 
-                                ? 'Cleanup Dispatched' 
-                                : 'Active Constriction'}
-                          </div>
-                        </div>
-
-                        <span className={twMerge(
-                          "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider",
-                          report.status === 'resolved' 
-                            ? "bg-green-500/20 text-green-400 border border-green-500/30" 
-                            : report.status === 'dispatched' 
-                              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" 
-                              : "bg-red-500/20 text-red-400 border border-red-500/30"
-                        )}>
-                          {report.status}
-                        </span>
-                      </div>
-
-                      {/* Image Preview if available */}
-                      {report.imageUrl && (
-                        <div className="w-full h-28 mb-2.5 rounded-sm overflow-hidden border border-border-subtle bg-black/40 relative">
-                          <img 
-                            src={report.imageUrl} 
-                            alt="Canal Condition" 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Notes */}
-                      <p className="text-[11px] text-text-secondary line-clamp-3 mb-2 leading-relaxed">
-                        "{report.notes}"
-                      </p>
-
-                      {/* Footer Info */}
-                      <div className="flex items-center justify-between text-[10px] font-mono text-text-muted pt-1 border-t border-border-subtle">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {report.createdAt}
-                        </span>
-                        <span className="text-brand-primary font-bold">
-                          {report.severity === 'high' ? 'High Impact' : report.severity === 'low' ? 'Low Impact' : 'Moderate'}
-                        </span>
-                      </div>
-
-                      {/* Action: Immediately Redirect to My Reports Detailed View */}
-                      <div className="mt-2.5 pt-2 border-t border-border-subtle">
-                        <Link
-                          to={`/citizen/dashboard?report=${encodeURIComponent(report.trackingRef)}`}
-                          className="w-full py-2 px-2.5 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black border border-brand-primary hover:border-brand-secondary transition-all rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer -skew-x-3 active:scale-95 group"
-                          title="Open detailed case view in My Reports"
-                        >
-                          <FileText className="w-3.5 h-3.5 skew-x-3 !text-white group-hover:!text-black group-hover:scale-110 transition-transform" />
-                          <span className="skew-x-3 !text-white group-hover:!text-black font-bold">View in My Reports</span>
-                        </Link>
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              );
-            })}
+            {/* Community Blockage & Cleanup Markers (Safety Barrier 3: Proximity Clustered) */}
+            <ProximityClusteredMarkers
+              reports={filteredReports}
+              targetRef={targetRef}
+              effectiveLat={effectiveLat}
+              effectiveLng={effectiveLng}
+              targetMarkerInstance={targetMarkerInstance}
+              hasAutoOpenedRef={hasAutoOpenedRef}
+              targetKey={targetKey}
+            />
           </MapContainer>
         </div>
 
@@ -1064,6 +1277,10 @@ export default function PublicEsteroStatusMap() {
 
       {/* Pop-up Custom Styling */}
       <style>{`
+        .custom-cluster-marker {
+          background: transparent !important;
+          border: none !important;
+        }
         .custom-popup .leaflet-popup-content-wrapper {
           background: transparent !important;
           box-shadow: none !important;
