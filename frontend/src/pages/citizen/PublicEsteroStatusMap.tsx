@@ -386,11 +386,17 @@ export default function PublicEsteroStatusMap() {
 
     async function loadReports() {
       try {
+        // Safety Barrier 1: Active-first incident triage & bounded retention query
+        // Active blockages are immediate hazards and are always fetched.
+        // Resolved blockages are only loaded if recent (within 30 days) to prevent thousands of obsolete pins.
+        const thirtyDaysAgoIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
         const { data, error } = await supabase
           .from('reports')
           .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
+          .or(`status.neq.resolved,created_at.gte.${thirtyDaysAgoIso}`)
           .order('created_at', { ascending: false })
-          .limit(40);
+          .limit(100);
 
         let mapped: PublicReportItem[] = [];
 

@@ -417,10 +417,15 @@ export default function MainCommandDashboard() {
 
   useEffect(() => {
     const fetchReports = async () => {
+      // Safety Barrier 1: Active-first incident triage & bounded retention query
+      // Real-time command dashboard prioritizes all active cases plus recent resolved cases (<14 days).
+      const fourteenDaysAgoIso = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from('reports')
         .select('*')
-        .order('created_at', { ascending: false });
+        .or(`status.neq.resolved,created_at.gte.${fourteenDaysAgoIso}`)
+        .order('created_at', { ascending: false })
+        .limit(150);
       
       if (!error && data) {
         setReports(data);
