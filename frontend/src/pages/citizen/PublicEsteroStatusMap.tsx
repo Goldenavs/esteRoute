@@ -706,7 +706,7 @@ export default function PublicEsteroStatusMap() {
         const { data, error } = await supabase
           .from('reports')
           .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
-          .in('status', ['triaged', 'dispatched', 'resolved'])
+          .in('status', ['triaged', 'acknowledged', 'in_progress', 'dispatched', 'resolved'])
           .or(`status.neq.resolved,created_at.gte.${thirtyDaysAgoIso}`)
           .order('created_at', { ascending: false })
           .limit(100);
@@ -715,11 +715,11 @@ export default function PublicEsteroStatusMap() {
 
         if (!error && data && data.length > 0) {
           mapped = data
-            .filter((item) => item.status === 'triaged' || item.status === 'dispatched' || item.status === 'resolved')
+            .filter((item) => ['triaged', 'acknowledged', 'in_progress', 'dispatched', 'resolved'].includes(item.status))
             .map((item) => {
             let mappedStatus: 'blocked' | 'dispatched' | 'resolved' = 'blocked';
             if (item.status === 'resolved') mappedStatus = 'resolved';
-            else if (item.status === 'dispatched') mappedStatus = 'dispatched';
+            else if (item.status === 'dispatched' || item.status === 'in_progress' || item.status === 'acknowledged') mappedStatus = 'dispatched';
 
             let sev: 'low' | 'moderate' | 'high' = 'moderate';
             if ((item.priority_score ?? 0) >= 70) sev = 'high';
@@ -755,7 +755,7 @@ export default function PublicEsteroStatusMap() {
               if (specificItem) {
                 let mappedStatus: 'blocked' | 'dispatched' | 'resolved' = 'blocked';
                 if (specificItem.status === 'resolved') mappedStatus = 'resolved';
-                else if (specificItem.status === 'dispatched') mappedStatus = 'dispatched';
+                else if (specificItem.status === 'dispatched' || specificItem.status === 'in_progress' || specificItem.status === 'acknowledged') mappedStatus = 'dispatched';
 
                 let sev: 'low' | 'moderate' | 'high' = 'moderate';
                 if ((specificItem.priority_score ?? 0) >= 70) sev = 'high';
