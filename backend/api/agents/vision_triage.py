@@ -105,7 +105,20 @@ async def run_vision_triage(report_id: str, image_url: str, citizen_notes: Optio
                     await asyncio.sleep(3)
                     continue
                 
-                result = json.loads(response.text)
+                raw_text = response.text.strip() if response and response.text else "{}"
+                if raw_text.startswith("```"):
+                    lines = raw_text.splitlines()
+                    if lines and lines[0].startswith("```"):
+                        lines = lines[1:]
+                    if lines and lines[-1].startswith("```"):
+                        lines = lines[:-1]
+                    raw_text = "\n".join(lines).strip()
+
+                result = json.loads(raw_text)
+                if isinstance(result, list) and len(result) > 0:
+                    result = result[0]
+                if not isinstance(result, dict):
+                    result = {}
                 
                 # Anti-Spoofing: Validate is_valid_waterway flag
                 is_valid = bool(result.get("is_valid_waterway", True))
@@ -119,7 +132,11 @@ async def run_vision_triage(report_id: str, image_url: str, citizen_notes: Optio
                 else:
                     # CLAMP score to [0, 100]
                     score = result.get("blockage_severity_score", 0)
-                    result["blockage_severity_score"] = max(0, min(100, float(score)))
+                    try:
+                        numeric_score = float(score)
+                    except (ValueError, TypeError):
+                        numeric_score = 0.0
+                    result["blockage_severity_score"] = max(0.0, min(100.0, numeric_score))
                     result["rejection_reason"] = None
                 
                 # Attach the report_id

@@ -131,8 +131,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
       } else if (data.user && !data.session) {
         setShowEmailConfirmation(true);
       } else {
-        enterGuestMode();
-    navigate('/citizen');
+        navigate('/citizen');
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -153,8 +152,7 @@ export default function AuthModals({ activeModal, onClose }: AuthModalsProps) {
           await supabase.auth.signOut();
           setCitizenError('Access denied. LGU personnel must sign in via the LGU Dispatch Portal.');
         } else {
-          enterGuestMode();
-    navigate('/citizen');
+          navigate('/citizen');
         }
       }
     }

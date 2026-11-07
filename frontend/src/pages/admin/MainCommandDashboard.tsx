@@ -400,10 +400,8 @@ export default function MainCommandDashboard() {
                 if (activePollRef.current) clearInterval(activePollRef.current);
                 // Instantly update reports state so the UI reflects the result (triaged or failed_analysis)
                 setReports(prev => prev.map(r => r.report_id === reportId ? { ...r, ...updatedReport } : r));
-                if (updatedReport.status === 'triaged') {
+                if (updatedReport.status === 'triaged' || updatedReport.status === 'failed_analysis') {
                   fetchVisionResult(reportId);
-                } else if (updatedReport.status === 'failed_analysis') {
-                  setVisionResult(null);
                 }
                 setIsReAssessing(false);
               }
@@ -434,6 +432,10 @@ export default function MainCommandDashboard() {
       setVisionResult(null);
       return;
     }
+
+    // Always fetch AI diagnostics and ensure drawer is open for selected report
+    fetchVisionResult(selectedReportId);
+    setIsAnalysisOpen(true);
     
     // Auto-pan to the selected report on the map
     const report = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
@@ -456,9 +458,6 @@ export default function MainCommandDashboard() {
 
       return () => clearTimeout(timer);
     }
-    
-    fetchVisionResult(selectedReportId);
-    setIsAnalysisOpen(true);
   }, [selectedReportId, fetchVisionResult, reportsWithDisplayCoords]);
 
   const updateStatus = async (reportId: string, newStatus: string) => {
@@ -513,10 +512,8 @@ export default function MainCommandDashboard() {
         const updated = payload.new as any;
         if (updated && updated.report_id) {
           setReports(prev => prev.map(r => r.report_id === updated.report_id ? { ...r, ...updated } : r));
-          if (updated.status === 'triaged') {
+          if (updated.status === 'triaged' || updated.status === 'failed_analysis') {
             fetchVisionResult(updated.report_id);
-          } else if (updated.status === 'failed_analysis') {
-            setVisionResult(null);
           }
         }
         fetchReports();

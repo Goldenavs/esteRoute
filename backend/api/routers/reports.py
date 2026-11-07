@@ -23,6 +23,10 @@ from api.orchestrator import triage_report_pipeline
 
 router = APIRouter()
 
+# Validation constraints per SRS Section 3.5 (NFR-S3) and Section 3.7.2
+MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024  # 8 MB
+ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
 # Initialize Supabase client
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -50,25 +54,54 @@ async def create_report(
     if not supabase:
         raise HTTPException(status_code=500, detail="Supabase is not configured in backend .env")
 
+    # 0. Validate input data per SRS constraints (NFR-S3 & FR-03)
+    if not (-90.0 <= latitude <= 90.0) or not (-180.0 <= longitude <= 180.0):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid GPS coordinates: latitude ({latitude}) must be between -90 and 90, longitude ({longitude}) between -180 and 180."
+        )
+
+    if notes and len(notes) > 280:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Citizen notes exceed the 280-character maximum limit ({len(notes)} characters provided)."
+        )
+
+    content_type = photo.content_type or "image/jpeg"
+    if content_type.lower() not in ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid image format: '{content_type}'. Allowed types are JPEG, PNG, and WebP."
+        )
+
     # 1. Generate tracking reference (e.g. ER-2026-XXXXXX)
     tracking_reference = f"ER-2026-{str(uuid.uuid4().int)[:6]}"
 
     # 2. Upload photo to Supabase Storage
     try:
+        file_bytes = await photo.read()
+        if len(file_bytes) > MAX_FILE_SIZE_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File exceeds maximum allowed size of 8MB ({len(file_bytes) / (1024 * 1024):.2f}MB uploaded)."
+            )
+        if len(file_bytes) == 0:
+            raise HTTPException(status_code=400, detail="Uploaded image file is empty.")
+
         file_ext = photo.filename.split(".")[-1] if photo.filename and "." in photo.filename else "jpg"
         file_name = f"{tracking_reference}.{file_ext}"
-
-        file_bytes = await photo.read()
 
         # Upload to canal-photos bucket
         supabase.storage.from_("canal-photos").upload(
             file_name,
             file_bytes,
-            {"content-type": photo.content_type or "image/jpeg"}
+            {"content-type": content_type}
         )
 
         # Get public URL
         image_url = supabase.storage.from_("canal-photos").get_public_url(file_name)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")
 
