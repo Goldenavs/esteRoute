@@ -12,6 +12,8 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 
 // Subtle, eye-friendly traveling perimeter highlight (matching Landing Page features)
@@ -393,6 +395,9 @@ function CustomMapControls({
 }
 
 export default function BlockageSubmissionForm() {
+  const navigate = useNavigate();
+  const { user, isGuestMode } = useAuth();
+  const isGuest = isGuestMode || !user;
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [trackingRef, setTrackingRef] = useState<string | null>(null);
@@ -911,7 +916,15 @@ export default function BlockageSubmissionForm() {
                   Report Submitted
                 </h2>
                 <p className="text-text-muted mb-4 sm:mb-6 text-xs sm:text-sm max-w-xs sm:max-w-sm leading-relaxed">
-                  Thank you for keeping our community safe. Guest submissions cannot be tracked later unless you save this reference number.
+                  {isGuest ? (
+                    <>
+                      Thank you for keeping our community safe. Guest submissions cannot be tracked later unless you save this reference number.
+                    </>
+                  ) : (
+                    <>
+                      Thank you for keeping our community safe! Your report has been linked to your citizen account and can be tracked in your <strong>Citizen Dashboard</strong>.
+                    </>
+                  )}
                 </p>
 
                 {/* Tracking Reference Card (Skewed Container, Straight Text) */}
@@ -953,16 +966,77 @@ export default function BlockageSubmissionForm() {
                   )}
                 </div>
 
-                {/* Close Button (Skewed Container, Straight Text) */}
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="w-full font-bold py-3 sm:py-3.5 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 group -skew-x-3 sm:-skew-x-6 border-2 bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary hover:text-black cursor-pointer active:scale-[0.99] shadow-lg shadow-brand-primary/20 shrink-0"
-                >
-                  <span className="skew-x-3 sm:skew-x-6 uppercase tracking-widest text-xs sm:text-sm font-black">
-                    Close & Submit Another
-                  </span>
-                </button>
+                {/* Action Buttons */}
+                <div className="w-full flex flex-col gap-2.5">
+                  {!isGuest ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetForm();
+                          navigate('/citizen/dashboard');
+                        }}
+                        className="w-full font-bold py-3 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 -skew-x-3 sm:-skew-x-6 border-2 bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary hover:text-black cursor-pointer active:scale-[0.99] shadow-lg shadow-brand-primary/20 shrink-0"
+                      >
+                        <span className="skew-x-3 sm:skew-x-6 uppercase tracking-widest text-xs sm:text-sm font-black flex items-center gap-2">
+                          <span>View in My Reports</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </span>
+                      </button>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            resetForm();
+                            navigate('/citizen/public-map');
+                          }}
+                          className="w-full font-bold py-2.5 px-3 rounded-sm transition-all duration-300 flex items-center justify-center -skew-x-3 sm:-skew-x-6 border border-border-subtle bg-surface hover:bg-surface-subtle text-text-secondary hover:text-text-primary cursor-pointer active:scale-[0.99]"
+                        >
+                          <span className="skew-x-3 sm:skew-x-6 uppercase tracking-wider text-[11px] font-bold">
+                            Public Map
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={resetForm}
+                          className="w-full font-bold py-2.5 px-3 rounded-sm transition-all duration-300 flex items-center justify-center -skew-x-3 sm:-skew-x-6 border border-border-subtle bg-surface hover:bg-surface-subtle text-text-secondary hover:text-text-primary cursor-pointer active:scale-[0.99]"
+                        >
+                          <span className="skew-x-3 sm:skew-x-6 uppercase tracking-wider text-[11px] font-bold">
+                            Submit Another
+                          </span>
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetForm();
+                          navigate('/citizen/public-map');
+                        }}
+                        className="w-full font-bold py-3 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 -skew-x-3 sm:-skew-x-6 border-2 bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary hover:text-black cursor-pointer active:scale-[0.99] shadow-lg shadow-brand-primary/20 shrink-0"
+                      >
+                        <span className="skew-x-3 sm:skew-x-6 uppercase tracking-widest text-xs sm:text-sm font-black flex items-center gap-2">
+                          <span>View on Public Map</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={resetForm}
+                        className="w-full font-bold py-2.5 px-4 rounded-sm transition-all duration-300 flex items-center justify-center -skew-x-3 sm:-skew-x-6 border border-border-subtle bg-surface hover:bg-surface-subtle text-text-secondary hover:text-text-primary cursor-pointer active:scale-[0.99]"
+                      >
+                        <span className="skew-x-3 sm:skew-x-6 uppercase tracking-widest text-xs font-bold">
+                          Submit Another Report
+                        </span>
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </motion.div>
           </div>
