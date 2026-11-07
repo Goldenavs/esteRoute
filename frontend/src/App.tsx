@@ -6,8 +6,6 @@ import ProtectedRoute from './components/auth/guards/ProtectedRoute'
 
 // Auth Pages
 import UniversalLogin from './pages/auth/UniversalLogin'
-import CitizenRegistration from './pages/auth/CitizenRegistration'
-import PasswordRecovery from './pages/auth/PasswordRecovery'
 
 // Citizen Pages
 import BlockageSubmissionForm from './pages/citizen/BlockageSubmissionForm'
@@ -30,8 +28,8 @@ function App() {
         {/* Auth Routing Group (Public) */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<UniversalLogin />} />
-          <Route path="/register" element={<CitizenRegistration />} />
-          <Route path="/recovery" element={<PasswordRecovery />} />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
+          <Route path="/recovery" element={<Navigate to="/login" replace />} />
         </Route>
 
         {/* Citizen Routing Group (Guarded: Citizens & Guests allowed; Admins redirected to /admin) */}
