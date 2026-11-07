@@ -32,7 +32,15 @@ app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "message": "esteRoute API is running"}
+    # Liveness & dependency check per SRS Section 3.7.2
+    supabase_configured = bool(os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
+    gemini_configured = bool(os.environ.get("GEMINI_API_KEY"))
+    return {
+        "status": "ok",
+        "supabase_connected": supabase_configured,
+        "gemini_reachable": gemini_configured,
+        "message": "esteRoute API is running"
+    }
 
 
 @app.get("/api/logs")
