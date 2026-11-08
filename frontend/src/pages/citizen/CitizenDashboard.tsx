@@ -517,7 +517,7 @@ export default function CitizenDashboard() {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="shrink-0 mb-2 sm:mb-4 flex items-center justify-between gap-2 sm:gap-3"
+        className="shrink-0 mb-2 sm:mb-4 flex items-center justify-between gap-2 sm:gap-3 md:hidden"
       >
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4 truncate">

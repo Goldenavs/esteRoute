@@ -1068,7 +1068,7 @@ export default function BlockageSubmissionForm() {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="mb-1.5 md:mb-8 max-w-3xl shrink-0"
+        className="md:hidden mb-1.5 max-w-3xl shrink-0"
       >
         <h1 className="text-xl sm:text-2xl md:text-5xl font-heading font-black tracking-tight text-text-primary mb-0 md:mb-3 border-l-4 border-brand-primary pl-3 md:pl-4">
           Report a Blockage

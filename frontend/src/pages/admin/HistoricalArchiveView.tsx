@@ -334,7 +334,7 @@ export default function HistoricalArchiveView() {
         transition={{ duration: 0.35 }}
         className="mb-4 sm:mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4"
       >
-        <div>
+        <div className="md:hidden">
           <h1 className="text-2xl sm:text-3xl md:text-5xl font-heading font-black tracking-tight text-text-primary border-l-4 border-brand-primary pl-3 md:pl-4">
             Historical Archive
           </h1>
@@ -344,7 +344,7 @@ export default function HistoricalArchiveView() {
         </div>
         
         {/* Actions Bar */}
-        <div className="flex items-center gap-2 self-start md:self-auto shrink-0 pr-1">
+        <div className="flex items-center gap-2 self-start md:self-auto shrink-0 pr-1 md:ml-auto">
           <button 
             type="button"
             onClick={handleExportCSV}
