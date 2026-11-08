@@ -27,7 +27,11 @@ import {
   SlidersHorizontal,
   Search,
   ArrowUpDown,
-  X
+  X,
+  CloudRain,
+  Edit3,
+  Check,
+  Sparkles
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
@@ -164,6 +168,13 @@ export default function MainCommandDashboard() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [visionResult, setVisionResult] = useState<any>(null);
   const [isReAssessing, setIsReAssessing] = useState<boolean>(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [weatherResult, setWeatherResult] = useState<any>(null);
+  const [manualSeverity, setManualSeverity] = useState<number>(70);
+  const [manualWaste, setManualWaste] = useState<string[]>(['Plastic', 'Organic']);
+  const [manualRationale, setManualRationale] = useState<string>('');
+  const [isManualTriageSubmitting, setIsManualTriageSubmitting] = useState<boolean>(false);
+  const [isManualEditOpen, setIsManualEditOpen] = useState<boolean>(false);
   
   const mapRef = useRef<L.Map>(null);
   const markerRefs = useRef<{ [key: string]: L.Marker | null }>({});
@@ -363,10 +374,172 @@ export default function MainCommandDashboard() {
       
     if (!error && data) {
       setVisionResult(data.result_json);
+      if (data.result_json?.blockage_severity_score !== undefined) {
+        setManualSeverity(Math.round(data.result_json.blockage_severity_score));
+      }
+      if (data.result_json?.waste_categories?.length) {
+        setManualWaste(data.result_json.waste_categories);
+      }
     } else {
       setVisionResult(null);
     }
-  }, []);
+
+    // Meteorological / Weather Result
+    const { data: weatherData } = await supabase
+      .from('agent_results')
+      .select('*')
+      .eq('report_id', reportId)
+      .eq('agent_type', 'meteorological')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (weatherData) {
+      setWeatherResult(weatherData.result_json);
+    } else {
+      const rep = reports.find(r => r.report_id === reportId);
+      if (rep?.latitude && rep?.longitude) {
+        try {
+          const mRes = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${rep.latitude}&longitude=${rep.longitude}&hourly=precipitation_probability&forecast_days=2&timezone=Asia/Manila`
+          );
+          if (mRes.ok) {
+            const mJson = await mRes.json();
+            const probs = mJson?.hourly?.precipitation_probability || [];
+            const rpi = probs.length ? Math.max(...probs) : 0;
+            setWeatherResult({ rain_probability_index: rpi, data_unavailable: false });
+          } else {
+            setWeatherResult(null);
+          }
+        } catch {
+          setWeatherResult(null);
+        }
+      } else {
+        setWeatherResult(null);
+      }
+    }
+  }, [reports]);
+
+  const handleManualTriageSubmit = async () => {
+    if (!selectedReport || isManualTriageSubmitting) return;
+    setIsManualTriageSubmitting(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      let success = false;
+      let newScore = 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let newVision: any = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let newWeather: any = null;
+
+      try {
+        const res = await fetch(`${API_URL}/api/reports/${selectedReport.report_id}/manual-triage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            blockage_severity_score: manualSeverity,
+            waste_categories: manualWaste,
+            rationale: manualRationale || `Manual triage verified by LGU sanitation officer. Blockage Severity: ${manualSeverity}%.`
+          })
+        });
+
+        if (res.ok) {
+          const resJson = await res.json();
+          success = true;
+          newScore = resJson.priority_score;
+          newVision = resJson.vision_result;
+          newWeather = resJson.weather_result;
+        }
+      } catch (backendFetchErr) {
+        console.warn("Backend API unreachable, using resilient direct Supabase fallback:", backendFetchErr);
+      }
+
+      // If backend was offline or failed, compute weather synthesis directly
+      if (!success) {
+        let rpi = weatherResult?.rain_probability_index ?? 0;
+        if (!weatherResult) {
+          try {
+            const meteoRes = await fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${selectedReport.latitude}&longitude=${selectedReport.longitude}&hourly=precipitation_probability&forecast_days=2&timezone=Asia/Manila`
+            );
+            if (meteoRes.ok) {
+              const meteoData = await meteoRes.json();
+              const probs = meteoData?.hourly?.precipitation_probability || [];
+              if (probs.length) rpi = Math.max(...probs);
+            }
+          } catch {
+            rpi = 0;
+          }
+        }
+
+        // Formula per SRS 3.6.2: 60% Vision Severity + 40% Rain Probability
+        newScore = Math.round(((0.60 * manualSeverity) + (0.40 * rpi)) * 100) / 100;
+        
+        newVision = {
+          report_id: selectedReport.report_id,
+          is_valid_waterway: true,
+          rejection_reason: null,
+          waste_categories: manualWaste,
+          blockage_severity_score: manualSeverity,
+          confidence: 'high',
+          rationale: manualRationale || `Manual triage verified by LGU sanitation officer. Blockage Severity: ${manualSeverity}%.`,
+          is_manual_override: true
+        };
+
+        newWeather = {
+          report_id: selectedReport.report_id,
+          rain_probability_index: rpi,
+          data_unavailable: false
+        };
+
+        await supabase
+          .from('reports')
+          .update({
+            status: 'triaged',
+            priority_score: newScore,
+            needs_human_review: false
+          })
+          .eq('report_id', selectedReport.report_id);
+
+        await supabase
+          .from('dispatch_status_log')
+          .insert({
+            report_id: selectedReport.report_id,
+            to_status: 'triaged'
+          });
+
+        await supabase
+          .from('agent_results')
+          .insert({
+            report_id: selectedReport.report_id,
+            agent_type: 'vision_triage',
+            result_json: newVision
+          });
+      }
+
+      // Instant state reflection
+      setReports(prev => prev.map(r => r.report_id === selectedReport.report_id ? {
+        ...r,
+        status: 'triaged',
+        priority_score: newScore,
+        needs_human_review: false
+      } : r));
+      if (newVision) setVisionResult(newVision);
+      if (newWeather) setWeatherResult(newWeather);
+      setIsManualEditOpen(false);
+
+    } catch (err) {
+      console.error("Failed to apply manual triage:", err);
+    } finally {
+      setIsManualTriageSubmitting(false);
+    }
+  };
 
   const handleReAssess = async (reportId: string) => {
     if (isReAssessing) return;
@@ -1070,22 +1243,231 @@ export default function MainCommandDashboard() {
                     </div>
                   )}
 
+                  {/* Manual Triage & Weather Synthesis Panel (Active when review needed or officer opens manual override) */}
+                  {(isManualEditOpen || selectedReport.status === 'failed_analysis' || selectedReport.needs_human_review) && (
+                    <div className="bg-surface border-2 border-brand-primary/40 rounded-sm p-4 flex flex-col gap-3 shadow-xl relative overflow-hidden -skew-x-[3deg]">
+                      <div className="skew-x-[3deg] flex flex-col gap-3">
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+                          <div className="flex items-center gap-1.5 text-xs font-heading font-black uppercase tracking-wider text-brand-primary">
+                            <Edit3 className="w-4 h-4 text-brand-primary" />
+                            <span>Manual Triage & Weather Fusion</span>
+                          </div>
+                          <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm bg-brand-primary/15 text-brand-primary border border-brand-primary/30">
+                            LGU Review
+                          </span>
+                        </div>
+
+                        {/* Live Weather Forecast Metric */}
+                        <div className="bg-surface-subtle p-2.5 rounded-sm border border-border-subtle flex items-center justify-between text-xs font-mono">
+                          <div className="flex items-center gap-2">
+                            <CloudRain className="w-4 h-4 text-blue-400 shrink-0" />
+                            <span className="text-text-muted text-[11px]">Open-Meteo 48h Rain Risk:</span>
+                          </div>
+                          <span className="font-bold text-blue-400 font-mono">
+                            {weatherResult?.rain_probability_index !== undefined ? `${weatherResult.rain_probability_index}%` : 'Scanning...'}
+                          </span>
+                        </div>
+
+                        {/* Blockage Severity Slider */}
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                              Assessed Blockage Severity:
+                            </span>
+                            <span className={twMerge(
+                              "font-mono font-black text-sm px-2 py-0.5 rounded-sm",
+                              manualSeverity >= 80 ? "text-semantic-urgent bg-semantic-urgent/10 border border-semantic-urgent/30" :
+                              manualSeverity >= 60 ? "text-semantic-warning bg-semantic-warning/10 border border-semantic-warning/30" :
+                              manualSeverity >= 30 ? "text-amber-400 bg-amber-500/10 border border-amber-500/30" :
+                              "text-emerald-400 bg-emerald-500/10 border border-emerald-500/30"
+                            )}>
+                              {manualSeverity}%
+                            </span>
+                          </div>
+
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            step="1"
+                            value={manualSeverity}
+                            onChange={(e) => setManualSeverity(Number(e.target.value))}
+                            className="w-full accent-brand-primary cursor-pointer h-2 bg-surface-subtle rounded-sm"
+                          />
+
+                          {/* Severity Presets */}
+                          <div className="grid grid-cols-4 gap-1 mt-1">
+                            {[
+                              { label: 'Clear 15%', val: 15 },
+                              { label: 'Mod 45%', val: 45 },
+                              { label: 'Heavy 75%', val: 75 },
+                              { label: 'Full 95%', val: 95 }
+                            ].map((preset) => (
+                              <button
+                                key={preset.val}
+                                type="button"
+                                onClick={() => setManualSeverity(preset.val)}
+                                className={twMerge(
+                                  "py-1 text-[9px] font-mono uppercase font-bold rounded-xs border transition-all cursor-pointer active:scale-95 text-center",
+                                  manualSeverity === preset.val
+                                    ? "bg-brand-primary text-white border-brand-primary"
+                                    : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle hover:border-border-strong"
+                                )}
+                              >
+                                {preset.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Waste Category Selection */}
+                        <div className="flex flex-col gap-1.5">
+                          <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                            Observed Waste Categories:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {['Plastic', 'Organic', 'Silt', 'Construction', 'Other'].map((cat) => {
+                              const isSelected = manualWaste.includes(cat);
+                              return (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setManualWaste(prev => prev.filter(c => c !== cat));
+                                    } else {
+                                      setManualWaste(prev => [...prev, cat]);
+                                    }
+                                  }}
+                                  className={twMerge(
+                                    "px-2 py-1 rounded-sm text-[10px] font-mono font-bold uppercase transition-all cursor-pointer flex items-center gap-1 border",
+                                    isSelected
+                                      ? "bg-brand-primary text-white border-brand-primary shadow-xs"
+                                      : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle"
+                                  )}
+                                >
+                                  {isSelected && <Check className="w-3 h-3 text-white" />}
+                                  <span>{cat}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Optional Dispatcher Observation Note */}
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                            Dispatcher Audit Note (Optional):
+                          </span>
+                          <input
+                            type="text"
+                            value={manualRationale}
+                            onChange={(e) => setManualRationale(e.target.value)}
+                            placeholder="e.g. Verified 75% obstruction with heavy silt"
+                            className="bg-surface-subtle border border-border-subtle rounded-sm px-2.5 py-1.5 text-xs text-text-primary focus:border-brand-primary outline-hidden placeholder:text-text-muted"
+                          />
+                        </div>
+
+                        {/* Real-Time Priority Score Preview Formula */}
+                        {(() => {
+                          const rpi = weatherResult?.rain_probability_index ?? 0;
+                          const projectedScore = Math.round(((0.60 * manualSeverity) + (0.40 * rpi)) * 100) / 100;
+                          const priorityLabel = projectedScore < 30 ? "Low" : projectedScore < 60 ? "Medium" : projectedScore < 80 ? "High" : "Urgent";
+                          return (
+                            <div className="bg-brand-primary/10 border border-brand-primary/30 p-2.5 rounded-sm flex items-center justify-between text-xs">
+                              <div className="flex flex-col">
+                                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-text-muted">
+                                  Synthesized Priority (60% Vision + 40% Rain)
+                                </span>
+                                <span className="text-[11px] font-mono text-text-secondary">
+                                  ({(0.60 * manualSeverity).toFixed(1)} + {(0.40 * rpi).toFixed(1)})
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={twMerge(
+                                  "text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-sm",
+                                  priorityLabel === 'Urgent' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                  priorityLabel === 'High' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                                  priorityLabel === 'Medium' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" :
+                                  "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                )}>
+                                  {priorityLabel}
+                                </span>
+                                <span className="text-lg font-mono font-black text-brand-primary">
+                                  {projectedScore}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Submit / Confirm Button */}
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={handleManualTriageSubmit}
+                            disabled={isManualTriageSubmitting}
+                            className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black py-2.5 px-3 rounded-sm font-bold uppercase text-[11px] tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
+                          >
+                            {isManualTriageSubmitting ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>Synthesizing...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span>Confirm Manual Triage & Weather Score</span>
+                              </>
+                            )}
+                          </button>
+
+                          {isManualEditOpen && selectedReport.status === 'triaged' && (
+                            <button
+                              type="button"
+                              onClick={() => setIsManualEditOpen(false)}
+                              className="px-3 py-2 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Dispatcher Actions */}
                   <div className="pt-3 border-t border-border-subtle mt-auto">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[9px] uppercase font-bold text-text-muted tracking-widest">Command Controls</span>
                       
-                      {/* Re-run AI Analysis Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleReAssess(selectedReport.report_id)}
-                        disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-                        title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
-                      >
-                        <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
-                        <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {/* Manual Triage Toggle Button (If already triaged and form closed) */}
+                        {selectedReport.status === 'triaged' && !isManualEditOpen && (
+                          <button
+                            type="button"
+                            onClick={() => setIsManualEditOpen(true)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-sm bg-surface-subtle hover:bg-surface text-text-secondary hover:text-brand-primary border border-border-subtle text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-xs"
+                            title="Manually adjust severity score & waste types with live weather recalculation"
+                          >
+                            <Edit3 className="w-3 h-3 text-brand-primary" />
+                            <span>Adjust Triage</span>
+                          </button>
+                        )}
+
+                        {/* Re-run AI Analysis Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleReAssess(selectedReport.report_id)}
+                          disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                          title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
+                        >
+                          <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
+                          <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex gap-2">

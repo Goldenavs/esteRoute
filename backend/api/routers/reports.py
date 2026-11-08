@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Optional
+from typing import Optional, List
 from dotenv import load_dotenv
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -270,4 +270,117 @@ async def reassess_report(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to initiate re-assessment: {str(e)}")
+
+
+class ManualTriageRequest(BaseModel):
+    blockage_severity_score: float
+    waste_categories: List[str] = []
+    rationale: Optional[str] = None
+
+
+@router.post("/{report_id}/manual-triage")
+async def manual_triage_report(
+    report_id: str,
+    payload: ManualTriageRequest,
+    current_user: AuthenticatedUser = Depends(require_admin_or_dispatcher),
+):
+    """
+    Allows LGU dispatchers to manually set the canal blockage severity score and waste categories,
+    while still automatically synthesizing the final priority score using live weather data from Open-Meteo.
+    """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase is not configured in backend .env")
+
+    try:
+        # 1. Fetch report details
+        res = supabase.table("reports").select("*").eq("report_id", report_id).execute()
+        if not res.data or len(res.data) == 0:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        report = res.data[0]
+        latitude = float(report["latitude"])
+        longitude = float(report["longitude"])
+
+        # 2. Check if weather data already exists for this report in agent_results; if not, query Meteorological Agent
+        weather_res = supabase.table("agent_results")\
+            .select("*")\
+            .eq("report_id", report_id)\
+            .eq("agent_type", "meteorological")\
+            .order("created_at", desc=True)\
+            .limit(1)\
+            .execute()
+
+        weather_result = None
+        if weather_res.data and len(weather_res.data) > 0:
+            weather_result = weather_res.data[0].get("result_json")
+        
+        if not weather_result or weather_result.get("data_unavailable"):
+            from api.agents.meteorological import run_meteorological_agent
+            weather_result = await run_meteorological_agent(report_id, latitude, longitude)
+            if weather_result:
+                supabase.table("agent_results").insert({
+                    "report_id": report_id,
+                    "agent_type": "meteorological",
+                    "result_json": weather_result
+                }).execute()
+
+        # 3. Construct manual vision result dictionary
+        clamped_severity = max(0.0, min(100.0, float(payload.blockage_severity_score)))
+        default_rationale = f"Manual triage verified by LGU sanitation officer ({current_user.email}). Blockage Severity: {clamped_severity}%."
+        vision_result = {
+            "report_id": report_id,
+            "is_valid_waterway": True,
+            "rejection_reason": None,
+            "waste_categories": payload.waste_categories if payload.waste_categories else ["Plastic", "Organic"],
+            "blockage_severity_score": clamped_severity,
+            "confidence": "high",
+            "rationale": payload.rationale or default_rationale,
+            "is_manual_override": True,
+            "reviewed_by": current_user.email
+        }
+
+        # Save/update vision_triage in agent_results
+        supabase.table("agent_results").insert({
+            "report_id": report_id,
+            "agent_type": "vision_triage",
+            "result_json": vision_result
+        }).execute()
+
+        # 4. Synthesize final Priority Score combining manual severity (60%) and Open-Meteo Rain Index (40%)
+        from api.agents.synthesis import run_dispatch_synthesis
+        priority_score, priority_label = run_dispatch_synthesis(vision_result, weather_result or {})
+
+        # 5. Update reports table
+        supabase.table("reports").update({
+            "status": "triaged",
+            "priority_score": priority_score,
+            "needs_human_review": False
+        }).eq("report_id", report_id).execute()
+
+        # 6. Log status change
+        supabase.table("dispatch_status_log").insert({
+            "report_id": report_id,
+            "to_status": "triaged"
+        }).execute()
+
+        rpi = weather_result.get("rain_probability_index", 0) if weather_result else 0
+        log_transaction(
+            f"[{report_id}] Manual Triage by {current_user.email}: Severity {clamped_severity}%, Weather RPI {rpi}% -> Priority Score: {priority_score} ({priority_label})"
+        )
+
+        return {
+            "message": "Manual triage successfully applied with weather synthesis",
+            "report_id": report_id,
+            "status": "triaged",
+            "blockage_severity_score": clamped_severity,
+            "rain_probability_index": rpi,
+            "priority_score": priority_score,
+            "priority_label": priority_label,
+            "vision_result": vision_result,
+            "weather_result": weather_result
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to apply manual triage: {str(e)}")
 
