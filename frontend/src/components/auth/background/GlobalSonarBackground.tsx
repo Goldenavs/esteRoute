@@ -128,32 +128,32 @@ export default function GlobalSonarBackground() {
       {/* LAYER 3: Interactive Cursor Sonar Spotlight (Radial Glow) */}
       {/* ========================================================= */}
       <div 
-        className="absolute inset-0 transition-opacity duration-300"
+        className="absolute inset-0 transition-opacity duration-500"
         style={{
           opacity: 'var(--spotlight-opacity)',
           background: isLight
-            ? `radial-gradient(750px circle at var(--mouse-x) var(--mouse-y), rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.06) 45%, transparent 75%)`
-            : `radial-gradient(750px circle at var(--mouse-x) var(--mouse-y), rgba(59, 130, 246, 0.25), rgba(30, 58, 138, 0.1) 50%, transparent 80%)`,
+            ? `radial-gradient(450px circle at var(--mouse-x) var(--mouse-y), rgba(59, 130, 246, 0.07), rgba(59, 130, 246, 0.02) 40%, transparent 70%)`
+            : `radial-gradient(450px circle at var(--mouse-x) var(--mouse-y), rgba(59, 130, 246, 0.08), rgba(30, 58, 138, 0.03) 45%, transparent 70%)`,
         }}
       />
 
       {/* ========================================================= */}
-      {/* LAYER 4: Sonar Scan Reveal (High-Definition Cursor Ring)  */}
+      {/* LAYER 4: Sonar Scan Reveal (Subtle Cursor Ring)           */}
       {/* ========================================================= */}
       <div 
-        className="absolute inset-0 transition-opacity duration-300"
+        className="absolute inset-0 transition-opacity duration-500"
         style={{
           opacity: 'var(--spotlight-opacity)',
-          maskImage: `radial-gradient(420px circle at var(--mouse-x) var(--mouse-y), black 20%, transparent 75%)`,
-          WebkitMaskImage: `radial-gradient(420px circle at var(--mouse-x) var(--mouse-y), black 20%, transparent 75%)`,
+          maskImage: `radial-gradient(280px circle at var(--mouse-x) var(--mouse-y), black 15%, transparent 70%)`,
+          WebkitMaskImage: `radial-gradient(280px circle at var(--mouse-x) var(--mouse-y), black 15%, transparent 70%)`,
         }}
       >
-        {/* Luminous high-contrast grid under the cursor */}
+        {/* Subtle high-contrast grid under the cursor */}
         <div 
           className="absolute inset-0"
           style={{
-            opacity: isLight ? 0.45 : 0.55,
-            backgroundImage: `radial-gradient(${strokeColor} 1.6px, transparent 1.6px)`,
+            opacity: isLight ? 0.12 : 0.16,
+            backgroundImage: `radial-gradient(${strokeColor} 1.3px, transparent 1.3px)`,
             backgroundSize: '48px 48px',
           }}
         />
@@ -177,8 +177,8 @@ export default function GlobalSonarBackground() {
               ease: "easeInOut",
             }}
             stroke="#3B82F6" 
-            strokeWidth="2.0" 
-            opacity={isLight ? 0.6 : 0.8}
+            strokeWidth="1.2" 
+            opacity={isLight ? 0.18 : 0.24}
           >
             <path d="M-200,120 C200,40 500,240 950,150 S1450,40 1900,180" />
             <path d="M-200,280 C150,190 550,400 1000,290 S1500,190 1900,340" />
@@ -199,9 +199,9 @@ export default function GlobalSonarBackground() {
               ease: "easeInOut",
             }}
             stroke="#60A5FA"
-            strokeWidth="1.4"
+            strokeWidth="1.0"
             strokeDasharray="10 10"
-            opacity={isLight ? 0.45 : 0.65}
+            opacity={isLight ? 0.12 : 0.18}
           >
             <motion.path 
               animate={{ strokeDashoffset: [0, -200] }}

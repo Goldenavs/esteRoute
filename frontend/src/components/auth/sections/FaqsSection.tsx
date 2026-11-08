@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { ChevronDown, MessageCircleQuestion } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 const faqCategories: Record<string, {q: string, a: string}[]> = {
   "General": [
@@ -124,10 +124,6 @@ export default function FaqsSection() {
           viewport={{ once: true, margin: "-100px" }}
           className="mb-16"
         >
-          <div className="inline-flex items-center justify-center px-4 py-2 bg-brand-primary/10 border-2 border-brand-primary/20 -skew-x-12 mb-6 backdrop-blur-sm">
-            <MessageCircleQuestion className="w-4 h-4 text-brand-primary skew-x-12 mr-2" />
-            <span className="skew-x-12 text-xs font-heading font-black tracking-widest text-brand-primary uppercase">Knowledge Base</span>
-          </div>
           <h2 className="text-4xl lg:text-6xl font-heading font-black text-text-primary mb-4 flex flex-col items-start tracking-tighter uppercase leading-[1.08]">
             <span>Frequently Asked</span>
             <span className="text-text-muted mt-2">
