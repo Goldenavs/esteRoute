@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 
 const faqCategories: Record<string, {q: string, a: string}[]> = {
@@ -98,22 +98,10 @@ export default function FaqsSection() {
 
   const activeFaqs = faqCategories[activeCategory];
 
-  const ref = React.useRef<HTMLElement>(null);
-  
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end start"]
-  });
-  
-  const y = useTransform(scrollYProgress, [0, 1], ["0px", "150px"]);
-  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0.5]);
-
   return (
-    <motion.section 
-      ref={ref}
-      style={{ y, opacity }}
+    <section 
       id="faqs" 
-      className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-transparent relative z-10 overflow-hidden"
+      className="pt-36 md:pt-44 pb-48 md:pb-64 px-6 lg:px-16 bg-transparent relative z-10 overflow-hidden"
     >
       <div className="w-full max-w-7xl mx-auto">
         
@@ -240,6 +228,6 @@ export default function FaqsSection() {
 
 
       </div>
-    </motion.section>
+    </section>
   );
 }
