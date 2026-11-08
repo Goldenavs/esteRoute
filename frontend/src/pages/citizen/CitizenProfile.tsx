@@ -649,7 +649,7 @@ export default function CitizenProfile() {
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {isLevelsModalOpen && (
-            <div className="fixed inset-0 z-[320] flex items-center justify-center p-3 sm:p-4">
+            <div className="fixed inset-0 z-[3000] flex items-center justify-center p-3 sm:p-4">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -816,7 +816,7 @@ export default function CitizenProfile() {
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {!profile.isGuest && isIdModalOpen && (
-            <div className="fixed inset-0 z-[250] flex items-center justify-center p-3 sm:p-4">
+            <div className="fixed inset-0 z-[3000] flex items-center justify-center p-3 sm:p-4">
               {/* Backdrop Blur */}
               <motion.div
                 initial={{ opacity: 0 }}
@@ -1090,7 +1090,7 @@ export default function CitizenProfile() {
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {isPasswordModalOpen && (
-          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}

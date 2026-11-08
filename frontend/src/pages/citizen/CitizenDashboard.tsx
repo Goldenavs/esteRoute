@@ -1,4 +1,5 @@
 import { useState, useEffect, useId, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   MapPin, 
   Clock, 
@@ -1023,21 +1024,22 @@ export default function CitizenDashboard() {
 
       </div>
 
-      {/* 6. Case Details Modal with AnimatePresence */}
-      <AnimatePresence>
-        {selectedReport && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 md:p-6 pb-20 sm:pb-6 overflow-y-auto">
-            {/* Soft Frosted Backdrop matching Cookie & Terms Policy */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                setSelectedReport(null);
-                setIsImageFocused(false);
-              }}
-              className="fixed inset-0 bg-app-bg/75 backdrop-blur-md cursor-pointer"
-            />
+      {/* 6. Case Details Modal with AnimatePresence (Portaled to document.body) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {selectedReport && (
+            <div className="fixed inset-0 z-[3000] flex items-center justify-center p-3 sm:p-4 md:p-6 pb-20 sm:pb-6 overflow-y-auto">
+              {/* Soft Frosted Backdrop matching Cookie & Terms Policy */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => {
+                  setSelectedReport(null);
+                  setIsImageFocused(false);
+                }}
+                className="fixed inset-0 bg-app-bg/85 backdrop-blur-md cursor-pointer"
+              />
 
             {/* Modal Card */}
             <motion.div
@@ -1167,20 +1169,23 @@ export default function CitizenDashboard() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
-      {/* 7. Image Focus Lightbox Modal */}
-      <AnimatePresence>
-        {isImageFocused && selectedReport && (
-          <div className="fixed inset-0 z-[1100] flex items-center justify-center p-3 sm:p-6 overflow-hidden">
-            {/* Lightbox Soft Frosted Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsImageFocused(false)}
-              className="fixed inset-0 bg-app-bg/80 backdrop-blur-md cursor-pointer"
-            />
+      {/* 7. Image Focus Lightbox Modal (Portaled to document.body) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isImageFocused && selectedReport && (
+            <div className="fixed inset-0 z-[3100] flex items-center justify-center p-3 sm:p-6 overflow-hidden">
+              {/* Lightbox Soft Frosted Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsImageFocused(false)}
+                className="fixed inset-0 bg-app-bg/90 backdrop-blur-md cursor-pointer"
+              />
 
             {/* Focused Image Box (Natural / Unskewed) */}
             <motion.div
@@ -1214,7 +1219,9 @@ export default function CitizenDashboard() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
     </div>
   );

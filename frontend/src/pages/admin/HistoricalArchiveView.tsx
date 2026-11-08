@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Search, 
   Download, 
@@ -741,17 +742,18 @@ export default function HistoricalArchiveView() {
         </div>
       </div>
 
-      {/* 6. Case Dossier Modal (Detailed Inspection) */}
-      <AnimatePresence>
-        {selectedReport && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2 }}
-              className="bg-surface border border-border-subtle rounded-sm shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative"
-            >
+      {/* 6. Case Dossier Modal (Detailed Inspection - Portaled to document.body) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {selectedReport && (
+            <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={{ duration: 0.2 }}
+                className="bg-surface border border-border-subtle rounded-sm shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative"
+              >
               {/* Modal Header */}
               <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border-subtle bg-surface-subtle/50">
                 <div className="flex items-center gap-2">
@@ -885,7 +887,9 @@ export default function HistoricalArchiveView() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
     </div>
   );

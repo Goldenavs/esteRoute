@@ -882,18 +882,19 @@ export default function BlockageSubmissionForm() {
   return (
     <div className="w-full h-full flex-1 min-h-0 relative md:h-auto md:min-h-0 pb-4 md:pb-0 flex flex-col overflow-hidden md:overflow-visible">
 
-      {/* Submission Success Modal */}
-      <AnimatePresence>
-        {isSubmitted && (
-          <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
-            />
+      {/* Submission Success Modal (Portaled to document.body to overlay entire layout including navbar) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isSubmitted && (
+            <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              />
 
             {/* Modal Card */}
             <motion.div
@@ -1041,7 +1042,9 @@ export default function BlockageSubmissionForm() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
       {/* Custom Toast Notification - Beautiful skewed industrial banner */}
       <AnimatePresence>
