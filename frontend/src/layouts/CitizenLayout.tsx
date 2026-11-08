@@ -175,126 +175,93 @@ export default function CitizenLayout() {
               onMouseLeave={() => {
                 isNavHoveredRef.current = false;
               }}
-              className="w-full flex items-center justify-between pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-8 py-2.5 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12 relative overflow-hidden min-h-[58px]"
+              className="w-full pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12 relative overflow-hidden min-h-[58px] flex items-center"
             >
-              <AnimatePresence mode="wait">
-                {isNavVisible ? (
-                  <motion.div
-                    key="nav-mode"
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    transition={{ duration: 0.18, ease: "easeInOut" }}
-                    className="w-full flex items-center justify-between skew-x-12"
-                  >
-                    {/* Left: Brand Logo */}
-                    <div className="flex-1 flex justify-start">
-                      <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default">
-                        <span className="text-text-primary group-hover:text-brand-primary transition-colors">
-                          este<span className="text-brand-primary">Route</span>
+              {/* Static un-skew wrapper to protect text and icons from Framer Motion transform collisions */}
+              <div className="w-full skew-x-12 flex items-center">
+                <AnimatePresence mode="wait">
+                  {isNavVisible ? (
+                    <motion.div
+                      key="nav-mode"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="w-full flex items-center justify-between"
+                    >
+                      {/* Left: Brand Logo */}
+                      <div className="flex-1 flex justify-start">
+                        <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default">
+                          <span className="text-text-primary group-hover:text-brand-primary transition-colors">
+                            este<span className="text-brand-primary">Route</span>
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Center: Navigation Links */}
+                      <nav className="flex-1 flex justify-center items-center gap-7 xl:gap-10">
+                        {navItems.map((item) => {
+                          const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
+                          return (
+                            <AnimatedNavLink
+                              key={item.path}
+                              title={item.name}
+                              to={item.path}
+                              icon={item.icon}
+                              isActive={isActive}
+                            />
+                          );
+                        })}
+                      </nav>
+                      
+                      {/* Right: Actions */}
+                      <div className="flex-1 flex justify-end items-center gap-5">
+                        <button 
+                          onClick={toggleTheme} 
+                          className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-text-primary pointer-events-auto cursor-pointer"
+                          aria-label="Toggle Theme"
+                          title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                        >
+                          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                        </button>
+
+                        <div className="w-px h-4 bg-border-strong" />
+
+                        <button 
+                          type="button"
+                          onClick={() => setIsConfirmExitOpen(true)}
+                          className="text-xs xl:text-sm font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto cursor-pointer"
+                        >
+                          {isGuestMode ? 'Leave Session' : 'Logout'}
+                        </button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="header-mode"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="w-full flex items-center gap-3 overflow-hidden"
+                    >
+                      {/* Left: Exact nav icon without background */}
+                      <currentConfig.icon className="w-4 h-4 text-brand-primary shrink-0" />
+                      
+                      {/* Center/Main: Header + Subheader in nav typography */}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="font-heading text-xs xl:text-sm font-bold uppercase tracking-widest text-text-primary shrink-0">
+                          {currentConfig.title}
+                        </span>
+                        <span className="text-text-muted/40 text-xs font-mono select-none">•</span>
+                        <span className="text-xs xl:text-sm text-text-secondary font-heading font-medium tracking-wider truncate max-w-3xl">
+                          {currentConfig.subtitle}
                         </span>
                       </div>
-                    </div>
-                    
-                    {/* Center: Navigation Links */}
-                    <nav className="flex-1 flex justify-center items-center gap-7 xl:gap-10">
-                      {navItems.map((item) => {
-                        const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
-                        return (
-                          <AnimatedNavLink
-                            key={item.path}
-                            title={item.name}
-                            to={item.path}
-                            icon={item.icon}
-                            isActive={isActive}
-                          />
-                        );
-                      })}
-                    </nav>
-                    
-                    {/* Right: Actions */}
-                    <div className="flex-1 flex justify-end items-center gap-5">
-                      <button 
-                        onClick={toggleTheme} 
-                        className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-text-primary pointer-events-auto cursor-pointer"
-                        aria-label="Toggle Theme"
-                        title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-                      >
-                        {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-                      </button>
-
-                      <div className="w-px h-4 bg-border-strong" />
-
-                      <button 
-                        type="button"
-                        onClick={() => setIsConfirmExitOpen(true)}
-                        className="text-xs xl:text-sm font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto cursor-pointer"
-                      >
-                        {isGuestMode ? 'Leave Session' : 'Logout'}
-                      </button>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="header-mode"
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    transition={{ duration: 0.18, ease: "easeInOut" }}
-                    className="w-full flex items-center justify-between gap-4 skew-x-12"
-                  >
-                    {/* Left: Dynamic Header Info */}
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-7 h-7 rounded-xs bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center text-brand-primary shrink-0 shadow-sm">
-                        <currentConfig.icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex items-baseline gap-2.5 min-w-0">
-                        <h1 className="text-sm lg:text-base font-heading font-black tracking-tight text-text-primary uppercase shrink-0 truncate">
-                          {currentConfig.title}
-                        </h1>
-                        <span className="hidden xl:inline text-text-muted/40 text-xs font-mono">•</span>
-                        <p className="hidden xl:block text-text-muted text-xs truncate max-w-2xl font-sans">
-                          {currentConfig.subtitle}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Right: Quick Action / Nav Switcher / Controls */}
-                    <div className="flex items-center gap-3 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setIsNavVisible(true)}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-surface-subtle/70 hover:bg-surface border border-border-subtle hover:border-brand-primary/50 text-[11px] font-heading font-bold uppercase tracking-wider text-text-secondary hover:text-brand-primary transition-all rounded-xs cursor-pointer shadow-xs active:scale-95"
-                        title="Hover top or click to switch to navigation"
-                      >
-                        <span>Navigate</span>
-                        <span className="text-[10px] opacity-60">▾</span>
-                      </button>
-
-                      <div className="w-px h-4 bg-border-strong" />
-
-                      <button 
-                        onClick={toggleTheme} 
-                        className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-text-primary pointer-events-auto cursor-pointer"
-                        aria-label="Toggle Theme"
-                        title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-                      >
-                        {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-                      </button>
-
-                      <div className="w-px h-4 bg-border-strong" />
-
-                      <button 
-                        type="button"
-                        onClick={() => setIsConfirmExitOpen(true)}
-                        className="text-xs xl:text-sm font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto cursor-pointer"
-                      >
-                        {isGuestMode ? 'Leave' : 'Logout'}
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
