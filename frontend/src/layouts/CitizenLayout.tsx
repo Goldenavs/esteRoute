@@ -69,6 +69,29 @@ export default function CitizenLayout() {
   const navigate = useNavigate();
   const [isNavVisible, setIsNavVisible] = useState(true);
   const isNavVisibleRef = useRef(true);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const isMapFullscreenRef = useRef(false);
+
+  useEffect(() => {
+    isMapFullscreenRef.current = isMapFullscreen;
+  }, [isMapFullscreen]);
+
+  useEffect(() => {
+    const handleMapFs = (e: Event) => {
+      const customEvent = e as CustomEvent<{ isFullscreen: boolean }>;
+      setIsMapFullscreen(!!customEvent.detail?.isFullscreen);
+    };
+    const handleNativeFs = () => {
+      setIsMapFullscreen(document.fullscreenElement !== null);
+    };
+
+    window.addEventListener('map-fullscreen-change', handleMapFs);
+    document.addEventListener('fullscreenchange', handleNativeFs);
+    return () => {
+      window.removeEventListener('map-fullscreen-change', handleMapFs);
+      document.removeEventListener('fullscreenchange', handleNativeFs);
+    };
+  }, []);
   const isNavHoveredRef = useRef(false);
 
   useEffect(() => {
@@ -85,7 +108,7 @@ export default function CitizenLayout() {
     let timeout: ReturnType<typeof setTimeout> | null = null;
     
     const handleMouseMove = (e: MouseEvent) => {
-      if (document.body.getAttribute('data-camera-active') === 'true') {
+      if (isMapFullscreenRef.current || document.body.getAttribute('data-camera-active') === 'true') {
         setIsNavVisible(false);
         return;
       }
@@ -161,7 +184,7 @@ export default function CitizenLayout() {
         className={twMerge(
           clsx(
             "fixed top-4 w-full z-[1000] pointer-events-none transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
-            document.body.getAttribute('data-camera-active') === 'true' ? "-translate-y-[160%]" : "translate-y-0"
+            isMapFullscreen || document.body.getAttribute('data-camera-active') === 'true' ? "-translate-y-[160%]" : "translate-y-0"
           )
         )}
       >

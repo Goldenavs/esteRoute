@@ -673,6 +673,13 @@ export default function PublicEsteroStatusMap() {
   const targetRef = searchParams.get('ref') || searchParams.get('report') || searchParams.get('id');
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('map-fullscreen-change', { detail: { isFullscreen } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('map-fullscreen-change', { detail: { isFullscreen: false } }));
+    };
+  }, [isFullscreen]);
   const [mapTileType, setMapTileType] = useState<MapTileType>('detailed');
   const [isMapDark, setIsMapDark] = useState<boolean>(globalTheme === 'dark');
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all');

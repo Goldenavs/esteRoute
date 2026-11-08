@@ -137,6 +137,13 @@ export default function MainCommandDashboard() {
   const [isKpiOpen, setIsKpiOpen] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('map-fullscreen-change', { detail: { isFullscreen: isFocusMode } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('map-fullscreen-change', { detail: { isFullscreen: false } }));
+    };
+  }, [isFocusMode]);
+
   const toggleFocusMode = () => {
     if (isFocusMode) {
       setIsFocusMode(false);

@@ -696,7 +696,7 @@ export default function CitizenDashboard() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
                   <div className="absolute bottom-2.5 left-2.5">
                     <div className="px-2.5 py-1 bg-brand-primary text-white text-[10px] font-mono font-black uppercase tracking-widest rounded-sm -skew-x-6 shadow-md inline-flex items-center">
-                      <span className="skew-x-6 inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1.5">
                         <Activity className="w-3 h-3 animate-spin" style={{ animationDuration: '4s' }} /> 
                         Active Tracking
                       </span>
@@ -711,7 +711,7 @@ export default function CitizenDashboard() {
                       "px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm -skew-x-6 border shadow-sm inline-flex items-center",
                       getStatusColor(featuredReport.status)
                     )}>
-                      <span className="skew-x-6 inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1.5">
                         {getStatusIcon(featuredReport.status)}
                         {featuredReport.statusLabel}
                       </span>
@@ -1045,20 +1045,20 @@ export default function CitizenDashboard() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="relative w-full max-w-lg max-h-[calc(100dvh-5.5rem)] sm:max-h-[90dvh] flex flex-col bg-surface/95 backdrop-blur-2xl border-2 border-brand-primary/50 rounded-sm shadow-2xl overflow-hidden z-10 my-auto -skew-x-1 sm:-skew-x-2"
+              className="relative w-full max-w-lg max-h-[calc(100dvh-5.5rem)] sm:max-h-[90dvh] flex flex-col bg-surface/95 backdrop-blur-2xl border-2 border-brand-primary/50 rounded-sm shadow-2xl overflow-hidden z-10 my-auto"
             >
               <BorderBeam delay={0} color="#60A5FA" />
 
-              <div className="skew-x-1 sm:skew-x-2 p-4 sm:p-6 overflow-y-auto overscroll-contain flex flex-col">
+              <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex flex-col">
                 
                 {/* Header (Cleaned: removed repetitive 'x' button) */}
                 <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-3 mb-4">
                   <div className="flex items-center gap-2">
                     <div className={twMerge(
-                      "px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm -skew-x-6 border shadow-sm inline-flex items-center",
+                      "px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm border shadow-sm inline-flex items-center",
                       getStatusColor(selectedReport.status)
                     )}>
-                      <span className="skew-x-6 inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1.5">
                         {getStatusIcon(selectedReport.status)}
                         {selectedReport.statusLabel}
                       </span>
@@ -1068,8 +1068,8 @@ export default function CitizenDashboard() {
                 </div>
 
                 {/* Tracking ID with Copy Button */}
-                <div className="flex items-center justify-between gap-3 bg-app-bg/80 border border-border-subtle p-3 rounded-sm mb-4 -skew-x-2">
-                  <div className="skew-x-2">
+                <div className="flex items-center justify-between gap-3 bg-app-bg/80 border border-border-subtle p-3 rounded-sm mb-4">
+                  <div>
                     <div className="text-[9px] font-mono uppercase tracking-widest text-text-muted">Tracking Code</div>
                     <div className="text-lg sm:text-xl font-heading font-black tracking-wider text-text-primary">
                       {selectedReport.trackingRef}
@@ -1079,7 +1079,7 @@ export default function CitizenDashboard() {
                   <button
                     type="button"
                     onClick={() => handleCopy(selectedReport.trackingRef)}
-                    className="skew-x-2 px-3 py-1.5 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95"
+                    className="px-3 py-1.5 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95"
                   >
                     {copiedId === selectedReport.trackingRef ? (
                       <>
@@ -1115,8 +1115,8 @@ export default function CitizenDashboard() {
                 {/* Details Breakdown */}
                 <div className="flex flex-col gap-2.5 text-xs font-mono text-text-secondary mb-5">
                   {/* Canal Location Row with direct 'View on Map' Action */}
-                  <div className="flex items-center justify-between gap-2 bg-app-bg/50 p-2.5 sm:p-3 rounded-sm border border-border-subtle -skew-x-2">
-                    <div className="flex items-start gap-2 skew-x-2 min-w-0">
+                  <div className="flex items-center justify-between gap-2 bg-app-bg/50 p-2.5 sm:p-3 rounded-sm border border-border-subtle">
+                    <div className="flex items-start gap-2 min-w-0">
                       <MapPin className="w-4 h-4 text-brand-secondary shrink-0 mt-0.5" />
                       <div className="min-w-0">
                         <div className="text-[10px] text-text-muted uppercase">Canal Location</div>
@@ -1127,7 +1127,7 @@ export default function CitizenDashboard() {
                     {typeof selectedReport.latitude === 'number' && typeof selectedReport.longitude === 'number' && (
                       <Link
                         to={`/citizen/public-map?lat=${selectedReport.latitude}&lng=${selectedReport.longitude}&ref=${selectedReport.trackingRef}`}
-                        className="skew-x-2 px-2.5 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black border border-brand-primary text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm flex items-center gap-1.5 shrink-0 transition-colors shadow-xs active:scale-95 whitespace-nowrap cursor-pointer"
+                        className="px-2.5 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black border border-brand-primary text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm flex items-center gap-1.5 shrink-0 transition-colors shadow-xs active:scale-95 whitespace-nowrap cursor-pointer"
                         title="View on Live Basin Map"
                       >
                         <Compass className="w-3.5 h-3.5 shrink-0" />
@@ -1138,8 +1138,8 @@ export default function CitizenDashboard() {
 
                   {/* Citizen Notes with Scroll Containment */}
                   {selectedReport.notes && (
-                    <div className="bg-app-bg/50 p-2.5 sm:p-3 rounded-sm border border-border-subtle -skew-x-2">
-                      <div className="skew-x-2">
+                    <div className="bg-app-bg/50 p-2.5 sm:p-3 rounded-sm border border-border-subtle">
+                      <div>
                         <div className="text-[10px] text-text-muted uppercase mb-1 font-mono">Citizen Notes</div>
                         <div className="max-h-40 overflow-y-auto pr-1">
                           <p className="font-sans text-xs text-text-primary leading-relaxed italic break-words">

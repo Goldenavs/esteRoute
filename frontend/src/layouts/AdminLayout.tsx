@@ -63,6 +63,29 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const [isNavVisible, setIsNavVisible] = useState(true);
   const isNavVisibleRef = useRef(true);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const isMapFullscreenRef = useRef(false);
+
+  useEffect(() => {
+    isMapFullscreenRef.current = isMapFullscreen;
+  }, [isMapFullscreen]);
+
+  useEffect(() => {
+    const handleMapFs = (e: Event) => {
+      const customEvent = e as CustomEvent<{ isFullscreen: boolean }>;
+      setIsMapFullscreen(!!customEvent.detail?.isFullscreen);
+    };
+    const handleNativeFs = () => {
+      setIsMapFullscreen(document.fullscreenElement !== null);
+    };
+
+    window.addEventListener('map-fullscreen-change', handleMapFs);
+    document.addEventListener('fullscreenchange', handleNativeFs);
+    return () => {
+      window.removeEventListener('map-fullscreen-change', handleMapFs);
+      document.removeEventListener('fullscreenchange', handleNativeFs);
+    };
+  }, []);
   const isNavHoveredRef = useRef(false);
 
   useEffect(() => {
@@ -79,6 +102,10 @@ export default function AdminLayout() {
     let timeout: ReturnType<typeof setTimeout> | null = null;
     
     const handleMouseMove = (e: MouseEvent) => {
+      if (isMapFullscreenRef.current) {
+        setIsNavVisible(false);
+        return;
+      }
       // Tight edge hover:
       // When navbar is hidden, only touching the extreme top edge (<= 20px) reveals it.
       // When navbar is open, keep it open if cursor is within navbar area (<= 90px) or hovering the bar.
@@ -142,7 +169,7 @@ export default function AdminLayout() {
         className={twMerge(
           clsx(
             "fixed top-4 w-full z-[1000] pointer-events-none transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
-            "translate-y-0"
+            isMapFullscreen ? "-translate-y-[160%]" : "translate-y-0"
           )
         )}
       >
