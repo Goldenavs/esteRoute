@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useId, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { 
@@ -11,15 +11,11 @@ import {
   Layers, 
   Sun, 
   Moon, 
-  Waves,
-  Info,
   Plus,
   Minus,
-  ChevronDown,
-  ChevronUp,
   FileText
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
@@ -293,87 +289,6 @@ const createClusterIcon = (count: number, highestStatus: 'blocked' | 'dispatched
     popupAnchor: [0, -size / 2],
   });
 };
-
-// Waterway Basin Corridors in Cebu City
-export interface BasinCorridor {
-  id: string;
-  name: string;
-  barangays: string;
-  coordinates: [number, number][];
-  status: 'flowing' | 'advisory' | 'critical';
-  flowRate: string;
-  capacityScore: number;
-  color: string;
-  details: string;
-}
-
-const CEBU_BASINS: BasinCorridor[] = [
-  {
-    id: 'lahug',
-    name: 'Lahug River Basin',
-    barangays: 'Busay • Lahug • Kamputhaw • Tejero • Pier 3',
-    coordinates: [
-      [10.3420, 123.8920],
-      [10.3340, 123.8970],
-      [10.3250, 123.9020],
-      [10.3160, 123.9080],
-      [10.3060, 123.9140],
-    ],
-    status: 'flowing',
-    flowRate: '88% Normal Flow',
-    capacityScore: 88,
-    color: '#10B981',
-    details: 'Primary stormwater corridor from upstream hills discharging cleanly into Cebu harbor. No major obstruction reported.',
-  },
-  {
-    id: 'mahiga',
-    name: 'Mahiga Creek Corridor',
-    barangays: 'Banilad • Kasambagan • Mabolo • Subangdaku',
-    coordinates: [
-      [10.3510, 123.9110],
-      [10.3410, 123.9170],
-      [10.3320, 123.9240],
-      [10.3240, 123.9310],
-    ],
-    status: 'advisory',
-    flowRate: '65% Moderate Capacity',
-    capacityScore: 65,
-    color: '#F59E0B',
-    details: 'Heavy siltation and localized plastic accumulation near commercial culverts. Maintenance cleanup scheduled within 24 hours.',
-  },
-  {
-    id: 'guadalupe',
-    name: 'Guadalupe River System',
-    barangays: 'Guadalupe • Capitol Site • Kalunasan • Ermita',
-    coordinates: [
-      [10.3330, 123.8760],
-      [10.3220, 123.8820],
-      [10.3110, 123.8880],
-      [10.2980, 123.8920],
-    ],
-    status: 'flowing',
-    flowRate: '92% Clear Flow',
-    capacityScore: 92,
-    color: '#10B981',
-    details: 'Recently dredged section under DPWH flood control project. Water levels safe and free of surface debris.',
-  },
-  {
-    id: 'kinalumsan',
-    name: 'Kinalumsan Drainage Basin',
-    barangays: 'Punta Princesa • Tisa • Mambaling • SRP Channel',
-    coordinates: [
-      [10.3120, 123.8640],
-      [10.3030, 123.8710],
-      [10.2940, 123.8790],
-      [10.2860, 123.8870],
-    ],
-    status: 'critical',
-    flowRate: '42% Restricted Flow',
-    capacityScore: 42,
-    color: '#EF4444',
-    details: 'Severe localized constriction reported near Mambaling bridge. Flood hazard advisory active during heavy localized downpours.',
-  },
-];
 
 interface PublicReportItem {
   id: string;
@@ -684,7 +599,6 @@ export default function PublicEsteroStatusMap() {
   const [isMapDark, setIsMapDark] = useState<boolean>(globalTheme === 'dark');
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all');
   const [reports, setReports] = useState<PublicReportItem[]>([]);
-  const [isLegendOpen, setIsLegendOpen] = useState(true);
 
   const mapRef = useRef<L.Map>(null);
   const targetMarkerInstance = useRef<L.Marker | null>(null);
@@ -792,71 +706,7 @@ export default function PublicEsteroStatusMap() {
 
           if (isMounted) setReports(mapped);
         } else {
-          // Curated real-world demonstration data for Cebu City
-          const fallbackData: PublicReportItem[] = [
-            {
-              id: 'demo-1',
-              trackingRef: 'ER-2026-881204',
-              lat: 10.3330,
-              lng: 123.9180,
-              status: 'blocked',
-              severity: 'high',
-              notes: 'Dense plastic and fallen branches trapping garbage at Subangdaku culvert gate.',
-              createdAt: 'Today, 2:15 PM',
-            },
-            {
-              id: 'demo-2',
-              trackingRef: 'ER-2026-443912',
-              lat: 10.3190,
-              lng: 123.9040,
-              status: 'dispatched',
-              severity: 'moderate',
-              notes: 'LGU declogging truck and manual cleaning crew on site for routine maintenance.',
-              createdAt: 'Today, 11:30 AM',
-            },
-            {
-              id: 'demo-3',
-              trackingRef: 'ER-2026-102948',
-              lat: 10.3010,
-              lng: 123.8760,
-              status: 'resolved',
-              severity: 'low',
-              notes: 'Canal dredging completed by engineering department. Waterway free flowing.',
-              createdAt: 'Yesterday, 4:45 PM',
-            },
-            {
-              id: 'demo-4',
-              trackingRef: 'ER-2026-559281',
-              lat: 10.3150,
-              lng: 123.8860,
-              status: 'blocked',
-              severity: 'moderate',
-              notes: 'Debris accumulation after moderate rainfall. Drainage grate partly clogged.',
-              createdAt: 'Today, 9:20 AM',
-            },
-          ];
-
-          // If target coordinates are passed and not already in fallback list, inject it
-          if (targetLat !== null && targetLng !== null) {
-            const hasTarget = fallbackData.some(r =>
-              (targetRef && (r.trackingRef.toLowerCase() === targetRef.toLowerCase() || r.id === targetRef)) ||
-              (Math.abs(r.lat - targetLat) < 0.0005 && Math.abs(r.lng - targetLng) < 0.0005)
-            );
-            if (!hasTarget) {
-              fallbackData.unshift({
-                id: targetRef || 'demo-target',
-                trackingRef: targetRef || 'ER-2026-CUSTOM',
-                lat: targetLat,
-                lng: targetLng,
-                status: 'blocked',
-                severity: 'high',
-                notes: 'Citizen verified canal choke point under real-time observation.',
-                createdAt: 'Active Tracking',
-              });
-            }
-          }
-
-          if (isMounted) setReports(fallbackData);
+          if (isMounted) setReports([]);
         }
       } catch (err) {
         console.warn('Could not fetch reports from Supabase:', err);
@@ -927,9 +777,6 @@ export default function PublicEsteroStatusMap() {
   const blockedCount = reports.filter(r => r.status === 'blocked').length;
   const dispatchedCount = reports.filter(r => r.status === 'dispatched').length;
   const resolvedCount = reports.filter(r => r.status === 'resolved').length;
-  const overallFlowHealth = Math.round(
-    CEBU_BASINS.reduce((acc, curr) => acc + curr.capacityScore, 0) / CEBU_BASINS.length
-  );
 
   // Stylistic KPI Strip Filter metrics with visual proportion bars
   const kpiMetrics = [
@@ -1140,74 +987,6 @@ export default function PublicEsteroStatusMap() {
               isFullscreen={isFullscreen}
             />
 
-            {/* Basin Waterway Polylines */}
-            {CEBU_BASINS.map((basin) => (
-              <Polyline
-                key={basin.id}
-                positions={basin.coordinates}
-                pathOptions={{
-                  color: basin.color,
-                  weight: 5,
-                  opacity: 0.85,
-                  dashArray: basin.status === 'advisory' ? '8, 8' : undefined,
-                  lineCap: 'round',
-                  lineJoin: 'round',
-                }}
-              >
-                <Tooltip sticky direction="top" opacity={0.95}>
-                  <div className="font-sans text-xs p-1 font-bold">
-                    <div className="text-text-primary flex items-center gap-1">
-                      <Waves className="w-3.5 h-3.5 text-brand-primary" />
-                      {basin.name}
-                    </div>
-                    <div className="text-[10px] text-text-muted mt-0.5">{basin.flowRate}</div>
-                  </div>
-                </Tooltip>
-
-                <Popup className="custom-popup" closeButton={false}>
-                  <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary">
-                    <div className="flex items-center justify-between gap-2 border-b border-border-subtle pb-2 mb-2">
-                      <div className="font-heading font-black text-sm uppercase tracking-wide text-brand-primary flex items-center gap-1.5">
-                        <Waves className="w-4 h-4" />
-                        {basin.name}
-                      </div>
-                      <span className={twMerge(
-                        "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider",
-                        basin.status === 'flowing' && "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40",
-                        basin.status === 'advisory' && "bg-amber-500/20 text-amber-400 border border-amber-500/40",
-                        basin.status === 'critical' && "bg-red-500/20 text-red-400 border border-red-500/40"
-                      )}>
-                        {basin.status}
-                      </span>
-                    </div>
-
-                    <div className="text-[10px] text-text-muted font-mono mb-2">
-                      <span className="text-text-secondary font-bold">Corridor:</span> {basin.barangays}
-                    </div>
-
-                    <p className="text-[11px] text-text-secondary leading-relaxed mb-3">
-                      {basin.details}
-                    </p>
-
-                    <div className="bg-app-bg/80 p-2 rounded-sm border border-border-subtle flex items-center justify-between text-xs font-mono">
-                      <span className="text-text-muted">Channel Flow:</span>
-                      <span className="font-bold text-text-primary">{basin.flowRate}</span>
-                    </div>
-
-                    <div className="mt-3">
-                      <Link
-                        to={`/citizen?basin=${basin.id}`}
-                        className="w-full bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black py-2 rounded-sm text-[10px] font-mono font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors -skew-x-3 shadow-md"
-                      >
-                        <PlusCircle className="w-3.5 h-3.5 skew-x-3 !text-white hover:!text-black" />
-                        <span className="skew-x-3 !text-white hover:!text-black font-bold">Report Constriction on this Canal</span>
-                      </Link>
-                    </div>
-                  </div>
-                </Popup>
-              </Polyline>
-            ))}
-
             {/* Community Blockage & Cleanup Markers (Safety Barrier 3: Proximity Clustered) */}
             <ProximityClusteredMarkers
               reports={filteredReports}
@@ -1219,59 +998,6 @@ export default function PublicEsteroStatusMap() {
               targetKey={targetKey}
             />
           </MapContainer>
-        </div>
-
-        {/* 5. Hideable Drainage Flow Legend (Bottom Right with Toggle Arrow) */}
-        <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-[400] pointer-events-auto">
-          <div className="bg-surface/95 backdrop-blur-md border border-border-subtle rounded-sm shadow-xl -skew-x-3 overflow-hidden transition-all duration-200 w-[210px] sm:w-[240px]">
-            {/* Header / Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setIsLegendOpen(prev => !prev)}
-              className="w-full px-2.5 py-1.5 flex items-center justify-between gap-2 text-[10px] font-mono uppercase tracking-wider font-bold text-text-secondary hover:text-brand-primary transition-colors cursor-pointer"
-              title={isLegendOpen ? "Hide Legend" : "Show Legend"}
-              aria-label="Toggle Legend"
-            >
-              <span className="skew-x-3 flex items-center gap-1.5">
-                <Info className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                <span>Drainage Flow</span>
-              </span>
-              <span className="skew-x-3 flex items-center gap-1">
-                <span className="text-emerald-400 font-bold">{overallFlowHealth}%</span>
-                {isLegendOpen ? (
-                  <ChevronDown className="w-3.5 h-3.5 text-text-muted" />
-                ) : (
-                  <ChevronUp className="w-3.5 h-3.5 text-text-muted" />
-                )}
-              </span>
-            </button>
-
-            {/* Collapsible Content */}
-            <AnimatePresence initial={false}>
-              {isLegendOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="px-2.5 pb-2 pt-0.5 border-t border-border-subtle/50 skew-x-3 flex flex-col gap-1 text-[10px]"
-                >
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="w-3 h-1 bg-emerald-500 rounded-full shrink-0" />
-                    <span className="text-text-primary font-bold">Free Flowing (Normal)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-1 bg-amber-500 rounded-full shrink-0" />
-                    <span className="text-text-primary font-bold">Maintenance / Advisory</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-1 bg-semantic-urgent rounded-full shrink-0" />
-                    <span className="text-text-primary font-bold">Restricted / Blocked</span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
         </div>
 
         {/* Fullscreen Quick-Filter Pill Group (Barrier 4) */}

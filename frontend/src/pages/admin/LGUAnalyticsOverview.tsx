@@ -184,47 +184,63 @@ export default function LGUAnalyticsOverview() {
 
     const timelineData = Object.values(dateMap);
 
-    // Waterway Risk Zones based on real coordinate clusters
+    // Waterway Risk Zones dynamically calculated from actual incident reports
+    const z1Reports = filteredReports.filter(r => r.latitude > 10.325 && r.latitude < 10.338 && r.longitude < 123.925);
+    const z2Reports = filteredReports.filter(r => r.latitude >= 10.338 && r.latitude < 10.348);
+    const z3Reports = filteredReports.filter(r => r.longitude >= 123.925 && r.longitude < 123.935);
+    const z4Reports = filteredReports.filter(r => r.latitude >= 10.348 || r.longitude >= 123.935);
+
+    const calcAvg = (list: typeof filteredReports) => 
+      list.length ? Math.round(list.reduce((acc, r) => acc + (Number(r.priority_score) || 0), 0) / list.length) : 0;
+
     const zones = [
       {
         name: 'Subangdaku River Basin',
         corridor: 'Subangdaku Culvert & Estero',
         coords: '10.3330° N, 123.9180° E',
-        riskLevel: 'HIGH RISK',
-        riskColor: 'text-semantic-urgent bg-semantic-urgent/10 border-semantic-urgent/30',
-        reportCount: filteredReports.filter(r => r.latitude > 10.325 && r.latitude < 10.338 && r.longitude < 123.925).length || 6,
-        avgPriority: 82,
-        primaryBlockage: 'Plastic & Organic Debris'
+        riskLevel: z1Reports.length > 5 ? 'HIGH RISK' : z1Reports.length > 0 ? 'MODERATE' : 'CLEAR',
+        riskColor: z1Reports.length > 5 
+          ? 'text-semantic-urgent bg-semantic-urgent/10 border-semantic-urgent/30' 
+          : z1Reports.length > 0 ? 'text-semantic-warning bg-semantic-warning/10 border-semantic-warning/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+        reportCount: z1Reports.length,
+        avgPriority: calcAvg(z1Reports),
+        primaryBlockage: z1Reports.length ? 'Plastic & Organic Debris' : 'No Active Blockage'
       },
       {
         name: 'Mahiga Creek Floodway',
         corridor: 'Banilad - Mabolo Gateway',
         coords: '10.3410° N, 123.9220° E',
-        riskLevel: 'HIGH RISK',
-        riskColor: 'text-semantic-urgent bg-semantic-urgent/10 border-semantic-urgent/30',
-        reportCount: filteredReports.filter(r => r.latitude >= 10.338 && r.latitude < 10.348).length || 8,
-        avgPriority: 76,
-        primaryBlockage: 'Fallen Branches & Sediment'
+        riskLevel: z2Reports.length > 5 ? 'HIGH RISK' : z2Reports.length > 0 ? 'MODERATE' : 'CLEAR',
+        riskColor: z2Reports.length > 5 
+          ? 'text-semantic-urgent bg-semantic-urgent/10 border-semantic-urgent/30' 
+          : z2Reports.length > 0 ? 'text-semantic-warning bg-semantic-warning/10 border-semantic-warning/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+        reportCount: z2Reports.length,
+        avgPriority: calcAvg(z2Reports),
+        primaryBlockage: z2Reports.length ? 'Fallen Branches & Sediment' : 'No Active Blockage'
       },
       {
         name: 'Tipolo Waterway Corridor',
         corridor: 'Highway 77 Diversion Gate',
         coords: '10.3240° N, 123.9310° E',
-        riskLevel: 'ELEVATED',
-        riskColor: 'text-semantic-warning bg-semantic-warning/10 border-semantic-warning/30',
-        reportCount: filteredReports.filter(r => r.longitude >= 123.925 && r.longitude < 123.935).length || 5,
-        avgPriority: 58,
-        primaryBlockage: 'Commercial Wrappers & Silt'
+        riskLevel: z3Reports.length > 5 ? 'HIGH RISK' : z3Reports.length > 0 ? 'MODERATE' : 'CLEAR',
+        riskColor: z3Reports.length > 5 
+          ? 'text-semantic-urgent bg-semantic-urgent/10 border-semantic-urgent/30' 
+          : z3Reports.length > 0 ? 'text-semantic-warning bg-semantic-warning/10 border-semantic-warning/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+        reportCount: z3Reports.length,
+        avgPriority: calcAvg(z3Reports),
+        primaryBlockage: z3Reports.length ? 'Commercial Wrappers & Silt' : 'No Active Blockage'
       },
       {
         name: 'Butuanon Estero Outfall',
         corridor: 'North Coastal Discharge Basin',
         coords: '10.3520° N, 123.9450° E',
-        riskLevel: 'MONITORED',
-        riskColor: 'text-brand-primary bg-brand-primary/10 border-brand-primary/30',
-        reportCount: filteredReports.filter(r => r.latitude >= 10.348 || r.longitude >= 123.935).length || 4,
-        avgPriority: 44,
-        primaryBlockage: 'Floating Styrofoam & Sacks'
+        riskLevel: z4Reports.length > 5 ? 'HIGH RISK' : z4Reports.length > 0 ? 'MODERATE' : 'CLEAR',
+        riskColor: z4Reports.length > 5 
+          ? 'text-semantic-urgent bg-semantic-urgent/10 border-semantic-urgent/30' 
+          : z4Reports.length > 0 ? 'text-semantic-warning bg-semantic-warning/10 border-semantic-warning/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+        reportCount: z4Reports.length,
+        avgPriority: calcAvg(z4Reports),
+        primaryBlockage: z4Reports.length ? 'Floating Styrofoam & Sacks' : 'No Active Blockage'
       }
     ];
 
