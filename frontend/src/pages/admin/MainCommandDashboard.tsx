@@ -178,6 +178,10 @@ export default function MainCommandDashboard() {
   
   const mapRef = useRef<L.Map>(null);
   const markerRefs = useRef<{ [key: string]: L.Marker | null }>({});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reportsRef = useRef<any[]>([]);
+  const hasInitialCenteredRef = useRef<boolean>(false);
+  const lastFlyTargetRef = useRef<string | null>(null);
 
   const goToCurrentLocation = () => {
     if ('geolocation' in navigator) {
@@ -397,7 +401,7 @@ export default function MainCommandDashboard() {
     if (weatherData) {
       setWeatherResult(weatherData.result_json);
     } else {
-      const rep = reports.find(r => r.report_id === reportId);
+      const rep = reportsRef.current.find(r => r.report_id === reportId);
       if (rep?.latitude && rep?.longitude) {
         try {
           const mRes = await fetch(
@@ -418,7 +422,7 @@ export default function MainCommandDashboard() {
         setWeatherResult(null);
       }
     }
-  }, [reports]);
+  }, []);
 
   const handleManualTriageSubmit = async () => {
     if (!selectedReport || isManualTriageSubmitting) return;
@@ -610,6 +614,7 @@ export default function MainCommandDashboard() {
     if (!selectedReportId) {
       // eslint-disable-next-line
       setVisionResult(null);
+      lastFlyTargetRef.current = null;
       return;
     }
 
@@ -617,26 +622,37 @@ export default function MainCommandDashboard() {
     fetchVisionResult(selectedReportId);
     setIsAnalysisOpen(true);
     
-    // Auto-pan to the selected report on the map
-    const report = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
-    if (report && mapRef.current) {
-      mapRef.current.flyTo([report.displayLat, report.displayLng], 17, { duration: 1.0 });
+    // Auto-pan to the selected report on the map ONLY if target changed
+    if (lastFlyTargetRef.current !== selectedReportId) {
+      lastFlyTargetRef.current = selectedReportId;
+      const report = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
+      if (report && mapRef.current) {
+        const currentZoom = mapRef.current.getZoom();
+        const currentCenter = mapRef.current.getCenter();
+        const dist = currentCenter.distanceTo([report.displayLat, report.displayLng]);
 
-      // Automatically open the selected report's marker popup
-      const timer = setTimeout(() => {
-        const marker = markerRefs.current[selectedReportId];
-        if (marker) {
-          marker.openPopup();
+        // If map is already at zoom 17 and within 15 meters, do not re-run flyTo animation
+        if (currentZoom === 17 && dist < 15) {
+          markerRefs.current[selectedReportId]?.openPopup();
+        } else {
+          mapRef.current.flyTo([report.displayLat, report.displayLng], 17, { duration: 0.8 });
+
+          const timer = setTimeout(() => {
+            const marker = markerRefs.current[selectedReportId];
+            if (marker) {
+              marker.openPopup();
+            }
+          }, 850);
+
+          return () => clearTimeout(timer);
         }
-      }, 350);
 
-      // Scroll queue card into view in the right panel
-      const cardEl = document.getElementById(`queue-card-${selectedReportId}`);
-      if (cardEl) {
-        cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Scroll queue card into view in the right panel
+        const cardEl = document.getElementById(`queue-card-${selectedReportId}`);
+        if (cardEl) {
+          cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
       }
-
-      return () => clearTimeout(timer);
     }
   }, [selectedReportId, fetchVisionResult, reportsWithDisplayCoords]);
 
@@ -654,7 +670,11 @@ export default function MainCommandDashboard() {
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
-        setReports(prev => prev.map(r => r.report_id === reportId ? { ...r, status: newStatus } : r));
+        setReports(prev => {
+          const next = prev.map(r => r.report_id === reportId ? { ...r, status: newStatus } : r);
+          reportsRef.current = next;
+          return next;
+        });
       }
     } catch (error) {
       console.error("Failed to update status", error);
@@ -674,9 +694,11 @@ export default function MainCommandDashboard() {
         .limit(150);
       
       if (!error && data) {
+        reportsRef.current = data;
         setReports(data);
-        // If map is at default position and we have reports, center on the first report
-        if (data.length > 0 && mapRef.current) {
+        // Only center map on the first report once upon initial load! Never reset on subsequent fetches or updates!
+        if (!hasInitialCenteredRef.current && data.length > 0 && mapRef.current) {
+          hasInitialCenteredRef.current = true;
           const first = data[0];
           mapRef.current.setView([first.latitude, first.longitude], 14);
         }
@@ -691,12 +713,15 @@ export default function MainCommandDashboard() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updated = payload.new as any;
         if (updated && updated.report_id) {
-          setReports(prev => prev.map(r => r.report_id === updated.report_id ? { ...r, ...updated } : r));
+          setReports(prev => {
+            const next = prev.map(r => r.report_id === updated.report_id ? { ...r, ...updated } : r);
+            reportsRef.current = next;
+            return next;
+          });
           if (updated.status === 'triaged' || updated.status === 'failed_analysis') {
             fetchVisionResult(updated.report_id);
           }
         }
-        fetchReports();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_results' }, (payload) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
