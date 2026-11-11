@@ -123,7 +123,7 @@ async def run_vision_triage(report_id: str, image_url: str, citizen_notes: Optio
 
         # 3. Model Fallback Cascade across official Google Gemini models
         # Uses 30s timeout per attempt to eliminate premature aborts on multimodal inference
-        CANDIDATE_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+        CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
         TIMEOUT_SECONDS = 30.0
 
         for model_name in CANDIDATE_MODELS:
