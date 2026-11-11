@@ -19,6 +19,7 @@ import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 
 // Traveling perimeter highlight matching landing page frosted cards
@@ -300,6 +301,7 @@ interface PublicReportItem {
   notes: string;
   imageUrl?: string;
   createdAt: string;
+  reporterId?: string;
 }
 
 function MapTargetFlyer({ targetLat, targetLng }: { targetLat: number | null; targetLng: number | null }) {
@@ -322,6 +324,8 @@ interface ClusteredMarkersProps {
   targetMarkerInstance: React.MutableRefObject<L.Marker | null>;
   hasAutoOpenedRef: React.MutableRefObject<string | null>;
   targetKey: string | null;
+  savedRefs: string[];
+  userId?: string;
 }
 
 function ProximityClusteredMarkers({
@@ -332,6 +336,8 @@ function ProximityClusteredMarkers({
   targetMarkerInstance,
   hasAutoOpenedRef,
   targetKey,
+  savedRefs,
+  userId,
 }: ClusteredMarkersProps) {
   const map = useMap();
   const [zoom, setZoom] = useState(() => map.getZoom());
@@ -477,6 +483,7 @@ function ProximityClusteredMarkers({
             Math.abs(report.lat - effectiveLat) < 0.0005 &&
             Math.abs(report.lng - effectiveLng) < 0.0005)
         );
+        const isMyReport = savedRefs.includes(report.trackingRef) || Boolean(userId && report.reporterId && report.reporterId === userId);
 
         return (
           <Marker
@@ -506,8 +513,15 @@ function ProximityClusteredMarkers({
                 {/* Header */}
                 <div className="flex items-center justify-between gap-1 mb-2 border-b border-border-subtle pb-2">
                   <div>
-                    <div className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
-                      {report.trackingRef}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
+                        {report.trackingRef}
+                      </span>
+                      {isMyReport && (
+                        <span className="text-[8px] font-mono font-bold uppercase px-1.5 py-0.2 rounded-xs bg-brand-primary/20 text-brand-primary border border-brand-primary/40 tracking-wider">
+                          YOU
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs font-heading font-black text-text-primary">
                       {report.status === 'resolved' 
@@ -560,16 +574,27 @@ function ProximityClusteredMarkers({
                   </span>
                 </div>
 
-                {/* Action: Immediately Redirect to My Reports Detailed View */}
+                {/* Action: Open in My Reports for own submission, or Report Nearby for community submissions */}
                 <div className="mt-2.5 pt-2 border-t border-border-subtle">
-                  <Link
-                    to={`/citizen/dashboard?report=${encodeURIComponent(report.trackingRef)}`}
-                    className="w-full py-2 px-2.5 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black border border-brand-primary hover:border-brand-secondary transition-all rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer -skew-x-3 active:scale-95 group"
-                    title="Open detailed case view in My Reports"
-                  >
-                    <FileText className="w-3.5 h-3.5 skew-x-3 !text-white group-hover:!text-black group-hover:scale-110 transition-transform" />
-                    <span className="skew-x-3 !text-white group-hover:!text-black font-bold">View in My Reports</span>
-                  </Link>
+                  {isMyReport ? (
+                    <Link
+                      to={`/citizen/dashboard?report=${encodeURIComponent(report.trackingRef)}`}
+                      className="w-full py-2 px-2.5 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black border border-brand-primary hover:border-brand-secondary transition-all rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer -skew-x-3 active:scale-95 group"
+                      title="Open detailed case view in My Reports"
+                    >
+                      <FileText className="w-3.5 h-3.5 skew-x-3 !text-white group-hover:!text-black group-hover:scale-110 transition-transform" />
+                      <span className="skew-x-3 !text-white group-hover:!text-black font-bold">View in My Reports</span>
+                    </Link>
+                  ) : (
+                    <Link
+                      to={`/citizen?lat=${report.lat}&lng=${report.lng}`}
+                      className="w-full py-2 px-2.5 bg-surface/80 hover:bg-brand-primary/20 text-text-primary hover:text-brand-primary border border-border-strong hover:border-brand-primary/50 transition-all rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm cursor-pointer -skew-x-3 active:scale-95 group"
+                      title="Report an issue or update near this location"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5 skew-x-3 text-brand-primary group-hover:scale-110 transition-transform" />
+                      <span className="skew-x-3 font-bold">Report Issue Near Here</span>
+                    </Link>
+                  )}
                 </div>
               </div>
             </Popup>
@@ -582,10 +607,20 @@ function ProximityClusteredMarkers({
 
 export default function PublicEsteroStatusMap() {
   const { theme: globalTheme } = useTheme();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const targetLat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : null;
   const targetLng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : null;
   const targetRef = searchParams.get('ref') || searchParams.get('report') || searchParams.get('id');
+
+  const savedRefs = useMemo(() => {
+    try {
+      const stored = localStorage.getItem('esteroute_my_reports');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }, []);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -626,7 +661,7 @@ export default function PublicEsteroStatusMap() {
         // Excludes 'failed_analysis' (spoofed/rejected images) and 'pending_analysis' from ever becoming public pins
         const { data, error } = await supabase
           .from('reports')
-          .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
+          .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at, reporter_id')
           .in('status', ['triaged', 'acknowledged', 'in_progress', 'dispatched', 'resolved'])
           .or(`status.neq.resolved,created_at.gte.${thirtyDaysAgoIso}`)
           .order('created_at', { ascending: false })
@@ -661,6 +696,7 @@ export default function PublicEsteroStatusMap() {
                 hour: '2-digit',
                 minute: '2-digit',
               }),
+              reporterId: item.reporter_id,
             };
           });
 
@@ -669,7 +705,7 @@ export default function PublicEsteroStatusMap() {
             try {
               const { data: specificItem } = await supabase
                 .from('reports')
-                .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
+                .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at, reporter_id')
                 .or(`tracking_reference.eq.${targetRef},report_id.eq.${targetRef}`)
                 .maybeSingle();
 
@@ -697,6 +733,7 @@ export default function PublicEsteroStatusMap() {
                     hour: '2-digit',
                     minute: '2-digit',
                   }),
+                  reporterId: specificItem.reporter_id,
                 });
               }
             } catch (err) {
@@ -996,6 +1033,8 @@ export default function PublicEsteroStatusMap() {
               targetMarkerInstance={targetMarkerInstance}
               hasAutoOpenedRef={hasAutoOpenedRef}
               targetKey={targetKey}
+              savedRefs={savedRefs}
+              userId={user?.id}
             />
           </MapContainer>
         </div>

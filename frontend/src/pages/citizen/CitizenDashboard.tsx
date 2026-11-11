@@ -220,9 +220,6 @@ export default function CitizenDashboard() {
       try {
         const savedRefs: string[] = JSON.parse(localStorage.getItem('esteroute_my_reports') || '[]');
         const refsToFetch = [...savedRefs];
-        if (targetReportRef && !refsToFetch.includes(targetReportRef)) {
-          refsToFetch.push(targetReportRef);
-        }
 
         setIsLoadingReports(true);
 
@@ -294,60 +291,6 @@ export default function CitizenDashboard() {
               notes: item.citizen_notes || 'Citizen canal blockage observation.',
             };
           });
-
-          // If targetReportRef was specified and not found in tracked list, fetch specifically
-          if (targetReportRef && !mapped.some(r => r.trackingRef.toLowerCase() === targetReportRef.toLowerCase() || r.id === targetReportRef)) {
-            try {
-              const { data: directData } = await supabase
-                .from('reports')
-                .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
-                .or(`tracking_reference.eq.${targetReportRef},report_id.eq.${targetReportRef}`)
-                .maybeSingle();
-
-              if (directData) {
-                let statusKey: CitizenReportItem['status'] = 'pending';
-                let label = 'Under Review';
-
-                if (directData.status === 'resolved') {
-                  statusKey = 'resolved';
-                  label = 'Resolved';
-                } else if (directData.status === 'dispatched' || directData.status === 'triaged') {
-                  statusKey = 'in_progress';
-                  label = directData.status === 'dispatched' ? 'Crew Dispatched' : 'In Progress';
-                } else if (directData.status === 'failed_analysis') {
-                  statusKey = 'review';
-                  label = 'Manual Verification';
-                }
-
-                const score = directData.priority_score ?? 0;
-                const sevText = score >= 70 ? `Critical (${score})` : score >= 40 ? `Moderate (${score})` : `Low (${score})`;
-
-                mapped.unshift({
-                  id: directData.report_id,
-                  trackingRef: directData.tracking_reference || `ER-${directData.report_id.slice(0, 6)}`,
-                  date: new Date(directData.created_at).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  }),
-                  rawDate: directData.created_at,
-                  status: statusKey,
-                  statusLabel: label,
-                  severity: sevText,
-                  priorityScore: score,
-                  location: `Canal Coordinates: ${Number(directData.latitude).toFixed(4)}, ${Number(directData.longitude).toFixed(4)}`,
-                  latitude: Number(directData.latitude),
-                  longitude: Number(directData.longitude),
-                  image: directData.image_url || 'https://images.unsplash.com/photo-1596767746408-db2891d4e0e2?q=80&w=600',
-                  notes: directData.citizen_notes || 'Citizen canal blockage observation.',
-                });
-              }
-            } catch (err) {
-              console.warn('Could not query target report by ID/Ref:', err);
-            }
-          }
 
           if (isMounted) setReports(mapped);
         } else if (isMounted) {
