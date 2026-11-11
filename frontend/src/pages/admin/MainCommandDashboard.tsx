@@ -33,8 +33,7 @@ import {
   Check,
   Sparkles,
   Route,
-  ExternalLink,
-  FileText
+  ExternalLink
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
@@ -357,8 +356,8 @@ function CommandClusteredMarkers({
             </div>
 
             {/* Action Buttons */}
-            <div className="mt-2.5 pt-2 border-t border-border-subtle flex flex-col gap-1.5">
-              {report.status === 'failed_analysis' || report.needs_human_review ? (
+            {(report.status === 'failed_analysis' || report.needs_human_review) && (
+              <div className="mt-2.5 pt-2 border-t border-border-subtle flex flex-col gap-1.5">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -374,20 +373,8 @@ function CommandClusteredMarkers({
                   <SlidersHorizontal className="w-3.5 h-3.5" />
                   <span>Manual Verify Case</span>
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedReportId(report.report_id);
-                  }}
-                  className="w-full py-2 px-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors active:scale-95"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Inspect in Side Panel</span>
-                </button>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Multiple reports at this location switcher */}
             {sameLocationReports.length > 1 && (
@@ -1837,7 +1824,7 @@ export default function MainCommandDashboard() {
 
                   {/* Manual Triage & Weather Synthesis Panel (Active when review needed or officer opens manual override) */}
                   {(isManualEditOpen || selectedReport.status === 'failed_analysis' || selectedReport.needs_human_review) && (
-                    <div className="bg-surface border-2 border-brand-primary/40 rounded-sm p-4 flex flex-col gap-3 shadow-xl relative overflow-hidden -skew-x-[3deg]">
+                    <div id="manual-triage-card" className="bg-surface border-2 border-brand-primary/40 rounded-sm p-4 flex flex-col gap-3 shadow-xl relative overflow-hidden -skew-x-[3deg]">
                       <div className="skew-x-[3deg] flex flex-col gap-3">
                         {/* Header */}
                         <div className="flex items-center justify-between border-b border-border-subtle pb-2">
@@ -2048,17 +2035,19 @@ export default function MainCommandDashboard() {
                           </button>
                         )}
 
-                        {/* Re-run AI Analysis Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleReAssess(selectedReport.report_id)}
-                          disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
-                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-                          title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
-                        >
-                          <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
-                          <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
-                        </button>
+                        {/* Re-run AI Analysis Button (Hidden if already in cleanup or resolved) */}
+                        {selectedReport.status !== 'resolved' && selectedReport.status !== 'in_progress' && (
+                          <button
+                            type="button"
+                            onClick={() => handleReAssess(selectedReport.report_id)}
+                            disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                            title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
+                          >
+                            <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
+                            <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
+                          </button>
+                        )}
                       </div>
                     </div>
 
