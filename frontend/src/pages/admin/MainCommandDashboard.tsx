@@ -469,11 +469,6 @@ function CommandClusteredMarkers({
             position={[cluster.lat, cluster.lng]}
             icon={createClusterIcon(cluster.reports.length, cluster.highestStatus)}
             zIndexOffset={500}
-            eventHandlers={{
-              click: () => {
-                map.setView([cluster.lat, cluster.lng], Math.min(zoom + 3, 16), { animate: true });
-              },
-            }}
           >
             <Popup className="custom-popup" closeButton={false}>
               <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary font-sans">
@@ -500,7 +495,7 @@ function CommandClusteredMarkers({
                 </p>
                 <button
                   type="button"
-                  onClick={() => map.setView([cluster.lat, cluster.lng], Math.min(zoom + 3, 16), { animate: true })}
+                  onClick={() => map.setView([cluster.lat, cluster.lng], Math.max(zoom + 3, 15), { animate: true })}
                   className="w-full py-1.5 px-2 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black text-xs font-mono font-bold uppercase tracking-wider rounded-sm transition-colors text-center cursor-pointer shadow-sm active:scale-95"
                 >
                   Zoom into Sector ({cluster.reports.length})
