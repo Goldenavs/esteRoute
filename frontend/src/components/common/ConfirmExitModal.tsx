@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 interface ConfirmExitModalProps {
   isOpen: boolean;
@@ -55,16 +55,12 @@ export default function ConfirmExitModal({
             className="relative z-10 w-full max-w-md bg-surface border-2 border-border-subtle rounded-sm shadow-2xl p-6 sm:p-7 overflow-hidden font-sans"
           >
             {/* Top Accent Strip */}
-            <div className={`absolute top-0 left-0 right-0 h-1.5 ${isGuest ? 'bg-amber-500' : 'bg-semantic-urgent'}`} />
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-semantic-urgent" />
 
             {/* Modal Header (No redundant X button) */}
             <div className="flex items-center gap-3 mb-4">
-              <div className={`p-2.5 rounded-sm border shrink-0 ${
-                isGuest 
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' 
-                  : 'bg-semantic-urgent/10 border-semantic-urgent/30 text-semantic-urgent'
-              }`}>
-                {isGuest ? <AlertTriangle className="w-5 h-5" /> : <LogOut className="w-5 h-5" />}
+              <div className="p-2.5 rounded-sm border shrink-0 bg-semantic-urgent/10 border-semantic-urgent/30 text-semantic-urgent">
+                <LogOut className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm sm:text-base font-heading font-bold text-text-primary uppercase tracking-wider">
@@ -110,11 +106,7 @@ export default function ConfirmExitModal({
               <button
                 type="button"
                 onClick={onConfirm}
-                className={`px-4 py-2 rounded-sm text-white text-xs font-heading font-semibold uppercase tracking-wider transition-all shadow-xs cursor-pointer active:scale-95 ${
-                  isGuest
-                    ? 'bg-amber-600 hover:bg-amber-500'
-                    : 'bg-semantic-urgent hover:bg-red-500'
-                }`}
+                className="px-4 py-2 rounded-sm text-white text-xs font-heading font-semibold uppercase tracking-wider transition-all shadow-xs cursor-pointer active:scale-95 bg-semantic-urgent hover:bg-red-500"
               >
                 {isGuest ? (isAuthAction ? 'Continue to Landing Page' : 'End Session') : 'Sign Out'}
               </button>

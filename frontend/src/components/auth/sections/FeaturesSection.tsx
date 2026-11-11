@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import { useTheme } from '../../../context/ThemeContext';
+import { createEsteroMarkerIcon, createDepotMarkerIcon } from '../../../lib/mapPins';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -11,7 +15,7 @@ const cardVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 20 } }
 };
 
-// Subtle, eye-friendly traveling perimeter highlight (staggered across cards)
+// Perimeter traveling light
 const BorderBeam = ({ delay = 0 }: { delay?: number }) => (
   <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-none z-10">
     <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -47,10 +51,39 @@ const BorderBeam = ({ delay = 0 }: { delay?: number }) => (
   </div>
 );
 
+// Fake unpressable demo pins for the LGU Dispatcher interactive map
+const DEMO_MAP_PINS = [
+  { id: '1', lat: 10.3289, lng: 123.9212, score: 91.0, status: 'triaged', review: false },
+  { id: '2', lat: 10.3015, lng: 123.9102, score: 78.5, status: 'triaged', review: false },
+  { id: '3', lat: 10.3120, lng: 123.9145, score: 54.0, status: 'triaged', review: false },
+  { id: '4', lat: 10.2970, lng: 123.8990, score: 22.0, status: 'triaged', review: false },
+  { id: '5', lat: 10.3340, lng: 123.9275, score: 85.0, status: 'in_progress', review: false },
+];
+
 export default function FeaturesSection() {
-  // Dynamic header cycling word (cycles every 3 seconds)
+  const { theme } = useTheme();
+
+  // Dynamic header cycling
   const [headerWordIndex, setHeaderWordIndex] = useState(0);
   const headerWords = ['Vision.', 'Meteorology.', 'Dispatch.'];
+
+  // Frictionless Citizen Reporting 3-Step Selection: 1 = Photo, 2 = Location, 3 = Submit
+  const [citizenStep, setCitizenStep] = useState<1 | 2 | 3>(1);
+
+  const CITIZEN_STEP_DESCRIPTIONS = {
+    1: {
+      headline: 'Step 01 / Photo Capture & Format Validation',
+      body: 'Citizens capture or upload ground-truth photos of clogged esteros, culverts, or street inlets. The system validates image formats (JPEG, PNG, WebP) and 8MB size limits in real time with optional 280-character context notes.'
+    },
+    2: {
+      headline: 'Step 02 / Automated Geotagging & Pin Drop',
+      body: 'Incident GPS coordinates are automatically retrieved via browser geolocation with pinpoint accuracy under ±3 meters. Citizens can freely drag and drop the map pin to guarantee millimeter-accurate location data before submission.'
+    },
+    3: {
+      headline: 'Step 03 / Zero-Install Submission & Instant Docket',
+      body: 'Anonymous guest reporting with zero account registration. Submissions immediately generate a unique tracking reference (e.g. ER-2026-928174) with live milestone tracking for total community transparency.'
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -107,7 +140,7 @@ export default function FeaturesSection() {
           />
         </motion.div>
 
-        {/* Feature Grid with Minimalist Skewed Frosted Glass Cards */}
+        {/* Feature Bento-Box Grid: Outer Boxes are NOT skewed */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -115,129 +148,407 @@ export default function FeaturesSection() {
           viewport={{ once: true, margin: "-50px" }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          {/* ========================================================= */}
-          {/* FEATURE 1: Frictionless Citizen Reporting (2 cols)        */}
-          {/* ========================================================= */}
+
+          {/* ========================================================================= */}
+          {/* FEATURE 1: Frictionless Citizen Reporting (2 cols)                        */}
+          {/* Outer Box: Clean unskewed | Steps: Direct Stepper Buttons without box     */}
+          {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
-              {/* Eye-friendly perimeter traveling light */}
+            <div className="group relative bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               <BorderBeam delay={0} />
 
-              <div className="skew-x-3 md:skew-x-12 h-full flex flex-col justify-between">
-                <div className="pl-2 md:pl-6 pr-2">
-                  <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
+              <div className="relative z-10 flex flex-col justify-between h-full min-h-[300px]">
+                
+                {/* Top Area: Title */}
+                <div className="w-full">
+                  <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Frictionless Citizen Reporting
                   </h3>
-                  <p className="text-sm md:text-base text-text-secondary leading-relaxed font-normal max-w-2xl mb-8">
-                    Submit geotagged photos of canal obstructions in seconds. Zero registration or app install required. Incident coordinates are captured automatically with optional descriptive notes.
-                  </p>
                 </div>
 
-                {/* Symmetrically centered parallel-skewed inner letterbox */}
-                <div className="w-full h-28 md:h-32 bg-surface-subtle/50 border-2 border-border-subtle -skew-x-12 flex items-center justify-center overflow-hidden relative group-hover:border-brand-primary/50 transition-colors">
-                  <div 
-                    className="absolute inset-y-0 -inset-x-10 opacity-20 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                    style={{ transform: 'skewX(12deg)' }}
-                  />
-                  <span className="skew-x-12 font-heading font-black text-xs md:text-sm lg:text-base text-text-primary uppercase tracking-widest z-10 drop-shadow-sm px-4 text-center">
-                    No App Install Needed · Instant Ingestion
-                  </span>
+                {/* Middle Area: Vertically centered description */}
+                <div className="my-auto py-3">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={citizenStep}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.2 }}
+                      className="min-h-[4rem] flex flex-col justify-center"
+                    >
+                      <p className="text-xs font-mono font-bold text-brand-primary uppercase tracking-wider mb-1.5">
+                        {CITIZEN_STEP_DESCRIPTIONS[citizenStep].headline}
+                      </p>
+                      <p className="text-sm md:text-base text-text-secondary leading-relaxed font-normal max-w-2xl">
+                        {CITIZEN_STEP_DESCRIPTIONS[citizenStep].body}
+                      </p>
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
+
+                {/* Bottom Area: Stepper choices (horizontally centered, vertically anchored at bottom) */}
+                <div className="w-full pt-4 flex justify-center">
+                  <div className="flex items-center justify-between px-1 sm:px-4 w-full max-w-md mx-auto">
+                    
+                    {/* Step 1: Photo Button */}
+                    <button
+                      type="button"
+                      onClick={() => setCitizenStep(1)}
+                      className="flex-1 flex flex-col items-center gap-1 transition-transform active:scale-95 relative z-10 group cursor-pointer"
+                    >
+                      <div className="relative">
+                        {citizenStep === 1 && (
+                          <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px] -skew-x-[3deg]" />
+                        )}
+                        <div className={`relative w-8 h-8 rounded-sm -skew-x-[3deg] flex items-center justify-center text-xs font-mono font-bold transition-all border ${
+                          citizenStep === 1
+                            ? 'bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(63,114,175,0.5)]'
+                            : 'bg-surface/80 text-text-muted border-border-subtle group-hover:border-text-muted'
+                        }`}>
+                          <span className="skew-x-[3deg]">01</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        {citizenStep === 1 && (
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-80" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-primary" />
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors font-mono ${
+                          citizenStep === 1 ? 'text-brand-primary' : 'text-text-muted'
+                        }`}>
+                          Photo
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Connector Line 1-2 */}
+                    <div className="h-[2px] w-10 sm:w-16 -mt-4 mx-1.5 transition-colors relative overflow-hidden bg-border-strong rounded-full">
+                      <div
+                        className={`h-full transition-all duration-500 ${
+                          citizenStep > 1
+                            ? 'w-full bg-gradient-to-r from-brand-primary to-brand-primary/80'
+                            : 'w-0'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Step 2: Location Button */}
+                    <button
+                      type="button"
+                      onClick={() => setCitizenStep(2)}
+                      className="flex-1 flex flex-col items-center gap-1 transition-transform active:scale-95 relative z-10 group cursor-pointer"
+                    >
+                      <div className="relative">
+                        {citizenStep === 2 && (
+                          <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px] -skew-x-[3deg]" />
+                        )}
+                        <div className={`relative w-8 h-8 rounded-sm -skew-x-[3deg] flex items-center justify-center text-xs font-mono font-bold transition-all border ${
+                          citizenStep === 2
+                            ? 'bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(63,114,175,0.5)]'
+                            : 'bg-surface/80 text-text-muted border-border-subtle group-hover:border-text-muted'
+                        }`}>
+                          <span className="skew-x-[3deg]">02</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        {citizenStep === 2 && (
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-80" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-primary" />
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors font-mono ${
+                          citizenStep === 2 ? 'text-brand-primary' : 'text-text-muted'
+                        }`}>
+                          Location
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Connector Line 2-3 */}
+                    <div className="h-[2px] w-10 sm:w-16 -mt-4 mx-1.5 transition-colors relative overflow-hidden bg-border-strong rounded-full">
+                      <div
+                        className={`h-full transition-all duration-500 ${
+                          citizenStep === 3
+                            ? 'w-full bg-gradient-to-r from-brand-primary to-brand-primary/80'
+                            : 'w-0'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Step 3: Submit Button */}
+                    <button
+                      type="button"
+                      onClick={() => setCitizenStep(3)}
+                      className="flex-1 flex flex-col items-center gap-1 transition-transform active:scale-95 relative z-10 group cursor-pointer"
+                    >
+                      <div className="relative">
+                        {citizenStep === 3 && (
+                          <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px] -skew-x-[3deg]" />
+                        )}
+                        <div className={`relative w-8 h-8 rounded-sm -skew-x-[3deg] flex items-center justify-center text-xs font-mono font-bold transition-all border ${
+                          citizenStep === 3
+                            ? 'bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(63,114,175,0.5)]'
+                            : 'bg-surface/80 text-text-muted border-border-subtle group-hover:border-text-muted'
+                        }`}>
+                          <span className="skew-x-[3deg]">03</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        {citizenStep === 3 && (
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-80" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-primary" />
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors font-mono ${
+                          citizenStep === 3 ? 'text-brand-primary' : 'text-text-muted'
+                        }`}>
+                          Submit
+                        </span>
+                      </div>
+                    </button>
+
+                  </div>
+                </div>
+
               </div>
             </div>
           </motion.div>
 
-          {/* ========================================================= */}
-          {/* FEATURE 2: Meteorological Agent (1 col)                   */}
-          {/* ========================================================= */}
+          {/* ========================================================================= */}
+          {/* FEATURE 2: Meteorological Agent                                           */}
+          {/* Outer Box: Clean unskewed | Inner Data Box: SKEWED                        */}
+          {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               <BorderBeam delay={2.25} />
 
-              <div className="skew-x-3 md:skew-x-12 h-full flex flex-col justify-between">
-                <div className="pl-2 md:pl-5 pr-2">
-                  <h3 className="font-heading font-black text-2xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
+              <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
+                <div>
+                  <h3 className="font-heading font-black text-2xl text-text-primary mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Meteorological Agent
                   </h3>
-                  <p className="text-sm text-text-secondary leading-relaxed font-normal mb-8">
-                    Cross-references 48-hour precipitation data via Open-Meteo. Computes dynamic rain probability indices to preempt flash floods before downpours occur.
+                  <p className="text-sm text-text-secondary leading-relaxed font-normal">
+                    Queries hyper-local forecast models for the report's coordinates to calculate forward-looking flood urgency.
                   </p>
                 </div>
 
-                {/* Symmetrically centered parallel-skewed inner stat block */}
-                <div className="w-full h-28 md:h-32 bg-surface-subtle/50 border-2 border-border-subtle -skew-x-12 flex flex-col items-center justify-center p-4 relative group-hover:border-brand-primary/50 transition-colors">
-                  <div className="skew-x-12 flex flex-col items-center">
-                    <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none mb-1">
-                      84%
-                    </span>
-                    <span className="font-data text-[10px] font-bold uppercase tracking-widest text-text-muted text-center">
-                      Peak 48h Rain Hazard Index
-                    </span>
+                {/* SKEWED Inner Data Box */}
+                <div className="w-full bg-surface/30 backdrop-blur-md border border-border-subtle p-4 sm:p-5 rounded-none -skew-x-3 md:-skew-x-6 overflow-hidden">
+                  <div className="skew-x-3 md:skew-x-6 space-y-3 px-1">
+                    
+                    {/* Real Numbers & Computed RPI */}
+                    <div className="flex items-baseline justify-between border-b border-border-subtle/70 pb-2">
+                      <div>
+                        <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none">
+                          84%
+                        </span>
+                        <span className="block font-data text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                          Rain Probability Index (RPI)
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-xs font-bold text-text-primary">
+                          Peak 17:00 PHT
+                        </span>
+                        <span className="block font-data text-[9px] text-text-muted mt-0.5">
+                          Next 48 Hours
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 48-Hour Rainfall Distribution Histogram */}
+                    <div>
+                      <div className="flex items-end justify-between gap-1.5 h-12 pt-1 border-b border-border-subtle">
+                        {[22, 35, 52, 68, 84, 76, 55, 38, 20].map((val, idx) => (
+                          <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end">
+                            <div 
+                              style={{ height: `${val}%` }} 
+                              className={`w-full rounded-none transition-all ${
+                                idx === 4 
+                                   ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' 
+                                  : val > 50 ? 'bg-amber-400' : 'bg-brand-primary/70'
+                              }`} 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between text-[8px] font-mono text-text-muted mt-1 uppercase">
+                        <span>Now</span>
+                        <span className="text-rose-400 font-bold">+18h (Peak 38.5mm)</span>
+                        <span>+48h</span>
+                      </div>
+                    </div>
+
+                    {/* Formula Chip */}
+                    <div className="bg-surface-subtle/60 border border-border-subtle px-2.5 py-1.5 text-[10px] font-mono flex items-center justify-between">
+                      <span className="text-text-muted">FORMULA:</span>
+                      <span className="text-brand-primary font-bold">RPI = max(Hourly Precip %)</span>
+                    </div>
+
                   </div>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* ========================================================= */}
-          {/* FEATURE 3: Vision Triage Agent (1 col)                   */}
-          {/* ========================================================= */}
+          {/* ========================================================================= */}
+          {/* FEATURE 3: Vision Triage Agent                                            */}
+          {/* Outer Box: Clean unskewed | Inner Data Box: SKEWED                        */}
+          {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               <BorderBeam delay={4.5} />
 
-              <div className="skew-x-3 md:skew-x-12 h-full flex flex-col justify-between">
-                <div className="pl-2 md:pl-5 pr-2">
-                  <h3 className="font-heading font-black text-2xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
+              <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
+                <div>
+                  <h3 className="font-heading font-black text-2xl text-text-primary mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Vision Triage Agent
                   </h3>
-                  <p className="text-sm text-text-secondary leading-relaxed font-normal mb-8">
-                    Gemini 1.5 Flash multimodal AI classifies waste composition (plastics, silt, debris) and quantifies waterway blockage severity from photos.
+                  <p className="text-sm text-text-secondary leading-relaxed font-normal">
+                    Gemini 1.5 Flash multimodal AI classifies waste composition and quantifies waterway blockage severity from photos.
                   </p>
                 </div>
 
-                {/* Symmetrically centered parallel-skewed inner stat block */}
-                <div className="w-full h-28 md:h-32 bg-surface-subtle/50 border-2 border-border-subtle -skew-x-12 flex flex-col items-center justify-center p-4 relative group-hover:border-brand-primary/50 transition-colors">
-                  <div className="skew-x-12 flex flex-col items-center">
-                    <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none mb-1">
-                      &lt; 4.2s
-                    </span>
-                    <span className="font-data text-[10px] font-bold uppercase tracking-widest text-text-muted text-center">
-                      Inference & Severity Triage
-                    </span>
+                {/* SKEWED Inner Data Box */}
+                <div className="w-full bg-surface/30 backdrop-blur-md border border-border-subtle p-4 sm:p-5 rounded-none -skew-x-3 md:-skew-x-6 overflow-hidden">
+                  <div className="skew-x-3 md:skew-x-6 space-y-3 px-1">
+                    
+                    {/* Real Numbers & Computed Severity */}
+                    <div className="flex items-baseline justify-between border-b border-border-subtle/70 pb-2">
+                      <div>
+                        <span className="font-heading font-black text-3xl md:text-4xl text-rose-500 leading-none">
+                          78.0
+                        </span>
+                        <span className="block font-data text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                          Blockage Severity (0-100)
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-xs font-bold text-rose-500">
+                          Critical Choke
+                        </span>
+                        <span className="block font-data text-[9px] text-text-muted mt-0.5">
+                          Multimodal Triage
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Real Waste Breakdown Progress Bars */}
+                    <div className="space-y-1.5 text-[10px] font-mono">
+                      <div>
+                        <div className="flex justify-between text-text-secondary mb-0.5">
+                          <span>PLASTICS (CHOKING):</span>
+                          <span className="font-bold text-text-primary">48%</span>
+                        </div>
+                        <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
+                          <div className="h-full bg-rose-500" style={{ width: '48%' }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-text-secondary mb-0.5">
+                          <span>ORGANIC / WEEDS:</span>
+                          <span className="font-bold text-text-primary">28%</span>
+                        </div>
+                        <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
+                          <div className="h-full bg-amber-500" style={{ width: '28%' }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-text-secondary mb-0.5">
+                          <span>SILT & SEDIMENT:</span>
+                          <span className="font-bold text-text-primary">16%</span>
+                        </div>
+                        <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
+                          <div className="h-full bg-brand-primary" style={{ width: '16%' }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Rationale Quote */}
+                    <p className="text-[9px] font-mono text-text-muted italic truncate">
+                      "Heavy plastic bottles and vegetative debris obstructing intake."
+                    </p>
+
                   </div>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* ========================================================= */}
-          {/* FEATURE 4: LGU Dispatcher Dashboard (2 cols)             */}
-          {/* ========================================================= */}
+          {/* ========================================================================= */}
+          {/* FEATURE 4: LGU Dispatcher Dashboard                                       */}
+          {/* Outer Box: Clean unskewed | Map Container: SKEWED WITH OVERSIZED MAP (NO WHITE GAPS) */}
+          {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/95 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden">
+            <div className="group relative bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               <BorderBeam delay={6.75} />
 
-              <div className="skew-x-3 md:skew-x-12 h-full flex flex-col justify-between">
-                <div className="pl-2 md:pl-6 pr-2">
-                  <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-3 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
+              <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
+                
+                {/* Header */}
+                <div className="pr-2">
+                  <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     LGU Dispatcher Dashboard
                   </h3>
-                  <p className="text-sm md:text-base text-text-secondary leading-relaxed font-normal max-w-2xl mb-8">
-                    A real-time prioritized triage queue and GIS dispatch matrix. Synthesizes rainfall forecast data and blockage metrics to direct cleanup crews to critical bottlenecks first.
+                  <p className="text-sm md:text-base text-text-secondary leading-relaxed font-normal max-w-2xl">
+                    A real-time command dashboard synthesizing rainfall forecast data and blockage metrics. Dispatches maintenance crews to critical bottlenecks first using nearest-neighbor route optimization.
                   </p>
                 </div>
 
-                {/* Symmetrically centered parallel-skewed inner letterbox */}
-                <div className="w-full h-28 md:h-32 bg-surface-subtle/50 border-2 border-border-subtle -skew-x-12 flex items-center justify-center overflow-hidden relative group-hover:border-brand-primary/50 transition-colors">
-                  <div 
-                    className="absolute inset-y-0 -inset-x-10 opacity-20 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                    style={{ transform: 'skewX(12deg)' }}
-                  />
-                  <span className="skew-x-12 font-heading font-black text-xs md:text-sm lg:text-base text-text-primary uppercase tracking-widest z-10 drop-shadow-md px-4 text-center">
-                    Real-Time Priority Queue · A* Optimization
-                  </span>
+                {/* SKEWED Map Container with Oversized Non-Skewed Leaflet Viewport (100% Tile Bleed, NO White Gaps) */}
+                <div className="w-full h-52 sm:h-64 rounded-none border border-border-subtle overflow-hidden relative shadow-inner -skew-x-3 md:-skew-x-8 bg-black/40">
+                  <div className="skew-x-3 md:skew-x-8 w-full h-full relative flex items-center justify-center">
+                    
+                    {/* Oversized Map to completely cover skewed bounding angles */}
+                    <MapContainer
+                      center={[10.3157, 123.9050]}
+                      zoom={14}
+                      scrollWheelZoom={false}
+                      attributionControl={false}
+                      style={{ width: '135%', height: '120%', minWidth: '135%', flexShrink: 0 }}
+                      className={`z-0 cursor-grab active:cursor-grabbing ${
+                        theme === 'dark' ? 'dark-map' : ''
+                      }`}
+                    >
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      
+                      {/* Operations Base Depot Pin */}
+                      <Marker
+                        position={[10.2930, 123.9015]}
+                        icon={createDepotMarkerIcon({
+                          isSelected: true,
+                          isCustom: false,
+                          tag: 'Cebu City Hall HQ'
+                        })}
+                      />
+
+                      {/* Real Priority Estero Pins */}
+                      {DEMO_MAP_PINS.map((pin) => (
+                        <Marker
+                          key={pin.id}
+                          position={[pin.lat, pin.lng]}
+                          icon={createEsteroMarkerIcon({
+                            status: pin.status,
+                            priorityScore: pin.score,
+                            needsReview: pin.review,
+                          })}
+                        />
+                      ))}
+                    </MapContainer>
+
+                  </div>
                 </div>
+
               </div>
             </div>
           </motion.div>
