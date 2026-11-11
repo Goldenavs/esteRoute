@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import TacticalBackground from '../components/common/TacticalBackground';
 import ConfirmExitModal from '../components/common/ConfirmExitModal';
 
@@ -61,6 +61,18 @@ const CITIZEN_PAGE_CONFIG: Record<string, { title: string; subtitle: string; ico
   },
 };
 
+const navSwipeVariants: Variants = {
+  initial: { opacity: 0, x: -35 },
+  animate: { opacity: 1, x: 0, transition: { duration: 0.32, ease: "easeOut" } },
+  exit: { opacity: 0, x: 35, transition: { duration: 0.22, ease: "easeIn" } }
+};
+
+const headerSwipeVariants: Variants = {
+  initial: { opacity: 0, x: -35 },
+  animate: { opacity: 1, x: 0, transition: { duration: 0.32, ease: "easeOut" } },
+  exit: { opacity: 0, x: 35, transition: { duration: 0.22, ease: "easeIn" } }
+};
+
 export default function CitizenLayout() {
   const { theme, toggleTheme } = useTheme();
   const { logout, isGuestMode } = useAuth();
@@ -69,6 +81,9 @@ export default function CitizenLayout() {
   const navigate = useNavigate();
   const [isNavVisible, setIsNavVisible] = useState(true);
   const isNavVisibleRef = useRef(true);
+  const isNavHoveredRef = useRef(false);
+  const [headerCycle, setHeaderCycle] = useState<'title' | 'subtitle'>('title');
+  const untouchedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const isMapFullscreenRef = useRef(false);
 
@@ -92,7 +107,6 @@ export default function CitizenLayout() {
       document.removeEventListener('fullscreenchange', handleNativeFs);
     };
   }, []);
-  const isNavHoveredRef = useRef(false);
 
   useEffect(() => {
     isNavVisibleRef.current = isNavVisible;
@@ -104,54 +118,52 @@ export default function CitizenLayout() {
     navigate('/login');
   };
 
+  const resetUntouchedTimer = () => {
+    if (untouchedTimerRef.current) {
+      clearTimeout(untouchedTimerRef.current);
+    }
+    untouchedTimerRef.current = setTimeout(() => {
+      if (!isNavHoveredRef.current) {
+        setIsNavVisible(false);
+      }
+    }, 3000);
+  };
+
+  // Alternate between Title and Subtitle with comfortable reading duration (Subheading 6.5s, Title 3.5s)
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout> | null = null;
-    
+    if (isNavVisible) {
+      setHeaderCycle('title');
+      return;
+    }
+    const displayDuration = headerCycle === 'title' ? 3500 : 6500;
+    const timer = setTimeout(() => {
+      setHeaderCycle((prev) => (prev === 'title' ? 'subtitle' : 'title'));
+    }, displayDuration);
+    return () => clearTimeout(timer);
+  }, [isNavVisible, headerCycle]);
+
+  // Handle navbar active state & untouched countdown
+  useEffect(() => {
+    setIsNavVisible(true);
+    resetUntouchedTimer();
+
     const handleMouseMove = (e: MouseEvent) => {
       if (isMapFullscreenRef.current || document.body.getAttribute('data-camera-active') === 'true') {
         setIsNavVisible(false);
         return;
       }
-
-      // Tight edge hover:
-      // When navbar is hidden, only touching the extreme top edge (<= 20px) reveals it.
-      // When navbar is open, keep it open if cursor is within navbar area (<= 90px) or hovering the bar.
-      const triggerThreshold = isNavVisibleRef.current ? 90 : 20;
-
-      if (e.clientY <= triggerThreshold || isNavHoveredRef.current) {
+      if (e.clientY <= 70) {
         setIsNavVisible(true);
-        if (timeout) {
-          clearTimeout(timeout);
-          timeout = null;
-        }
-      } else {
-        // If we move away from the top/navbar, start the hide countdown
-        if (!timeout && !isNavHoveredRef.current) {
-          timeout = setTimeout(() => {
-            if (!isNavHoveredRef.current) {
-              setIsNavVisible(false);
-            }
-            timeout = null;
-          }, 800);
-        }
+        resetUntouchedTimer();
       }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-
-    // Initial timer to hide the nav after page load
-    timeout = setTimeout(() => {
-      if (!isNavHoveredRef.current) {
-        setIsNavVisible(false);
-      }
-      timeout = null;
-    }, 2500);
-
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      if (timeout) clearTimeout(timeout);
+      if (untouchedTimerRef.current) clearTimeout(untouchedTimerRef.current);
     };
-  }, []);
+  }, [location.pathname]);
 
   const navItems = [
     { name: 'Report', path: '/citizen', icon: MapPin },
@@ -193,10 +205,12 @@ export default function CitizenLayout() {
             <div 
               onMouseEnter={() => {
                 isNavHoveredRef.current = true;
+                if (untouchedTimerRef.current) clearTimeout(untouchedTimerRef.current);
                 setIsNavVisible(true);
               }}
               onMouseLeave={() => {
                 isNavHoveredRef.current = false;
+                resetUntouchedTimer();
               }}
               className="w-full pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12 relative overflow-hidden min-h-[58px] flex items-center"
             >
@@ -206,18 +220,23 @@ export default function CitizenLayout() {
                   {isNavVisible ? (
                     <motion.div
                       key="nav-mode"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
+                      variants={navSwipeVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
                       className="w-full flex items-center justify-between"
                     >
                       {/* Left: Brand Logo */}
                       <div className="flex-1 flex justify-start">
                         <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default flex items-center gap-2.5">
                           <img src="/Logos/Icon-Full.png" alt="esteRoute" className="w-6 h-6 sm:w-7 sm:h-7 object-contain" />
-                          <span className="text-text-primary group-hover:text-brand-primary transition-colors">
-                            este<span className="text-brand-primary">Route</span>
+                          <span className="flex items-center">
+                            <span className="text-text-primary group-hover:text-brand-primary transition-colors">
+                              este
+                            </span>
+                            <span className="text-brand-primary group-hover:text-text-primary transition-colors">
+                              Route
+                            </span>
                           </span>
                         </div>
                       </div>
@@ -263,25 +282,41 @@ export default function CitizenLayout() {
                   ) : (
                     <motion.div
                       key="header-mode"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                      className="w-full flex items-center gap-3 overflow-hidden"
+                      variants={headerSwipeVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="w-full flex items-center justify-center min-h-[34px] px-4 cursor-default select-none"
                     >
-                      {/* Left: Exact nav icon without background */}
-                      <currentConfig.icon className="w-4 h-4 text-brand-primary shrink-0" />
-                      
-                      {/* Center/Main: Header + Subheader in nav typography */}
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="font-heading text-xs xl:text-sm font-bold uppercase tracking-widest text-text-primary shrink-0">
-                          {currentConfig.title}
-                        </span>
-                        <span className="text-text-muted/40 text-xs font-mono select-none">•</span>
-                        <span className="text-xs xl:text-sm text-text-secondary font-heading font-medium tracking-wider truncate max-w-3xl">
-                          {currentConfig.subtitle}
-                        </span>
-                      </div>
+                      <AnimatePresence mode="wait">
+                        {headerCycle === 'title' ? (
+                          <motion.div
+                            key={`title-${location.pathname}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="flex items-center justify-center text-center"
+                          >
+                            <span className="font-heading text-base sm:text-lg lg:text-xl font-black uppercase tracking-wider text-text-primary">
+                              {currentConfig.title}
+                            </span>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key={`subtitle-${location.pathname}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="flex items-center justify-center text-center max-w-4xl px-2"
+                          >
+                            <span className="text-xs sm:text-sm lg:text-base text-text-secondary font-heading font-medium tracking-wide truncate">
+                              {currentConfig.subtitle}
+                            </span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </motion.div>
                   )}
                 </AnimatePresence>
