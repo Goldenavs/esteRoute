@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -562,6 +563,7 @@ export default function MainCommandDashboard() {
   const [routeOrigin, setRouteOrigin] = useState<RouteOriginPoint>(ROUTE_ORIGIN_PRESETS[0]);
   const [isOriginModalOpen, setIsOriginModalOpen] = useState<boolean>(false);
   const [tempOrigin, setTempOrigin] = useState<RouteOriginPoint>(ROUTE_ORIGIN_PRESETS[0]);
+  const [isImageFocused, setIsImageFocused] = useState<boolean>(false);
 
   const calculateOptimalRoute = (activeList: ReportItem[], origin: RouteOriginPoint = routeOrigin) => {
     if (activeList.length === 0) return [];
@@ -1799,12 +1801,28 @@ export default function MainCommandDashboard() {
                     </span>
                   </div>
 
-                  {/* Submitted Image */}
-                  <div className="w-full h-48 rounded-sm bg-border-subtle overflow-hidden relative group border border-border-subtle shadow-inner">
-                    <img src={selectedReport.image_url} alt="Reported issue" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  {/* Submitted Image (Clickable for Natural Zoom View) */}
+                  <div 
+                    onClick={() => {
+                      if (selectedReport.image_url) {
+                        setIsImageFocused(true);
+                      }
+                    }}
+                    className="w-full h-48 rounded-sm bg-border-subtle overflow-hidden relative group border border-border-subtle shadow-inner cursor-pointer"
+                    title="Click to expand full evidence photo"
+                  >
+                    <img 
+                      src={selectedReport.image_url} 
+                      alt="Reported issue" 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-                    <div className="absolute bottom-2 left-2 flex gap-1">
+                    <div className="absolute bottom-2 left-2 flex gap-1 z-10">
                       <span className="bg-black/50 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded">Vision Source</span>
+                    </div>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-mono font-bold z-10">
+                      <Maximize2 className="w-4 h-4 text-brand-primary" />
+                      <span>Click to zoom</span>
                     </div>
                   </div>
 
@@ -2610,6 +2628,60 @@ export default function MainCommandDashboard() {
               </div>
             </div>
           </div>,
+          document.body
+        )}
+
+        {/* Evidence Photo Zoom Lightbox Modal (Portaled to document.body) */}
+        {typeof document !== 'undefined' && createPortal(
+          <AnimatePresence>
+            {isImageFocused && selectedReport && selectedReport.image_url && (
+              <div className="fixed inset-0 z-[3100] flex items-center justify-center p-3 sm:p-6 overflow-hidden pointer-events-auto select-none">
+                {/* Lightbox Soft Frosted Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsImageFocused(false)}
+                  className="fixed inset-0 bg-app-bg/90 backdrop-blur-md cursor-pointer"
+                />
+
+                {/* Focused Image Box (Natural / Unskewed) */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="relative z-20 max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3 p-3 sm:p-4 bg-surface/95 border-2 border-brand-primary rounded-sm shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-full flex items-center justify-between pb-2 border-b border-border-subtle text-xs font-mono">
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="font-bold text-text-primary truncate">{selectedReport.tracking_reference}</span>
+                      <span className="text-[10px] text-text-muted">Evidence Photo</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsImageFocused(false)}
+                      className="px-2.5 py-1 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase transition-colors cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 -skew-x-[4deg]"
+                    >
+                      <span className="inline-block skew-x-[4deg] flex items-center gap-1">
+                        <Minimize2 className="w-3.5 h-3.5" />
+                        <span>Close</span>
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="w-full max-h-[75vh] overflow-hidden rounded-sm bg-black/60 flex items-center justify-center">
+                    <img 
+                      src={selectedReport.image_url} 
+                      alt="Full canal evidence" 
+                      className="w-auto h-auto max-w-full max-h-[75vh] object-contain rounded-sm"
+                    />
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
           document.body
         )}
         
