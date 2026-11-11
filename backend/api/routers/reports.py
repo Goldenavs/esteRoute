@@ -146,6 +146,67 @@ async def create_report(
         raise HTTPException(status_code=500, detail=f"Failed to save report to database: {str(e)}")
 
 
+@router.get("/{report_id}")
+async def get_report_detail(report_id: str):
+    """
+    SRS Section 3.7.2 & FR-12:
+    Retrieves full detail for a single report, including structured agent outputs if available.
+    """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase is not configured in backend .env")
+
+    try:
+        # Fetch report details
+        rep_res = supabase.table("reports").select("*").eq("report_id", report_id).execute()
+        if not rep_res.data or len(rep_res.data) == 0:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        report = rep_res.data[0]
+
+        # Fetch agent results for this report
+        agent_res = supabase.table("agent_results").select("*").eq("report_id", report_id).execute()
+        
+        vision_result = None
+        weather_result = None
+        for row in (agent_res.data or []):
+            if row.get("agent_type") == "vision_triage":
+                vision_result = row.get("result_json")
+            elif row.get("agent_type") == "meteorological":
+                weather_result = row.get("result_json")
+
+        priority_score = float(report["priority_score"]) if report.get("priority_score") is not None else None
+        priority_label = None
+        if priority_score is not None:
+            if priority_score < 30.0:
+                priority_label = "Low"
+            elif priority_score < 60.0:
+                priority_label = "Medium"
+            elif priority_score < 80.0:
+                priority_label = "High"
+            else:
+                priority_label = "Urgent"
+
+        return {
+            "report_id": report["report_id"],
+            "status": report.get("status"),
+            "tracking_reference": report.get("tracking_reference"),
+            "image_url": report.get("image_url"),
+            "latitude": float(report["latitude"]),
+            "longitude": float(report["longitude"]),
+            "citizen_notes": report.get("citizen_notes"),
+            "vision_result": vision_result,
+            "weather_result": weather_result,
+            "priority_score": priority_score,
+            "priority_label": priority_label,
+            "needs_human_review": bool(report.get("needs_human_review", False)),
+            "created_at": report.get("created_at")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve report: {str(e)}")
+
+
 @router.get("/{report_id}/agent-log")
 async def get_agent_log(
     report_id: str,
