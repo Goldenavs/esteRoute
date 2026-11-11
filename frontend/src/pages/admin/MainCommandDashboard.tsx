@@ -2228,80 +2228,35 @@ export default function MainCommandDashboard() {
                 </button>
               </div>
 
-              {/* AI Tactical Fleet Route Planning Module (Major Feature) */}
-              <div className="p-3 bg-gradient-to-br from-brand-primary/20 via-surface/90 to-brand-primary/10 border-2 border-brand-primary/50 rounded-sm shadow-xl space-y-2.5 relative overflow-hidden group/route">
-                <div className="flex items-center justify-between text-[10px] font-mono">
-                  <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-brand-primary">
-                    <Sparkles className="w-3.5 h-3.5 text-brand-secondary animate-pulse" />
-                    <span>AI Dispatch Route Engine</span>
-                  </div>
+              {/* AI Dispatch Route Generator Bar (Strictly 1 Line) */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => generateCleaningRoute()}
+                  disabled={isGeneratingRoute}
+                  className={twMerge(
+                    "flex-1 py-2 px-3 rounded-sm font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95 border -skew-x-[3deg]",
+                    isRouteMode
+                      ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/25 shadow-md"
+                      : "bg-brand-primary/10 hover:bg-brand-primary hover:text-white border-brand-primary/30 text-brand-primary"
+                  )}
+                  title={isRouteMode ? "Turn Off AI Route Mode" : `Generate Cleaning Route (Starting: ${routeOrigin.name})`}
+                >
+                  <Route className={twMerge("w-3.5 h-3.5 skew-x-[3deg]", isGeneratingRoute && "animate-spin")} />
+                  <span className="skew-x-[3deg] truncate">
+                    {isGeneratingRoute ? 'Calculating Road Route...' : isRouteMode ? 'Hide Dispatch Route' : 'Generate Cleaning Route'}
+                  </span>
+                </button>
 
-                  {/* Origin Indicator Pill */}
-                  <button
-                    type="button"
-                    onClick={() => setIsOriginModalOpen(true)}
-                    className="text-[9px] font-mono px-2 py-0.5 rounded bg-surface/90 border border-border-subtle hover:border-brand-primary text-text-muted hover:text-brand-primary transition-all flex items-center gap-1 max-w-[170px] truncate cursor-pointer shadow-xs active:scale-95"
-                    title={`Current Route Origin: ${routeOrigin.name} (${routeOrigin.lat}, ${routeOrigin.lng}). Click to change.`}
-                  >
-                    <MapPin className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
-                    <span className="truncate">{routeOrigin.name.split(' ')[0]} Base</span>
-                    <span className="text-brand-primary font-bold">Edit</span>
-                  </button>
-                </div>
-
-                {/* High-Impact Action Row */}
-                <div className="flex items-stretch gap-1.5">
-                  {/* Major Route Generation Button */}
-                  <button
-                    type="button"
-                    onClick={() => generateCleaningRoute()}
-                    disabled={isGeneratingRoute}
-                    className={twMerge(
-                      "flex-1 py-2.5 px-3 rounded-sm font-mono text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-95 border -skew-x-[4deg]",
-                      isRouteMode
-                        ? "bg-gradient-to-r from-red-600 to-rose-700 text-white border-red-500 shadow-red-500/25 ring-1 ring-red-400/50"
-                        : "bg-gradient-to-r from-blue-600 via-brand-primary to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border-blue-400/50 hover:shadow-lg hover:shadow-blue-500/25 ring-1 ring-white/20"
-                    )}
-                  >
-                    <Route className={twMerge("w-4 h-4 skew-x-[4deg]", isGeneratingRoute && "animate-spin")} />
-                    <span className="skew-x-[4deg]">
-                      {isGeneratingRoute ? 'Calculating Fleet Route...' : isRouteMode ? 'Hide Active Route' : 'Generate Cleaning Route'}
-                    </span>
-                  </button>
-
-                  {/* Set Starting Origin Button */}
-                  <button
-                    type="button"
-                    onClick={() => setIsOriginModalOpen(true)}
-                    className="px-2.5 py-2.5 rounded-sm font-mono text-[10px] font-bold uppercase tracking-wider bg-surface hover:bg-surface-subtle border border-border-strong hover:border-brand-primary text-text-secondary hover:text-brand-primary flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 -skew-x-[4deg]"
-                    title="Change starting depot / origin location"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5 skew-x-[4deg] text-brand-primary" />
-                    <span className="skew-x-[4deg]">Set Start</span>
-                  </button>
-                </div>
-
-                {/* Active Route Telemetry & Navigation Direct Link */}
-                {isRouteMode && dispatchRoute && (
-                  <div className="pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[10px] font-mono">
-                    <div className="flex items-center gap-2 text-text-secondary">
-                      <span className="text-emerald-400 font-bold">{dispatchRoute.orderedStops.length} Stops</span>
-                      <span>•</span>
-                      <span>{dispatchRoute.totalDistanceKm} km</span>
-                      <span>•</span>
-                      <span>~{dispatchRoute.totalDurationMin} min</span>
-                    </div>
-                    <a
-                      href={dispatchRoute.googleMapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 hover:underline"
-                    >
-                      <span>Google Maps</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setIsOriginModalOpen(true)}
+                  className="h-[33px] w-[33px] rounded-sm bg-surface hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary text-text-secondary hover:text-brand-primary flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 -skew-x-[3deg]"
+                  title={`Set Route Starting Origin (Current: ${routeOrigin.name})`}
+                  aria-label="Set Route Starting Origin"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 skew-x-[3deg] text-brand-primary" />
+                </button>
               </div>
             </div>
 
@@ -2458,27 +2413,15 @@ export default function MainCommandDashboard() {
         {/* Starting Origin Location Configuration Modal */}
         {isOriginModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 select-none">
-            <div className="bg-surface border-2 border-border-strong rounded-sm shadow-2xl max-w-lg w-full p-5 flex flex-col gap-4 text-text-primary -skew-x-1 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-surface border-2 border-border-strong rounded-sm shadow-2xl max-w-lg w-full p-5 flex flex-col gap-4 text-text-primary animate-in fade-in zoom-in-95 duration-200">
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-brand-primary" />
-                  <div>
-                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-text-primary">
-                      Set Route Starting Origin
-                    </h3>
-                    <p className="text-[11px] text-text-muted">
-                      Configure where the AI cleaning fleet should originate its route
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsOriginModalOpen(false)}
-                  className="p-1 hover:bg-surface-subtle text-text-muted hover:text-text-primary rounded-sm transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+              <div className="border-b border-border-subtle pb-3">
+                <h3 className="font-heading font-black text-sm uppercase tracking-wider text-text-primary">
+                  Set Route Starting Origin
+                </h3>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  Configure where the AI cleaning fleet should originate its route
+                </p>
               </div>
 
               {/* Presets List */}
@@ -2528,13 +2471,13 @@ export default function MainCommandDashboard() {
                         <button
                           type="button"
                           className={twMerge(
-                            "px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-xs transition-colors shrink-0",
+                            "px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-xs transition-colors shrink-0 -skew-x-[6deg]",
                             isActive
                               ? "bg-brand-primary text-white"
                               : "bg-surface group-hover:bg-brand-primary group-hover:text-white border border-border-subtle text-text-secondary"
                           )}
                         >
-                          {isActive ? 'Active' : 'Select'}
+                          <span className="inline-block skew-x-[6deg]">{isActive ? 'Active' : 'Select'}</span>
                         </button>
                       </div>
                     );
@@ -2569,9 +2512,9 @@ export default function MainCommandDashboard() {
                       }
                       setIsOriginModalOpen(false);
                     }}
-                    className="px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-primary hover:bg-brand-secondary text-white rounded-xs transition-colors cursor-pointer shrink-0"
+                    className="px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-primary hover:bg-brand-secondary text-white rounded-xs transition-colors cursor-pointer shrink-0 -skew-x-[6deg] active:scale-95 shadow-sm"
                   >
-                    Use Location
+                    <span className="inline-block skew-x-[6deg]">Use Location</span>
                   </button>
                 </div>
               )}
@@ -2611,9 +2554,9 @@ export default function MainCommandDashboard() {
                   <button
                     type="button"
                     onClick={() => setIsOriginModalOpen(false)}
-                    className="px-3 py-1.5 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer -skew-x-[6deg] active:scale-95"
                   >
-                    Cancel
+                    <span className="inline-block skew-x-[6deg]">Cancel</span>
                   </button>
                   <button
                     type="button"
@@ -2635,9 +2578,9 @@ export default function MainCommandDashboard() {
                       }
                       setIsOriginModalOpen(false);
                     }}
-                    className="px-3 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-sm text-xs font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
+                    className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-sm text-xs font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-sm -skew-x-[6deg] active:scale-95"
                   >
-                    Apply Custom Origin
+                    <span className="inline-block skew-x-[6deg]">Apply Custom Origin</span>
                   </button>
                 </div>
               </div>
