@@ -12,6 +12,8 @@ Thumbs.db
 
 # Backend
 backend/venv/
+backend/agent_transactions.log
+*.log
 # Python compiled files
 __pycache__/
 *.py[cod]
