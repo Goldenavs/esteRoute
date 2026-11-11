@@ -206,3 +206,75 @@ export function createClusterIcon(count: number, highestStatus: string = 'critic
     popupAnchor: [0, -size / 2],
   });
 }
+
+export interface DepotPinOptions {
+  isCustom?: boolean;
+  tag?: string;
+  isSelected?: boolean;
+}
+
+/**
+ * Creates a high-grade teardrop pin marker for LGU Operations Base / Depot
+ * featuring a crisp headquarters icon and clean micro-tag badge.
+ */
+export function createDepotMarkerIcon(options: DepotPinOptions | string = {}): L.DivIcon {
+  const opts: DepotPinOptions = typeof options === 'string' 
+    ? { tag: options.toLowerCase().includes('custom') ? 'CUSTOM DEPOT' : 'HQ DEPOT' }
+    : options;
+
+  const isCustom = opts.isCustom ?? (opts.tag ? opts.tag.toLowerCase().includes('custom') : false);
+  const tagText = opts.tag || (isCustom ? 'CUSTOM DEPOT' : 'HQ DEPOT');
+  const isSelected = opts.isSelected ?? false;
+
+  const width = isSelected ? 34 : 30;
+  const height = isSelected ? 46 : 42;
+  const gradId = `depot-pin-grad-${isCustom ? 'custom' : 'hq'}-${isSelected ? 'sel' : 'def'}`;
+  const filterId = `depot-pin-shadow-${isCustom ? 'custom' : 'hq'}-${isSelected ? 'sel' : 'def'}`;
+  
+  const gradStart = isCustom ? '#10B981' : '#059669';
+  const gradEnd = isCustom ? '#047857' : '#064E3B';
+  const wellBg = '#022C22';
+  const strokeWidth = isSelected ? '2.4' : '1.8';
+
+  const svgHtml = `
+    <svg width="${width}" height="${height}" viewBox="0 0 32 44" fill="none" xmlns="http://www.w3.org/2000/svg" class="transition-transform duration-200 group-hover:scale-110 ${isSelected ? 'scale-110' : ''}">
+      <defs>
+        <filter id="${filterId}" x="-25%" y="-15%" width="150%" height="135%">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.5"/>
+        </filter>
+        <linearGradient id="${gradId}" x1="16" y1="2" x2="16" y2="40.5" gradientUnits="userSpaceOnUse">
+          <stop stop-color="${gradStart}"/>
+          <stop offset="1" stop-color="${gradEnd}"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Teardrop Pin Body -->
+      <path filter="url(#${filterId})" d="M16 2C8.82 2 3 7.82 3 15.5C3 25.5 14.2 39.2 15.38 40.45C15.72 40.81 16.28 40.81 16.62 40.45C17.8 39.2 29 25.5 29 15.5C29 7.82 23.18 2 16 2Z" fill="url(#${gradId})" stroke="#FFFFFF" stroke-width="${strokeWidth}"/>
+
+      <!-- Inner Depth Well -->
+      <circle cx="16" cy="15.5" r="9" fill="${wellBg}" fill-opacity="0.45"/>
+
+      <!-- Headquarters / Depot Building Icon -->
+      <g stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <path d="M10 14L16 9.5L22 14" stroke-width="1.6"/>
+        <path d="M11.5 14V21H20.5V14"/>
+        <path d="M14.5 21V16.5H17.5V21" fill="#FFFFFF" fill-opacity="0.3"/>
+      </g>
+    </svg>
+  `;
+
+  return L.divIcon({
+    className: 'custom-depot-pin',
+    html: `
+      <div class="relative flex flex-col items-center justify-center cursor-pointer group select-none pointer-events-auto">
+        ${svgHtml}
+        <div class="-mt-1 px-1.5 py-0.2 bg-black/80 backdrop-blur-md border border-emerald-500/60 rounded-xs text-[8px] font-mono font-black text-emerald-400 tracking-wider shadow-md whitespace-nowrap uppercase">
+          ${tagText}
+        </div>
+      </div>
+    `,
+    iconSize: [60, height + 16],
+    iconAnchor: [30, height],
+    popupAnchor: [0, -height],
+  });
+}

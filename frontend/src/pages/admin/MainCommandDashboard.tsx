@@ -38,7 +38,7 @@ import {
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
 import BorderBeam from '../../components/common/BorderBeam';
-import { createEsteroMarkerIcon, createClusterIcon } from '../../lib/mapPins';
+import { createEsteroMarkerIcon, createClusterIcon, createDepotMarkerIcon } from '../../lib/mapPins';
 
 export type MapTileType = 'detailed' | 'standard';
 const getTileUrl = (type: MapTileType) => {
@@ -122,29 +122,6 @@ const ROUTE_ORIGIN_PRESETS: RouteOriginPoint[] = [
     lng: 123.8967
   }
 ];
-
-const createDepotMarkerIcon = (label: string = 'ROUTE ORIGIN') => {
-  const shortLabel = label.length > 14 ? label.slice(0, 12).toUpperCase() + '..' : label.toUpperCase();
-  return L.divIcon({
-    className: 'custom-depot-marker',
-    html: `
-      <div class="relative flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2 cursor-pointer group select-none">
-        <div style="
-          background: linear-gradient(135deg, #059669, #047857);
-          border: 2px solid #34D399;
-          box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
-        " class="px-2.5 py-1 rounded-sm text-white font-mono font-black text-[9px] tracking-wider flex items-center gap-1 shadow-lg whitespace-nowrap">
-          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#A7F3D0;margin-right:2px;"></span>
-          <span>${shortLabel}</span>
-        </div>
-        <div class="w-1.5 h-1.5 bg-emerald-500 rotate-45 border-r border-b border-white -mt-0.5"></div>
-      </div>
-    `,
-    iconSize: [80, 26],
-    iconAnchor: [40, 26],
-    popupAnchor: [0, -28]
-  });
-};
 
 function OriginMapClickHandler({ onSelect }: { onSelect: (lat: number, lng: number) => void }) {
   useMapEvents({
@@ -1306,6 +1283,53 @@ export default function MainCommandDashboard() {
             getMarkerIcon={getMarkerIcon}
           />
 
+          {/* Permanent Operations Base / Depot Reference Marker (Always visible on map) */}
+          <Marker
+            position={[routeOrigin.lat, routeOrigin.lng]}
+            icon={createDepotMarkerIcon({
+              isCustom: routeOrigin.id.includes('custom'),
+              tag: routeOrigin.id.includes('custom') ? 'CUSTOM DEPOT' : 'HQ DEPOT'
+            })}
+            zIndexOffset={1500}
+          >
+            <Popup className="custom-popup" closeButton={false}>
+              <div className="bg-surface/95 backdrop-blur-md border border-border-subtle p-3 rounded-sm shadow-xl text-xs font-sans min-w-[210px]">
+                <div className="font-mono font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-1 flex items-center justify-between">
+                  <span>Operations Base / Depot</span>
+                  <span className="text-[9px] bg-emerald-500/20 px-1 py-0.5 rounded text-emerald-300">
+                    {routeOrigin.id.includes('custom') ? 'CUSTOM BASE' : 'ACTIVE HQ'}
+                  </span>
+                </div>
+                <div className="font-bold text-text-primary mb-0.5">{routeOrigin.name}</div>
+                <div className="text-[11px] text-text-muted mb-1.5">{routeOrigin.address}</div>
+                <div className="text-[9px] font-mono text-text-muted/70 mb-2">
+                  GPS: {routeOrigin.lat.toFixed(4)}, {routeOrigin.lng.toFixed(4)}
+                </div>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempOrigin(routeOrigin);
+                      setIsOriginModalOpen(true);
+                    }}
+                    className="flex-1 py-1 px-2 bg-surface hover:bg-surface-subtle text-text-primary border border-border-subtle hover:border-brand-primary rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
+                  >
+                    Change Base
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      generateCleaningRoute();
+                    }}
+                    className="flex-1 py-1 px-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
+                  >
+                    {isRouteMode ? 'Recalculate Route' : 'Route From Here'}
+                  </button>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+
           {/* AI Optimized Dispatch Route Polyline Layers */}
           {isRouteMode && dispatchRoute && dispatchRoute.geometry.length > 0 && (
             <>
@@ -1332,33 +1356,6 @@ export default function MainCommandDashboard() {
                   lineJoin: 'round'
                 }}
               />
-
-              {/* Depot Origin Marker */}
-              <Marker
-                position={[routeOrigin.lat, routeOrigin.lng]}
-                icon={createDepotMarkerIcon(routeOrigin.name)}
-              >
-                <Popup className="custom-popup" closeButton={false}>
-                  <div className="bg-surface/95 backdrop-blur-md border border-border-subtle p-3 rounded-sm shadow-xl text-xs font-sans min-w-[200px]">
-                    <div className="font-mono font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-1 flex items-center justify-between">
-                      <span>Dispatch Starting Origin</span>
-                      <span className="text-[9px] bg-emerald-500/20 px-1 py-0.5 rounded text-emerald-300">ACTIVE BASE</span>
-                    </div>
-                    <div className="font-bold text-text-primary mb-0.5">{routeOrigin.name}</div>
-                    <div className="text-[11px] text-text-muted mb-2">{routeOrigin.address}</div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTempOrigin(routeOrigin);
-                        setIsOriginModalOpen(true);
-                      }}
-                      className="w-full py-1 px-2 bg-brand-primary/15 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
-                    >
-                      Change Origin Base
-                    </button>
-                  </div>
-                </Popup>
-              </Marker>
 
               {/* Numbered Waypoint Badges along the Optimized Cleaning Route */}
               {dispatchRoute.orderedStops.map((stop, idx) => (
@@ -2527,7 +2524,10 @@ export default function MainCommandDashboard() {
                       <TileLayer url={getTileUrl(mapType)} />
                       <Marker
                         position={[tempOrigin.lat, tempOrigin.lng]}
-                        icon={createDepotMarkerIcon(tempOrigin.name)}
+                        icon={createDepotMarkerIcon({
+                          isCustom: tempOrigin.id.includes('custom'),
+                          tag: tempOrigin.id.includes('custom') ? 'CUSTOM DEPOT' : 'HQ DEPOT'
+                        })}
                         draggable={true}
                         eventHandlers={{
                           dragend(e) {
