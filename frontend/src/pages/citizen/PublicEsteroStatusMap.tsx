@@ -21,6 +21,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { createEsteroMarkerIcon } from '../../lib/mapPins';
 
 // Traveling perimeter highlight matching landing page frosted cards
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
@@ -209,44 +210,6 @@ function CustomMapControls({
   );
 }
 
-// Custom Citizen Pin Marker Generator (Clean, crisp, no annoying constant flashing)
-const createCitizenIcon = (status: 'blocked' | 'dispatched' | 'resolved') => {
-  const colorMap = {
-    blocked: {
-      bg: '#DC2626',
-    },
-    dispatched: {
-      bg: '#D97706',
-    },
-    resolved: {
-      bg: '#059669',
-    },
-  };
-
-  const style = colorMap[status] || colorMap.blocked;
-
-  return L.divIcon({
-    className: 'custom-citizen-marker',
-    html: `
-      <div class="relative flex flex-col items-center -translate-x-1/2 -translate-y-full cursor-pointer group">
-        <div style="background-color: ${style.bg};" class="w-6 h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white transition-transform duration-200 group-hover:scale-125">
-          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            ${status === 'resolved' 
-              ? '<polyline points="20 6 9 17 4 12"></polyline>' 
-              : status === 'dispatched'
-                ? '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>'
-                : '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>'}
-          </svg>
-        </div>
-        <div style="background-color: ${style.bg};" class="w-1.5 h-1.5 -mt-1 rotate-45 border-r border-b border-white"></div>
-      </div>
-    `,
-    iconSize: [24, 28],
-    iconAnchor: [12, 28],
-    popupAnchor: [0, -30],
-  });
-};
-
 // Tactical Cluster Marker Generator (Displays aggregated incident count with severity styling)
 const createClusterIcon = (count: number, highestStatus: 'blocked' | 'dispatched' | 'resolved') => {
   const colorMap = {
@@ -273,7 +236,7 @@ const createClusterIcon = (count: number, highestStatus: 'blocked' | 'dispatched
   return L.divIcon({
     className: 'custom-cluster-marker',
     html: `
-      <div class="relative flex items-center justify-center -translate-x-1/2 -translate-y-1/2 cursor-pointer group select-none">
+      <div class="relative w-full h-full flex items-center justify-center cursor-pointer group select-none pointer-events-auto">
         <div style="
           width: ${size}px; 
           height: ${size}px; 
@@ -489,7 +452,7 @@ function ProximityClusteredMarkers({
           <Marker
             key={report.id}
             position={[cluster.lat, cluster.lng]}
-            icon={createCitizenIcon(report.status)}
+            icon={createEsteroMarkerIcon({ status: report.status, isSelected: isTarget })}
             ref={(marker) => {
               if (isTarget && marker) {
                 targetMarkerInstance.current = marker;
