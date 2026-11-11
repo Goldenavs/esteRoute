@@ -7,7 +7,6 @@ import {
   Navigation, 
   ArrowRight, 
   ShieldAlert, 
-  Truck, 
   MapPin, 
   RefreshCw,
   Loader2, 
@@ -84,14 +83,47 @@ export interface DispatchRouteInfo {
   googleMapsUrl: string;
 }
 
-const CEBU_DEPOT = {
-  name: "Cebu City DPS Sanitation HQ",
-  address: "M.C. Briones St, Cebu City Hall Complex",
-  lat: 10.2934,
-  lng: 123.9015
-};
+interface RouteOriginPoint {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+}
 
-const createDepotMarkerIcon = () => {
+const ROUTE_ORIGIN_PRESETS: RouteOriginPoint[] = [
+  {
+    id: 'cebu-hq',
+    name: "Cebu City DPS Sanitation HQ",
+    address: "M.C. Briones St, Cebu City Hall Complex",
+    lat: 10.2934,
+    lng: 123.9015
+  },
+  {
+    id: 'mandaue-depot',
+    name: "Mandaue City Engineering Depot",
+    address: "Centro, Mandaue City Hall",
+    lat: 10.3344,
+    lng: 123.9421
+  },
+  {
+    id: 'subangdaku-station',
+    name: "Subangdaku Flood Control Substation",
+    address: "M. Logarta Ave, Subangdaku River Basin",
+    lat: 10.3242,
+    lng: 123.9287
+  },
+  {
+    id: 'lahug-base',
+    name: "Lahug / Gorordo Emergency Base",
+    address: "Gorordo Ave, North Cebu Corridor",
+    lat: 10.3298,
+    lng: 123.8967
+  }
+];
+
+const createDepotMarkerIcon = (label: string = 'ROUTE ORIGIN') => {
+  const shortLabel = label.length > 14 ? label.slice(0, 12).toUpperCase() + '..' : label.toUpperCase();
   return L.divIcon({
     className: 'custom-depot-marker',
     html: `
@@ -99,15 +131,16 @@ const createDepotMarkerIcon = () => {
         <div style="
           background: linear-gradient(135deg, #059669, #047857);
           border: 2px solid #34D399;
-          box-shadow: 0 0 16px rgba(16, 185, 129, 0.7);
-        " class="px-2 py-0.5 rounded-sm text-white font-mono font-black text-[9px] tracking-widest flex items-center gap-1 shadow-lg">
-          <span>HQ DEPOT</span>
+          box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+        " class="px-2.5 py-1 rounded-sm text-white font-mono font-black text-[9px] tracking-wider flex items-center gap-1 shadow-lg whitespace-nowrap">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#A7F3D0;margin-right:2px;"></span>
+          <span>${shortLabel}</span>
         </div>
         <div class="w-1.5 h-1.5 bg-emerald-500 rotate-45 border-r border-b border-white -mt-0.5"></div>
       </div>
     `,
-    iconSize: [64, 26],
-    iconAnchor: [32, 26],
+    iconSize: [80, 26],
+    iconAnchor: [40, 26],
     popupAnchor: [0, -28]
   });
 };
@@ -522,8 +555,13 @@ export default function MainCommandDashboard() {
   const [isRouteMode, setIsRouteMode] = useState<boolean>(false);
   const [isGeneratingRoute, setIsGeneratingRoute] = useState<boolean>(false);
   const [dispatchRoute, setDispatchRoute] = useState<DispatchRouteInfo | null>(null);
+  const [routeOrigin, setRouteOrigin] = useState<RouteOriginPoint>(ROUTE_ORIGIN_PRESETS[0]);
+  const [isOriginModalOpen, setIsOriginModalOpen] = useState<boolean>(false);
+  const [customOriginName, setCustomOriginName] = useState<string>('');
+  const [customOriginLat, setCustomOriginLat] = useState<string>('');
+  const [customOriginLng, setCustomOriginLng] = useState<string>('');
 
-  const calculateOptimalRoute = (activeList: ReportItem[]) => {
+  const calculateOptimalRoute = (activeList: ReportItem[], origin: RouteOriginPoint = routeOrigin) => {
     if (activeList.length === 0) return [];
     
     // Select top prioritized active blockage incidents (up to 6 stops)
@@ -532,8 +570,8 @@ export default function MainCommandDashboard() {
       .slice(0, 6);
 
     const ordered: ReportItem[] = [];
-    let currentLat = CEBU_DEPOT.lat;
-    let currentLng = CEBU_DEPOT.lng;
+    let currentLat = origin.lat;
+    let currentLng = origin.lng;
 
     const getDist = (lat1: number, lng1: number, lat2: number, lng2: number) => {
       const dLat = (lat2 - lat1) * 111.32;
@@ -567,10 +605,12 @@ export default function MainCommandDashboard() {
     return ordered;
   };
 
-  const generateCleaningRoute = async () => {
+  const generateCleaningRoute = async (targetOrigin?: RouteOriginPoint) => {
     if (isGeneratingRoute) return;
 
-    if (isRouteMode) {
+    const origin = targetOrigin || routeOrigin;
+
+    if (isRouteMode && !targetOrigin) {
       setIsRouteMode(false);
       return;
     }
@@ -584,10 +624,10 @@ export default function MainCommandDashboard() {
     setIsGeneratingRoute(true);
 
     try {
-      const orderedStops = calculateOptimalRoute(activeList);
+      const orderedStops = calculateOptimalRoute(activeList, origin);
       
       const waypoints = [
-        [CEBU_DEPOT.lng, CEBU_DEPOT.lat],
+        [origin.lng, origin.lat],
         ...orderedStops.map(s => [Number(s.longitude), Number(s.latitude)])
       ];
 
@@ -615,7 +655,7 @@ export default function MainCommandDashboard() {
 
       if (geometry.length === 0) {
         geometry = [
-          [CEBU_DEPOT.lat, CEBU_DEPOT.lng],
+          [origin.lat, origin.lng],
           ...orderedStops.map(s => [Number(s.latitude), Number(s.longitude)] as [number, number])
         ];
         totalDistanceKm = Math.round(geometry.length * 2.6 * 10) / 10;
@@ -623,7 +663,7 @@ export default function MainCommandDashboard() {
       }
 
       const gMapsStops = [
-        `${CEBU_DEPOT.lat},${CEBU_DEPOT.lng}`,
+        `${origin.lat},${origin.lng}`,
         ...orderedStops.map(s => `${s.latitude},${s.longitude}`)
       ].join('/');
       const googleMapsUrl = `https://www.google.com/maps/dir/${gMapsStops}`;
@@ -640,7 +680,6 @@ export default function MainCommandDashboard() {
       if (mapRef.current && geometry.length > 0) {
         mapRef.current.fitBounds(L.latLngBounds(geometry), { padding: [80, 80] });
       }
-
     } catch (err) {
       console.error("Failed to generate route:", err);
     } finally {
@@ -1269,16 +1308,24 @@ export default function MainCommandDashboard() {
 
               {/* Depot Origin Marker */}
               <Marker
-                position={[CEBU_DEPOT.lat, CEBU_DEPOT.lng]}
-                icon={createDepotMarkerIcon()}
+                position={[routeOrigin.lat, routeOrigin.lng]}
+                icon={createDepotMarkerIcon(routeOrigin.name)}
               >
                 <Popup className="custom-popup" closeButton={false}>
-                  <div className="bg-surface/95 backdrop-blur-md border border-border-subtle p-3 rounded-sm shadow-xl text-xs font-sans">
-                    <div className="font-mono font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-1">
-                      Dispatch Starting Depot
+                  <div className="bg-surface/95 backdrop-blur-md border border-border-subtle p-3 rounded-sm shadow-xl text-xs font-sans min-w-[200px]">
+                    <div className="font-mono font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-1 flex items-center justify-between">
+                      <span>Dispatch Starting Origin</span>
+                      <span className="text-[9px] bg-emerald-500/20 px-1 py-0.5 rounded text-emerald-300">ACTIVE BASE</span>
                     </div>
-                    <div className="font-bold text-text-primary mb-1">{CEBU_DEPOT.name}</div>
-                    <div className="text-[11px] text-text-muted">{CEBU_DEPOT.address}</div>
+                    <div className="font-bold text-text-primary mb-0.5">{routeOrigin.name}</div>
+                    <div className="text-[11px] text-text-muted mb-2">{routeOrigin.address}</div>
+                    <button
+                      type="button"
+                      onClick={() => setIsOriginModalOpen(true)}
+                      className="w-full py-1 px-2 bg-brand-primary/15 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
+                    >
+                      Change Origin Base
+                    </button>
                   </div>
                 </Popup>
               </Marker>
@@ -1504,7 +1551,7 @@ export default function MainCommandDashboard() {
             {/* AI Dispatch Route Generator Toggle */}
             <button
               type="button"
-              onClick={generateCleaningRoute}
+              onClick={() => generateCleaningRoute()}
               disabled={isGeneratingRoute}
               className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center gap-1.5 ${
                 isRouteMode
@@ -2058,7 +2105,7 @@ export default function MainCommandDashboard() {
                           className="flex-1 bg-brand-primary text-white text-[10px] font-black py-2.5 rounded-sm hover:bg-brand-secondary transition-colors uppercase tracking-widest transform -skew-x-[6deg] shadow-lg cursor-pointer hover:-translate-y-0.5"
                         >
                           <span className="transform skew-x-[6deg] flex items-center justify-center gap-2">
-                            <Truck className="w-3.5 h-3.5" /> Dispatch Crew
+                            <span>Dispatch Field Crew</span>
                           </span>
                         </button>
                       )}
@@ -2181,23 +2228,81 @@ export default function MainCommandDashboard() {
                 </button>
               </div>
 
-              {/* AI Dispatch Route Generator Bar */}
-              <button
-                type="button"
-                onClick={generateCleaningRoute}
-                disabled={isGeneratingRoute}
-                className={twMerge(
-                  "w-full py-2 px-3 rounded-sm font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95 border -skew-x-[3deg]",
-                  isRouteMode
-                    ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/25 shadow-md"
-                    : "bg-brand-primary/10 hover:bg-brand-primary hover:text-white border-brand-primary/30 text-brand-primary"
+              {/* AI Tactical Fleet Route Planning Module (Major Feature) */}
+              <div className="p-3 bg-gradient-to-br from-brand-primary/20 via-surface/90 to-brand-primary/10 border-2 border-brand-primary/50 rounded-sm shadow-xl space-y-2.5 relative overflow-hidden group/route">
+                <div className="flex items-center justify-between text-[10px] font-mono">
+                  <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-brand-primary">
+                    <Sparkles className="w-3.5 h-3.5 text-brand-secondary animate-pulse" />
+                    <span>AI Dispatch Route Engine</span>
+                  </div>
+
+                  {/* Origin Indicator Pill */}
+                  <button
+                    type="button"
+                    onClick={() => setIsOriginModalOpen(true)}
+                    className="text-[9px] font-mono px-2 py-0.5 rounded bg-surface/90 border border-border-subtle hover:border-brand-primary text-text-muted hover:text-brand-primary transition-all flex items-center gap-1 max-w-[170px] truncate cursor-pointer shadow-xs active:scale-95"
+                    title={`Current Route Origin: ${routeOrigin.name} (${routeOrigin.lat}, ${routeOrigin.lng}). Click to change.`}
+                  >
+                    <MapPin className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">{routeOrigin.name.split(' ')[0]} Base</span>
+                    <span className="text-brand-primary font-bold">Edit</span>
+                  </button>
+                </div>
+
+                {/* High-Impact Action Row */}
+                <div className="flex items-stretch gap-1.5">
+                  {/* Major Route Generation Button */}
+                  <button
+                    type="button"
+                    onClick={() => generateCleaningRoute()}
+                    disabled={isGeneratingRoute}
+                    className={twMerge(
+                      "flex-1 py-2.5 px-3 rounded-sm font-mono text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-95 border -skew-x-[4deg]",
+                      isRouteMode
+                        ? "bg-gradient-to-r from-red-600 to-rose-700 text-white border-red-500 shadow-red-500/25 ring-1 ring-red-400/50"
+                        : "bg-gradient-to-r from-blue-600 via-brand-primary to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border-blue-400/50 hover:shadow-lg hover:shadow-blue-500/25 ring-1 ring-white/20"
+                    )}
+                  >
+                    <Route className={twMerge("w-4 h-4 skew-x-[4deg]", isGeneratingRoute && "animate-spin")} />
+                    <span className="skew-x-[4deg]">
+                      {isGeneratingRoute ? 'Calculating Fleet Route...' : isRouteMode ? 'Hide Active Route' : 'Generate Cleaning Route'}
+                    </span>
+                  </button>
+
+                  {/* Set Starting Origin Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsOriginModalOpen(true)}
+                    className="px-2.5 py-2.5 rounded-sm font-mono text-[10px] font-bold uppercase tracking-wider bg-surface hover:bg-surface-subtle border border-border-strong hover:border-brand-primary text-text-secondary hover:text-brand-primary flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 -skew-x-[4deg]"
+                    title="Change starting depot / origin location"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 skew-x-[4deg] text-brand-primary" />
+                    <span className="skew-x-[4deg]">Set Start</span>
+                  </button>
+                </div>
+
+                {/* Active Route Telemetry & Navigation Direct Link */}
+                {isRouteMode && dispatchRoute && (
+                  <div className="pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[10px] font-mono">
+                    <div className="flex items-center gap-2 text-text-secondary">
+                      <span className="text-emerald-400 font-bold">{dispatchRoute.orderedStops.length} Stops</span>
+                      <span>•</span>
+                      <span>{dispatchRoute.totalDistanceKm} km</span>
+                      <span>•</span>
+                      <span>~{dispatchRoute.totalDurationMin} min</span>
+                    </div>
+                    <a
+                      href={dispatchRoute.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 hover:underline"
+                    >
+                      <span>Google Maps</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 )}
-              >
-                <Route className={twMerge("w-3.5 h-3.5 skew-x-[3deg]", isGeneratingRoute && "animate-spin")} />
-                <span className="skew-x-[3deg]">
-                  {isGeneratingRoute ? 'Calculating Road Route...' : isRouteMode ? 'Hide Dispatch Route' : 'Generate Cleaning Route'}
-                </span>
-              </button>
+              </div>
             </div>
 
             {/* Queue List */}
@@ -2293,10 +2398,22 @@ export default function MainCommandDashboard() {
                         {new Date(report.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </div>
                       
-                      {isCritical ? (
-                        <button className="text-[10px] font-black tracking-widest text-brand-white bg-semantic-urgent hover:bg-red-600 px-4 py-1.5 transform -skew-x-[12deg] flex items-center gap-1 transition-colors">
-                          <span className="inline-block transform skew-x-[12deg] flex items-center gap-1">
-                             <Truck className="w-3 h-3" /> DISPATCH
+                      {report.status === 'in_progress' ? (
+                        <span className="text-[10px] font-black tracking-widest text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-xs font-mono uppercase">
+                          DISPATCHED
+                        </span>
+                      ) : isCritical ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateStatus(report.report_id, 'in_progress');
+                          }}
+                          className="text-[10px] font-black tracking-widest text-white bg-semantic-urgent hover:bg-red-600 px-3.5 py-1.5 transform -skew-x-[12deg] flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-md hover:shadow-red-500/25"
+                          title="Dispatch field cleanup crew to this incident"
+                        >
+                          <span className="inline-block transform skew-x-[12deg]">
+                            DISPATCH
                           </span>
                         </button>
                       ) : isResolved ? (
@@ -2304,7 +2421,14 @@ export default function MainCommandDashboard() {
                           <CheckCircle className="w-3.5 h-3.5" /> RESOLVED
                         </span>
                       ) : (
-                        <button className="text-[10px] font-black tracking-widest text-brand-primary hover:text-brand-secondary flex items-center gap-1 group">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedReportId(report.report_id);
+                          }}
+                          className="text-[10px] font-black tracking-widest text-brand-primary hover:text-brand-secondary flex items-center gap-1 group cursor-pointer"
+                        >
                           DETAILS <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                         </button>
                       )}
@@ -2329,6 +2453,196 @@ export default function MainCommandDashboard() {
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
+        )}
+
+        {/* Starting Origin Location Configuration Modal */}
+        {isOriginModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 select-none">
+            <div className="bg-surface border-2 border-border-strong rounded-sm shadow-2xl max-w-lg w-full p-5 flex flex-col gap-4 text-text-primary -skew-x-1 animate-in fade-in zoom-in-95 duration-200">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-brand-primary" />
+                  <div>
+                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-text-primary">
+                      Set Route Starting Origin
+                    </h3>
+                    <p className="text-[11px] text-text-muted">
+                      Configure where the AI cleaning fleet should originate its route
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsOriginModalOpen(false)}
+                  className="p-1 hover:bg-surface-subtle text-text-muted hover:text-text-primary rounded-sm transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Presets List */}
+              <div className="space-y-2">
+                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted">
+                  Available LGU Stations & Presets
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {ROUTE_ORIGIN_PRESETS.map((preset) => {
+                    const isActive = routeOrigin.id === preset.id;
+                    return (
+                      <div
+                        key={preset.id}
+                        onClick={() => {
+                          setRouteOrigin(preset);
+                          if (isRouteMode) {
+                            generateCleaningRoute(preset);
+                          }
+                          setIsOriginModalOpen(false);
+                        }}
+                        className={twMerge(
+                          "p-3 rounded-sm border transition-all cursor-pointer flex items-center justify-between gap-3 text-left group",
+                          isActive
+                            ? "bg-brand-primary/15 border-brand-primary shadow-xs ring-1 ring-brand-primary/50"
+                            : "bg-surface-subtle hover:bg-surface border-border-subtle hover:border-brand-primary/50"
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-xs text-text-primary group-hover:text-brand-primary transition-colors">
+                              {preset.name}
+                            </span>
+                            {isActive && (
+                              <span className="text-[8px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded">
+                                Active Base
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-text-muted truncate mt-0.5">
+                            {preset.address}
+                          </div>
+                          <div className="text-[9px] font-mono text-text-muted/80 mt-0.5">
+                            GPS: {preset.lat.toFixed(4)}, {preset.lng.toFixed(4)}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className={twMerge(
+                            "px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-xs transition-colors shrink-0",
+                            isActive
+                              ? "bg-brand-primary text-white"
+                              : "bg-surface group-hover:bg-brand-primary group-hover:text-white border border-border-subtle text-text-secondary"
+                          )}
+                        >
+                          {isActive ? 'Active' : 'Select'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Quick Action: Selected Incident Coords */}
+              {selectedReport && (
+                <div className="p-3 bg-app-bg/60 border border-border-subtle rounded-sm flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-mono font-bold uppercase text-brand-primary">
+                      Start From Selected Case
+                    </div>
+                    <div className="text-xs font-bold text-text-primary truncate">
+                      {selectedReport.tracking_reference} ({selectedReport.displayLat.toFixed(4)}, {selectedReport.displayLng.toFixed(4)})
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const customPoint: RouteOriginPoint = {
+                        id: `incident-${selectedReport.report_id}`,
+                        name: `Incident ${selectedReport.tracking_reference}`,
+                        address: selectedReport.citizen_notes || "Field Incident Location",
+                        lat: selectedReport.displayLat,
+                        lng: selectedReport.displayLng
+                      };
+                      setRouteOrigin(customPoint);
+                      if (isRouteMode) {
+                        generateCleaningRoute(customPoint);
+                      }
+                      setIsOriginModalOpen(false);
+                    }}
+                    className="px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-primary hover:bg-brand-secondary text-white rounded-xs transition-colors cursor-pointer shrink-0"
+                  >
+                    Use Location
+                  </button>
+                </div>
+              )}
+
+              {/* Custom Coordinates Input */}
+              <div className="pt-2 border-t border-border-subtle space-y-2">
+                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted">
+                  Or Custom GPS Coordinates
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Base Name (e.g. Truck 1)"
+                    value={customOriginName}
+                    onChange={(e) => setCustomOriginName(e.target.value)}
+                    className="bg-app-bg border border-border-subtle focus:border-brand-primary text-text-primary text-xs px-2.5 py-1.5 rounded-sm outline-none font-mono"
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude (e.g. 10.315)"
+                    value={customOriginLat}
+                    onChange={(e) => setCustomOriginLat(e.target.value)}
+                    className="bg-app-bg border border-border-subtle focus:border-brand-primary text-text-primary text-xs px-2.5 py-1.5 rounded-sm outline-none font-mono"
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude (e.g. 123.89)"
+                    value={customOriginLng}
+                    onChange={(e) => setCustomOriginLng(e.target.value)}
+                    className="bg-app-bg border border-border-subtle focus:border-brand-primary text-text-primary text-xs px-2.5 py-1.5 rounded-sm outline-none font-mono"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsOriginModalOpen(false)}
+                    className="px-3 py-1.5 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!customOriginLat || !customOriginLng}
+                    onClick={() => {
+                      const latNum = parseFloat(customOriginLat);
+                      const lngNum = parseFloat(customOriginLng);
+                      if (isNaN(latNum) || isNaN(lngNum)) return;
+                      const customPoint: RouteOriginPoint = {
+                        id: `custom-${Date.now()}`,
+                        name: customOriginName.trim() || "Custom Dispatch Base",
+                        address: `Custom GPS (${latNum.toFixed(4)}, ${lngNum.toFixed(4)})`,
+                        lat: latNum,
+                        lng: lngNum
+                      };
+                      setRouteOrigin(customPoint);
+                      if (isRouteMode) {
+                        generateCleaningRoute(customPoint);
+                      }
+                      setIsOriginModalOpen(false);
+                    }}
+                    className="px-3 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-sm text-xs font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
+                  >
+                    Apply Custom Origin
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
         
       </div>

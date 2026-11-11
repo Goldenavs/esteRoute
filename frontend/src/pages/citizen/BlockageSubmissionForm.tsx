@@ -15,6 +15,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { createEsteroMarkerIcon } from '../../lib/mapPins';
 
 // Subtle, eye-friendly traveling perimeter highlight (matching Landing Page features)
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
@@ -55,12 +56,9 @@ const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: 
   );
 };
 
-const customMarkerIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+const customMarkerIcon = createEsteroMarkerIcon({
+  variant: 'critical',
+  isSelected: true,
 });
 
 // Component to dynamically re-center map if geolocation or URL coords successfully fetch on mount
