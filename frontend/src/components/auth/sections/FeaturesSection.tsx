@@ -154,17 +154,20 @@ export default function FeaturesSection() {
           {/* Outer Box: Clean unskewed | Steps: Direct Stepper Buttons without box     */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-center">
+            <div className="group relative bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               <BorderBeam delay={0} />
 
-              <div className="relative z-10 flex flex-col justify-center h-full space-y-6 sm:space-y-8">
+              <div className="relative z-10 flex flex-col justify-between h-full min-h-[300px]">
                 
-                {/* Upper Area: Title & Dynamic Description that changes per clicked button */}
-                <div className="pr-2">
-                  <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary uppercase tracking-tight group-hover:text-brand-primary transition-colors mb-2">
+                {/* Top Area: Title */}
+                <div className="w-full">
+                  <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Frictionless Citizen Reporting
                   </h3>
+                </div>
 
+                {/* Middle Area: Vertically centered description */}
+                <div className="my-auto py-3">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={citizenStep}
@@ -172,7 +175,7 @@ export default function FeaturesSection() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -6 }}
                       transition={{ duration: 0.2 }}
-                      className="mt-2 min-h-[4rem]"
+                      className="min-h-[4rem] flex flex-col justify-center"
                     >
                       <p className="text-xs font-mono font-bold text-brand-primary uppercase tracking-wider mb-1.5">
                         {CITIZEN_STEP_DESCRIPTIONS[citizenStep].headline}
@@ -184,9 +187,9 @@ export default function FeaturesSection() {
                   </AnimatePresence>
                 </div>
 
-                {/* Bottom Area: Exact Stepper UI directly, NO background container box */}
-                <div className="w-full">
-                  <div className="flex items-center justify-between px-1 sm:px-4 w-full max-w-md">
+                {/* Bottom Area: Stepper choices (horizontally centered, vertically anchored at bottom) */}
+                <div className="w-full pt-4 flex justify-center">
+                  <div className="flex items-center justify-between px-1 sm:px-4 w-full max-w-md mx-auto">
                     
                     {/* Step 1: Photo Button */}
                     <button
