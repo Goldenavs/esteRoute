@@ -152,7 +152,7 @@ export default function CoreEngineSection() {
         >
           {/* Outer parallelogram container (Translucent Glass with Hover Blur & Edge Light) */}
           <div 
-            className="group w-full h-[520px] md:h-[540px] border-2 border-border-subtle hover:border-brand-primary -skew-x-3 md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-none bg-surface/30 tactical-grid hover:bg-surface/90 hover:backdrop-blur-xl transition-all duration-500"
+            className="group w-full h-[520px] md:h-[540px] border-2 border-border-subtle hover:border-brand-primary -skew-x-3 md:-skew-x-12 relative overflow-hidden shadow-2xl rounded-none bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl transition-all duration-500"
           >
             {/* Edge perimeter running light */}
             <BorderBeam delay={0} color="#60A5FA" />
@@ -429,7 +429,7 @@ export default function CoreEngineSection() {
             viewport={{ once: true }}
           >
             <div 
-              className="group border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 -skew-x-3 md:-skew-x-12 relative overflow-hidden h-full rounded-none shadow-sm hover:shadow-2xl bg-surface/30 tactical-grid hover:bg-surface/90 hover:backdrop-blur-xl"
+              className="group border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 -skew-x-3 md:-skew-x-12 relative overflow-hidden h-full rounded-none shadow-sm hover:shadow-2xl bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl"
             >
               {/* Edge perimeter running light */}
               <BorderBeam delay={1.5} color="#60A5FA" />
@@ -450,7 +450,7 @@ export default function CoreEngineSection() {
             transition={{ delay: 0.2 }}
           >
             <div 
-              className="group border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-500 p-6 md:p-8 -skew-x-3 md:-skew-x-12 relative overflow-hidden h-full rounded-none shadow-sm hover:shadow-2xl bg-surface/30 tactical-grid hover:bg-surface/90 hover:backdrop-blur-xl"
+              className="group border-2 border-border-subtle hover:border-[#38bdf8] transition-all duration-500 p-6 md:p-8 -skew-x-3 md:-skew-x-12 relative overflow-hidden h-full rounded-none shadow-sm hover:shadow-2xl bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl"
             >
               {/* Edge perimeter running light */}
               <BorderBeam delay={3} color="#38BDF8" />

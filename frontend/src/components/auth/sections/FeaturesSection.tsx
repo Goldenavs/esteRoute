@@ -2,16 +2,6 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { 
-  CheckCircle2, 
-  CloudRain, 
-  Sparkles, 
-  LayoutDashboard, 
-  ArrowRight, 
-  RotateCcw, 
-  Check, 
-  ShieldCheck
-} from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { createEsteroMarkerIcon, createDepotMarkerIcon } from '../../../lib/mapPins';
 
@@ -25,7 +15,7 @@ const cardVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 20 } }
 };
 
-// Subtle, traveling perimeter highlight
+// Perimeter traveling light
 const BorderBeam = ({ delay = 0 }: { delay?: number }) => (
   <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-none z-10">
     <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -61,40 +51,67 @@ const BorderBeam = ({ delay = 0 }: { delay?: number }) => (
   </div>
 );
 
+// Static Topographic Wave Background Texture for Containers (matches TacticalBackground style)
+const StaticWaveTexture = ({ isLight }: { isLight: boolean }) => {
+  const strokeColor = isLight ? '#3F72AF' : '#60A5FA';
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+      <svg 
+        className="w-full h-full min-w-[700px] min-h-[350px] opacity-25" 
+        viewBox="0 0 900 450" 
+        preserveAspectRatio="none" 
+        fill="none"
+      >
+        <g stroke={strokeColor} strokeWidth="1.4" opacity={isLight ? 0.35 : 0.45}>
+          <path d="M-100,50 C120,10 260,110 480,60 S680,15 950,80" />
+          <path d="M-100,130 C80,80 280,190 500,130 S720,80 950,160" />
+          <path d="M-100,220 C140,160 240,280 520,220 S750,160 950,250" />
+          <path d="M-100,310 C100,250 300,360 540,300 S740,240 950,330" />
+          <path d="M-100,390 C160,330 260,440 530,380 S760,320 950,410" />
+        </g>
+        <g stroke={strokeColor} strokeWidth="1.0" strokeDasharray="6 6" opacity={isLight ? 0.25 : 0.35}>
+          <path d="M-100,90 C160,40 340,150 560,95 S780,40 950,120" />
+          <path d="M-100,265 C120,205 320,325 550,260 S770,205 950,290" />
+        </g>
+      </svg>
+    </div>
+  );
+};
+
 // Fake unpressable demo pins for the LGU Dispatcher interactive map
 const DEMO_MAP_PINS = [
-  { id: '1', lat: 10.3289, lng: 123.9212, score: 91.0, status: 'triaged', review: false, label: 'Mahiga Creek' },
-  { id: '2', lat: 10.3015, lng: 123.9102, score: 78.5, status: 'triaged', review: false, label: 'Tejero Estero' },
-  { id: '3', lat: 10.3120, lng: 123.9145, score: 54.0, status: 'triaged', review: false, label: 'Carreta Creek' },
-  { id: '4', lat: 10.2970, lng: 123.8990, score: 22.0, status: 'triaged', review: false, label: 'Colon Drainage' },
-  { id: '5', lat: 10.3340, lng: 123.9275, score: 85.0, status: 'in_progress', review: false, label: 'Subangdaku' },
+  { id: '1', lat: 10.3289, lng: 123.9212, score: 91.0, status: 'triaged', review: false },
+  { id: '2', lat: 10.3015, lng: 123.9102, score: 78.5, status: 'triaged', review: false },
+  { id: '3', lat: 10.3120, lng: 123.9145, score: 54.0, status: 'triaged', review: false },
+  { id: '4', lat: 10.2970, lng: 123.8990, score: 22.0, status: 'triaged', review: false },
+  { id: '5', lat: 10.3340, lng: 123.9275, score: 85.0, status: 'in_progress', review: false },
 ];
 
 export default function FeaturesSection() {
   const { theme } = useTheme();
+  const isLight = theme === 'light';
+
+  // Dynamic header cycling
   const [headerWordIndex, setHeaderWordIndex] = useState(0);
   const headerWords = ['Vision.', 'Meteorology.', 'Dispatch.'];
 
-  // 1. Frictionless Citizen Reporting 3-Step Interactive Demo State
-  const [citizenStep, setCitizenStep] = useState<0 | 1 | 2>(0);
+  // Frictionless Citizen Reporting 3-Step Selection: 1 = Photo, 2 = Location, 3 = Submit
+  const [citizenStep, setCitizenStep] = useState<1 | 2 | 3>(1);
 
-  const CITIZEN_STEP_DATA = [
-    {
-      stepLabel: '01. Capture Photo',
-      title: 'Step 1: Ground-Truth Photo Capture',
-      desc: 'Citizens snap high-resolution visual evidence of obstructed canals or choked street drain inlets. The platform instantly validates image formats (JPEG, PNG, WebP) and size limits up to 8MB with optional 280-character context notes.',
+  const CITIZEN_STEP_DESCRIPTIONS = {
+    1: {
+      headline: 'Step 01 / Photo Capture & Format Validation',
+      body: 'Citizens capture or upload ground-truth photos of clogged esteros, culverts, or street inlets. The system validates image formats (JPEG, PNG, WebP) and 8MB size limits in real time with optional 280-character context notes.'
     },
-    {
-      stepLabel: '02. Pinpoint Location',
-      title: 'Step 2: Browser GPS Geotagging & Pin Drop',
-      desc: 'Incident coordinates are captured automatically via HTML5 geolocation with accuracy under ±3 meters. Citizens can adjust the dropped pin on an interactive Leaflet map to guarantee millimeter-precise canal coordinates.',
+    2: {
+      headline: 'Step 02 / Automated Geotagging & Pin Drop',
+      body: 'Incident GPS coordinates are automatically retrieved via browser geolocation with pinpoint accuracy under ±3 meters. Citizens can freely drag and drop the map pin to guarantee millimeter-accurate location data before submission.'
     },
-    {
-      stepLabel: '03. Instant Docket',
-      title: 'Step 3: Instant Reference & Tracking',
-      desc: 'Zero account registration or app install needed. Submissions immediately generate a unique human-readable tracking code (e.g. ER-2026-928174) with milestone tracking for total civic transparency.',
+    3: {
+      headline: 'Step 03 / Zero-Install Submission & Instant Docket',
+      body: 'Anonymous guest reporting with zero account registration. Submissions immediately generate a unique tracking reference (e.g. ER-2026-928174) with live milestone tracking for total community transparency.'
     }
-  ];
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -151,7 +168,7 @@ export default function FeaturesSection() {
           />
         </motion.div>
 
-        {/* Feature Bento-Box Grid with Rich Tactical Textures */}
+        {/* Feature Bento-Box Grid with Wave Textures */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -161,40 +178,23 @@ export default function FeaturesSection() {
         >
 
           {/* ========================================================================= */}
-          {/* FEATURE 1: Frictionless Citizen Reporting (2 cols) with Interactive Demo  */}
+          {/* FEATURE 1: Frictionless Citizen Reporting (2 cols)                        */}
+          {/* Top Area: Dynamic Description | Bottom Area: Exact Mobile Stepper Buttons */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/40 tactical-grid backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+              {/* Static Wave Background Texture */}
+              <StaticWaveTexture isLight={isLight} />
               <BorderBeam delay={0} />
 
-              <div className="skew-x-3 md:skew-x-12 flex flex-col justify-between h-full">
+              <div className="skew-x-3 md:skew-x-12 relative z-10 flex flex-col justify-between h-full space-y-6">
                 
-                {/* Header with 3-Step Interactive Navigator */}
-                <div className="pl-2 md:pl-5 pr-2 mb-6">
-                  <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-                    <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary uppercase tracking-tight group-hover:text-brand-primary transition-colors">
-                      Frictionless Citizen Reporting
-                    </h3>
-                    
-                    {/* Step Selector Pills */}
-                    <div className="flex items-center gap-1.5 bg-surface-subtle/80 p-1 border border-border-subtle -skew-x-6">
-                      {CITIZEN_STEP_DATA.map((item, idx) => (
-                        <button
-                          key={item.stepLabel}
-                          onClick={() => setCitizenStep(idx as 0 | 1 | 2)}
-                          className={`px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                            citizenStep === idx
-                              ? 'bg-brand-primary text-white shadow-xs'
-                              : 'text-text-muted hover:text-text-primary hover:bg-surface'
-                          }`}
-                        >
-                          <span className="skew-x-6 inline-block">{item.stepLabel}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                {/* Upper Area: Title & Dynamic Description that changes per clicked button */}
+                <div className="pl-1 md:pl-3 pr-2">
+                  <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary uppercase tracking-tight group-hover:text-brand-primary transition-colors mb-2">
+                    Frictionless Citizen Reporting
+                  </h3>
 
-                  {/* Dynamic description updating based on active step */}
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={citizenStep}
@@ -202,152 +202,146 @@ export default function FeaturesSection() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -6 }}
                       transition={{ duration: 0.2 }}
+                      className="mt-2"
                     >
-                      <p className="text-xs font-mono font-bold text-brand-primary uppercase tracking-wider mb-1">
-                        {CITIZEN_STEP_DATA[citizenStep].title}
+                      <p className="text-xs font-mono font-bold text-brand-primary uppercase tracking-wider mb-1.5">
+                        {CITIZEN_STEP_DESCRIPTIONS[citizenStep].headline}
                       </p>
                       <p className="text-sm md:text-base text-text-secondary leading-relaxed font-normal max-w-2xl">
-                        {CITIZEN_STEP_DATA[citizenStep].desc}
+                        {CITIZEN_STEP_DESCRIPTIONS[citizenStep].body}
                       </p>
                     </motion.div>
                   </AnimatePresence>
                 </div>
 
-                {/* Interactive Step Demonstration Canvas */}
-                <div className="w-full min-h-[180px] bg-surface-subtle/60 tactical-dots border-2 border-border-subtle -skew-x-12 overflow-hidden relative group-hover:border-brand-primary/50 transition-colors p-3 sm:p-4 flex flex-col justify-center">
-                  <div className="skew-x-12 w-full">
-                    <AnimatePresence mode="wait">
-                      
-                      {/* DEMO STEP 0: Photo Capture Demonstration */}
-                      {citizenStep === 0 && (
-                        <motion.div 
-                          key="step-photo"
-                          initial={{ opacity: 0, scale: 0.98 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.98 }}
-                          className="flex flex-col sm:flex-row items-center justify-between gap-4"
-                        >
-                          <div className="relative w-full sm:w-48 h-32 border-2 border-brand-primary/50 bg-black/60 overflow-hidden flex items-center justify-center shrink-0">
-                            <div 
-                              className="absolute inset-0 bg-cover bg-center opacity-80"
-                              style={{ backgroundImage: `url('https://images.unsplash.com/photo-1621451537084-482c73073a0f?auto=format&fit=crop&w=400&q=80')` }}
-                            />
-                            {/* Viewfinder brackets */}
-                            <div className="absolute inset-2 border border-dashed border-white/40 pointer-events-none" />
-                            <div className="absolute bottom-1 left-2 bg-black/75 px-1.5 py-0.5 text-[9px] font-mono text-emerald-400 font-bold">
-                              CANAL_IMG_01.JPG (3.2MB)
-                            </div>
-                          </div>
+                {/* Bottom Area: EXACT Stepper UI from Citizen Report Screen */}
+                <div className="w-full bg-surface/70 backdrop-blur-md border border-border-subtle p-3 sm:p-4 rounded-sm">
+                  <div className="flex items-center justify-between px-2 sm:px-6 w-full max-w-md mx-auto">
+                    
+                    {/* Step 1: Photo Button */}
+                    <button
+                      type="button"
+                      onClick={() => setCitizenStep(1)}
+                      className="flex-1 flex flex-col items-center gap-1 transition-transform active:scale-95 relative z-10 group cursor-pointer"
+                    >
+                      <div className="relative">
+                        {citizenStep === 1 && (
+                          <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px] -skew-x-[3deg]" />
+                        )}
+                        <div className={`relative w-8 h-8 rounded-sm -skew-x-[3deg] flex items-center justify-center text-xs font-mono font-bold transition-all border ${
+                          citizenStep === 1
+                            ? 'bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(63,114,175,0.5)]'
+                            : 'bg-surface/80 text-text-muted border-border-subtle group-hover:border-text-muted'
+                        }`}>
+                          <span className="skew-x-[3deg]">01</span>
+                        </div>
+                      </div>
 
-                          <div className="flex-1 w-full space-y-2">
-                            <div className="flex items-center justify-between text-xs font-mono bg-surface/90 border border-border-subtle p-2">
-                              <span className="text-text-muted">IMAGE STATUS:</span>
-                              <span className="text-emerald-500 font-bold flex items-center gap-1">
-                                <Check className="w-3.5 h-3.5" /> CLIENT-VALIDATED
-                              </span>
-                            </div>
-                            <div className="text-xs font-mono bg-surface/90 border border-border-subtle p-2">
-                              <span className="text-text-muted">NOTES:</span>
-                              <span className="text-text-primary ml-1 italic">"Bottleneck under bridge culvert, water stagnant"</span>
-                            </div>
-                            <button
-                              onClick={() => setCitizenStep(1)}
-                              className="text-[11px] font-heading font-bold text-brand-primary hover:underline uppercase tracking-wider flex items-center gap-1 cursor-pointer pt-1"
-                            >
-                              Proceed to Location Verification <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {citizenStep === 1 && (
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-80" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-primary" />
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors font-mono ${
+                          citizenStep === 1 ? 'text-brand-primary' : 'text-text-muted'
+                        }`}>
+                          Photo
+                        </span>
+                      </div>
+                    </button>
 
-                      {/* DEMO STEP 1: Geolocation Pinpoint Demonstration */}
-                      {citizenStep === 1 && (
-                        <motion.div 
-                          key="step-location"
-                          initial={{ opacity: 0, scale: 0.98 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.98 }}
-                          className="flex flex-col sm:flex-row items-center justify-between gap-4"
-                        >
-                          <div className="relative w-full sm:w-48 h-32 border-2 border-brand-primary/50 bg-black/60 overflow-hidden shrink-0">
-                            {/* Embedded Mini Leaflet Map Preview */}
-                            <MapContainer
-                              center={[10.3157, 123.8854]}
-                              zoom={14}
-                              zoomControl={false}
-                              attributionControl={false}
-                              className={`w-full h-full ${theme === 'dark' ? 'dark-map' : ''}`}
-                            >
-                              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                              <Marker 
-                                position={[10.3157, 123.8854]} 
-                                icon={createEsteroMarkerIcon({ variant: 'critical', priorityScore: 88 })}
-                              />
-                            </MapContainer>
-                          </div>
+                    {/* Connector Line 1-2 */}
+                    <div className="h-[2px] w-10 sm:w-16 -mt-4 mx-1.5 transition-colors relative overflow-hidden bg-border-strong rounded-full">
+                      <div
+                        className={`h-full transition-all duration-500 ${
+                          citizenStep > 1
+                            ? 'w-full bg-gradient-to-r from-brand-primary to-brand-primary/80'
+                            : 'w-0'
+                        }`}
+                      />
+                    </div>
 
-                          <div className="flex-1 w-full space-y-2">
-                            <div className="flex items-center justify-between text-xs font-mono bg-surface/90 border border-border-subtle p-2">
-                              <span className="text-text-muted">LAT / LNG:</span>
-                              <span className="text-brand-primary font-bold">10.3157° N, 123.8854° E</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs font-mono bg-surface/90 border border-border-subtle p-2">
-                              <span className="text-text-muted">LOCATION:</span>
-                              <span className="text-text-primary font-bold">Colon St / City Hall Drainage</span>
-                            </div>
-                            <button
-                              onClick={() => setCitizenStep(2)}
-                              className="text-[11px] font-heading font-bold text-brand-primary hover:underline uppercase tracking-wider flex items-center gap-1 cursor-pointer pt-1"
-                            >
-                              Proceed to Instant Docket Receipt <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
+                    {/* Step 2: Location Button */}
+                    <button
+                      type="button"
+                      onClick={() => setCitizenStep(2)}
+                      className="flex-1 flex flex-col items-center gap-1 transition-transform active:scale-95 relative z-10 group cursor-pointer"
+                    >
+                      <div className="relative">
+                        {citizenStep === 2 && (
+                          <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px] -skew-x-[3deg]" />
+                        )}
+                        <div className={`relative w-8 h-8 rounded-sm -skew-x-[3deg] flex items-center justify-center text-xs font-mono font-bold transition-all border ${
+                          citizenStep === 2
+                            ? 'bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(63,114,175,0.5)]'
+                            : 'bg-surface/80 text-text-muted border-border-subtle group-hover:border-text-muted'
+                        }`}>
+                          <span className="skew-x-[3deg]">02</span>
+                        </div>
+                      </div>
 
-                      {/* DEMO STEP 2: Instant Reference Docket */}
-                      {citizenStep === 2 && (
-                        <motion.div 
-                          key="step-docket"
-                          initial={{ opacity: 0, scale: 0.98 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.98 }}
-                          className="flex flex-col sm:flex-row items-center justify-between gap-4"
-                        >
-                          <div className="w-full sm:w-48 h-32 bg-surface/90 border-2 border-brand-primary/60 p-3 flex flex-col justify-between shrink-0">
-                            <div className="flex items-center justify-between text-[10px] font-mono text-brand-primary font-bold">
-                              <span>ESTE-DOCKET</span>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-mono text-text-muted uppercase">CASE TRACKING ID</p>
-                              <p className="text-base font-heading font-black text-text-primary tracking-tight">ER-2026-928174</p>
-                            </div>
-                            <span className="text-[9px] font-mono text-amber-500 font-bold bg-amber-500/10 px-1.5 py-0.5 border border-amber-500/25 inline-block">
-                              STATUS: PENDING ANALYSIS
-                            </span>
-                          </div>
+                      <div className="flex items-center gap-1">
+                        {citizenStep === 2 && (
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-80" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-primary" />
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors font-mono ${
+                          citizenStep === 2 ? 'text-brand-primary' : 'text-text-muted'
+                        }`}>
+                          Location
+                        </span>
+                      </div>
+                    </button>
 
-                          <div className="flex-1 w-full space-y-2">
-                            <div className="text-xs font-mono bg-surface/90 border border-border-subtle p-2 flex items-center justify-between">
-                              <span className="text-text-muted">INGESTION TIME:</span>
-                              <span className="text-text-primary font-bold">&lt; 28.4 SECONDS</span>
-                            </div>
-                            <div className="text-xs font-mono bg-surface/90 border border-border-subtle p-2 flex items-center justify-between">
-                              <span className="text-text-muted">AUTH REQUIREMENT:</span>
-                              <span className="text-emerald-500 font-bold">ZERO INSTALL // GUEST ACCESSIBLE</span>
-                            </div>
-                            <button
-                              onClick={() => setCitizenStep(0)}
-                              className="text-[11px] font-heading font-bold text-text-secondary hover:text-brand-primary uppercase tracking-wider flex items-center gap-1 cursor-pointer pt-1"
-                            >
-                              <RotateCcw className="w-3 h-3" /> Replay Demonstration
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
+                    {/* Connector Line 2-3 */}
+                    <div className="h-[2px] w-10 sm:w-16 -mt-4 mx-1.5 transition-colors relative overflow-hidden bg-border-strong rounded-full">
+                      <div
+                        className={`h-full transition-all duration-500 ${
+                          citizenStep === 3
+                            ? 'w-full bg-gradient-to-r from-brand-primary to-brand-primary/80'
+                            : 'w-0'
+                        }`}
+                      />
+                    </div>
 
-                    </AnimatePresence>
+                    {/* Step 3: Submit Button */}
+                    <button
+                      type="button"
+                      onClick={() => setCitizenStep(3)}
+                      className="flex-1 flex flex-col items-center gap-1 transition-transform active:scale-95 relative z-10 group cursor-pointer"
+                    >
+                      <div className="relative">
+                        {citizenStep === 3 && (
+                          <span className="absolute -inset-1 rounded-sm bg-brand-primary/40 animate-pulse blur-[3px] -skew-x-[3deg]" />
+                        )}
+                        <div className={`relative w-8 h-8 rounded-sm -skew-x-[3deg] flex items-center justify-center text-xs font-mono font-bold transition-all border ${
+                          citizenStep === 3
+                            ? 'bg-brand-primary text-white border-brand-primary shadow-[0_0_15px_rgba(63,114,175,0.5)]'
+                            : 'bg-surface/80 text-text-muted border-border-subtle group-hover:border-text-muted'
+                        }`}>
+                          <span className="skew-x-[3deg]">03</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        {citizenStep === 3 && (
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-80" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-primary" />
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors font-mono ${
+                          citizenStep === 3 ? 'text-brand-primary' : 'text-text-muted'
+                        }`}>
+                          Submit
+                        </span>
+                      </div>
+                    </button>
+
                   </div>
                 </div>
 
@@ -356,20 +350,16 @@ export default function FeaturesSection() {
           </motion.div>
 
           {/* ========================================================================= */}
-          {/* FEATURE 2: Meteorological Agent with Real Numbers & Computation Visual    */}
+          {/* FEATURE 2: Meteorological Agent (Clean, Unskewed Centered Visual)          */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/40 tactical-grid backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+              {/* Static Wave Background Texture */}
+              <StaticWaveTexture isLight={isLight} />
               <BorderBeam delay={2.25} />
 
-              <div className="skew-x-3 md:skew-x-12 flex flex-col justify-between h-full">
-                <div className="pl-2 md:pl-5 pr-2 mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CloudRain className="w-4 h-4 text-brand-primary" />
-                    <span className="text-[10px] font-mono text-brand-primary font-bold uppercase tracking-widest">
-                      Open-Meteo // Doppler
-                    </span>
-                  </div>
+              <div className="skew-x-3 md:skew-x-12 relative z-10 flex flex-col justify-between h-full space-y-5">
+                <div className="pl-1 md:pl-3 pr-1">
                   <h3 className="font-heading font-black text-2xl text-text-primary mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Meteorological Agent
                   </h3>
@@ -378,243 +368,205 @@ export default function FeaturesSection() {
                   </p>
                 </div>
 
-                {/* Real Numerical Computation Visual Box */}
-                <div className="w-full bg-surface-subtle/60 tactical-dots border-2 border-border-subtle -skew-x-12 p-4 relative group-hover:border-brand-primary/50 transition-colors">
-                  <div className="skew-x-12 space-y-3">
-                    
-                    {/* Top Stat Line */}
-                    <div className="flex items-baseline justify-between border-b border-border-subtle/70 pb-2">
-                      <div>
-                        <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none">
-                          84%
-                        </span>
-                        <span className="block font-data text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
-                          Rain Probability Index (RPI)
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-mono text-xs font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 border border-amber-500/30">
-                          HIGH HAZARD
-                        </span>
-                        <span className="block font-data text-[9px] text-text-muted mt-1">
-                          Peak 17:00 PHT
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 48-Hour Precipitation Curve Histogram */}
+                {/* Centered, Cleanly Padded Visual Box (No nested skews to avoid clipping) */}
+                <div className="w-full bg-surface/75 backdrop-blur-md border border-border-subtle p-4 rounded-sm space-y-3">
+                  
+                  {/* Real Numbers & Computed RPI */}
+                  <div className="flex items-baseline justify-between border-b border-border-subtle/70 pb-2">
                     <div>
-                      <div className="flex items-end justify-between gap-1 h-12 pt-1 border-b border-border-subtle">
-                        {[22, 35, 52, 68, 84, 76, 55, 38, 20].map((val, idx) => (
-                          <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end">
-                            <div 
-                              style={{ height: `${val}%` }} 
-                              className={`w-full rounded-none transition-all ${
-                                idx === 4 
-                                  ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' 
-                                  : val > 50 ? 'bg-amber-400' : 'bg-brand-primary/70'
-                              }`} 
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex justify-between text-[8px] font-mono text-text-muted mt-1 uppercase">
-                        <span>+0h</span>
-                        <span className="text-rose-400 font-bold">+18h (Peak 38.5mm)</span>
-                        <span>+48h</span>
-                      </div>
+                      <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none">
+                        84%
+                      </span>
+                      <span className="block font-data text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                        Rain Probability Index (RPI)
+                      </span>
                     </div>
-
-                    {/* Formula Chip */}
-                    <div className="bg-surface/90 border border-border-subtle p-2 text-[10px] font-mono flex items-center justify-between">
-                      <span className="text-text-muted">FORMULA:</span>
-                      <span className="text-brand-primary font-bold">RPI = max(Hourly Precip %)</span>
+                    <div className="text-right">
+                      <span className="font-mono text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 border border-amber-500/30">
+                        HIGH HAZARD
+                      </span>
+                      <span className="block font-data text-[9px] text-text-muted mt-1">
+                        Peak 17:00 PHT
+                      </span>
                     </div>
-
                   </div>
+
+                  {/* 48-Hour Rainfall Distribution Histogram */}
+                  <div>
+                    <div className="flex items-end justify-between gap-1.5 h-12 pt-1 border-b border-border-subtle">
+                      {[22, 35, 52, 68, 84, 76, 55, 38, 20].map((val, idx) => (
+                        <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end">
+                          <div 
+                            style={{ height: `${val}%` }} 
+                            className={`w-full rounded-none transition-all ${
+                              idx === 4 
+                                ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' 
+                                : val > 50 ? 'bg-amber-400' : 'bg-brand-primary/70'
+                            }`} 
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between text-[8px] font-mono text-text-muted mt-1 uppercase">
+                      <span>Now</span>
+                      <span className="text-rose-400 font-bold">+18h (Peak 38.5mm)</span>
+                      <span>+48h</span>
+                    </div>
+                  </div>
+
+                  {/* Formula Chip */}
+                  <div className="bg-surface-subtle/60 border border-border-subtle px-2.5 py-1.5 text-[10px] font-mono flex items-center justify-between">
+                    <span className="text-text-muted">FORMULA:</span>
+                    <span className="text-brand-primary font-bold">RPI = max(Hourly Precip %)</span>
+                  </div>
+
                 </div>
               </div>
             </div>
           </motion.div>
 
           {/* ========================================================================= */}
-          {/* FEATURE 3: Vision Triage Agent with Real Classification Breakdown         */}
+          {/* FEATURE 3: Vision Triage Agent (Clean, Unskewed Centered Visual)          */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/40 tactical-grid backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+              {/* Static Wave Background Texture */}
+              <StaticWaveTexture isLight={isLight} />
               <BorderBeam delay={4.5} />
 
-              <div className="skew-x-3 md:skew-x-12 flex flex-col justify-between h-full">
-                <div className="pl-2 md:pl-5 pr-2 mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-4 h-4 text-brand-primary" />
-                    <span className="text-[10px] font-mono text-brand-primary font-bold uppercase tracking-widest">
-                      Gemini 1.5 // Multimodal
-                    </span>
-                  </div>
+              <div className="skew-x-3 md:skew-x-12 relative z-10 flex flex-col justify-between h-full space-y-5">
+                <div className="pl-1 md:pl-3 pr-1">
                   <h3 className="font-heading font-black text-2xl text-text-primary mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Vision Triage Agent
                   </h3>
                   <p className="text-sm text-text-secondary leading-relaxed font-normal">
-                    Enforces anti-spoofing domain checks, classifies waste categories, and quantifies blockage severity.
+                    Gemini 1.5 Flash multimodal AI classifies waste composition and quantifies waterway blockage severity from photos.
                   </p>
                 </div>
 
-                {/* Real Waste Breakdown & Severity Metrics Box */}
-                <div className="w-full bg-surface-subtle/60 tactical-dots border-2 border-border-subtle -skew-x-12 p-4 relative group-hover:border-brand-primary/50 transition-colors">
-                  <div className="skew-x-12 space-y-3">
-                    
-                    {/* Domain Gate & Severity Score Line */}
-                    <div className="flex items-baseline justify-between border-b border-border-subtle/70 pb-2">
-                      <div>
-                        <span className="font-heading font-black text-3xl md:text-4xl text-rose-500 leading-none">
-                          78.0
-                        </span>
-                        <span className="block font-data text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
-                          Blockage Severity (0-100)
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-mono text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 border border-emerald-500/30 flex items-center gap-1 justify-end">
-                          <ShieldCheck className="w-3 h-3" /> CANAL VERIFIED
-                        </span>
-                        <span className="block font-data text-[9px] text-text-muted mt-1">
-                          Latency: 1.84s
-                        </span>
-                      </div>
+                {/* Centered, Cleanly Padded Visual Box (No nested skews to avoid clipping) */}
+                <div className="w-full bg-surface/75 backdrop-blur-md border border-border-subtle p-4 rounded-sm space-y-3">
+                  
+                  {/* Real Numbers & Computed Severity */}
+                  <div className="flex items-baseline justify-between border-b border-border-subtle/70 pb-2">
+                    <div>
+                      <span className="font-heading font-black text-3xl md:text-4xl text-rose-500 leading-none">
+                        78.0
+                      </span>
+                      <span className="block font-data text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                        Blockage Severity (0-100)
+                      </span>
                     </div>
-
-                    {/* Waste Composition Category Progress Bars */}
-                    <div className="space-y-1.5 text-[10px] font-mono">
-                      <div>
-                        <div className="flex justify-between text-text-secondary mb-0.5">
-                          <span>PLASTICS (CHOKING):</span>
-                          <span className="font-bold text-text-primary">48%</span>
-                        </div>
-                        <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
-                          <div className="h-full bg-rose-500" style={{ width: '48%' }} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-text-secondary mb-0.5">
-                          <span>ORGANIC / WEEDS:</span>
-                          <span className="font-bold text-text-primary">28%</span>
-                        </div>
-                        <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
-                          <div className="h-full bg-amber-500" style={{ width: '28%' }} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-text-secondary mb-0.5">
-                          <span>SILT & SEDIMENT:</span>
-                          <span className="font-bold text-text-primary">16%</span>
-                        </div>
-                        <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
-                          <div className="h-full bg-brand-primary" style={{ width: '16%' }} />
-                        </div>
-                      </div>
+                    <div className="text-right">
+                      <span className="font-mono text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/30 inline-block">
+                        AUTHENTIC CANAL
+                      </span>
+                      <span className="block font-data text-[9px] text-text-muted mt-1">
+                        Inference: 1.84s
+                      </span>
                     </div>
-
-                    {/* AI Prompt Synthesis Note */}
-                    <p className="text-[9px] font-mono text-text-muted italic truncate">
-                      "Severe cross-sectional intake obstruction by bottles and vegetal debris."
-                    </p>
-
                   </div>
+
+                  {/* Real Waste Breakdown Progress Bars */}
+                  <div className="space-y-1.5 text-[10px] font-mono">
+                    <div>
+                      <div className="flex justify-between text-text-secondary mb-0.5">
+                        <span>PLASTICS (CHOKING):</span>
+                        <span className="font-bold text-text-primary">48%</span>
+                      </div>
+                      <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
+                        <div className="h-full bg-rose-500" style={{ width: '48%' }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-text-secondary mb-0.5">
+                        <span>ORGANIC / WEEDS:</span>
+                        <span className="font-bold text-text-primary">28%</span>
+                      </div>
+                      <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
+                        <div className="h-full bg-amber-500" style={{ width: '28%' }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-text-secondary mb-0.5">
+                        <span>SILT & SEDIMENT:</span>
+                        <span className="font-bold text-text-primary">16%</span>
+                      </div>
+                      <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
+                        <div className="h-full bg-brand-primary" style={{ width: '16%' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rationale Quote */}
+                  <p className="text-[9px] font-mono text-text-muted italic truncate">
+                    "Heavy plastic bottles and vegetative debris obstructing intake."
+                  </p>
+
                 </div>
               </div>
             </div>
           </motion.div>
 
           {/* ========================================================================= */}
-          {/* FEATURE 4: LGU Dispatcher Dashboard (2 cols) with Real Embedded Map       */}
+          {/* FEATURE 4: LGU Dispatcher Dashboard (Real Interactive Movable Map)        */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/40 tactical-grid backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+              {/* Static Wave Background Texture */}
+              <StaticWaveTexture isLight={isLight} />
               <BorderBeam delay={6.75} />
 
-              <div className="skew-x-3 md:skew-x-12 flex flex-col justify-between h-full">
+              <div className="skew-x-3 md:skew-x-12 relative z-10 flex flex-col justify-between h-full space-y-5">
                 
-                {/* Header */}
-                <div className="pl-2 md:pl-5 pr-2 mb-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      <LayoutDashboard className="w-4 h-4 text-brand-primary" />
-                      <span className="text-[10px] font-mono text-brand-primary font-bold uppercase tracking-widest">
-                        Decision Synthesis // 60% Vision + 40% Rain
-                      </span>
-                    </div>
-
-                    {/* Live Status Chip */}
-                    <span className="text-[10px] font-mono font-bold bg-brand-primary/10 border border-brand-primary/30 text-brand-primary px-2 py-0.5">
-                      ACTIVE QUEUE: 5 BOTTLENECKS
-                    </span>
-                  </div>
-
+                {/* Header (No AI pills) */}
+                <div className="pl-1 md:pl-3 pr-2">
                   <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
-                    LGU Dispatcher Command Dashboard
+                    LGU Dispatcher Dashboard
                   </h3>
                   <p className="text-sm md:text-base text-text-secondary leading-relaxed font-normal max-w-2xl">
-                    A real-time GIS decision matrix combining weather hazards and blockage metrics. Automatically calculates nearest-neighbor routes to clear critical canal choke points first.
+                    A real-time command dashboard synthesizing rainfall forecast data and blockage metrics. Dispatches maintenance crews to critical bottlenecks first using nearest-neighbor route optimization.
                   </p>
                 </div>
 
-                {/* Real Interactive Movable Leaflet Map Container */}
-                <div className="w-full h-48 sm:h-56 bg-surface-subtle/80 tactical-dots border-2 border-border-subtle -skew-x-12 overflow-hidden relative group-hover:border-brand-primary/50 transition-colors">
-                  <div className="skew-x-12 w-full h-full relative">
+                {/* Clean, Non-Skewed Rectangular Interactive Map Frame (No white corner gaps) */}
+                <div className="w-full h-52 sm:h-60 rounded-sm border border-border-subtle overflow-hidden relative shadow-inner">
+                  <MapContainer
+                    center={[10.3157, 123.9050]}
+                    zoom={14}
+                    scrollWheelZoom={false}
+                    attributionControl={false}
+                    className={`w-full h-full z-0 cursor-grab active:cursor-grabbing ${
+                      theme === 'dark' ? 'dark-map' : ''
+                    }`}
+                  >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     
-                    {/* Embedded Movable Interactive Leaflet Map */}
-                    <MapContainer
-                      center={[10.3157, 123.9100]}
-                      zoom={13}
-                      scrollWheelZoom={false}
-                      attributionControl={false}
-                      className={`w-full h-full z-0 cursor-grab active:cursor-grabbing ${
-                        theme === 'dark' ? 'dark-map' : ''
-                      }`}
-                    >
-                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                      
-                      {/* Operations Base Depot Pin */}
+                    {/* Operations Base Depot Pin */}
+                    <Marker
+                      position={[10.2930, 123.9015]}
+                      icon={createDepotMarkerIcon({
+                        isSelected: true,
+                        isCustom: false,
+                        tag: 'Cebu City Hall HQ'
+                      })}
+                    />
+
+                    {/* Real Priority Estero Pins */}
+                    {DEMO_MAP_PINS.map((pin) => (
                       <Marker
-                        position={[10.2930, 123.9015]}
-                        icon={createDepotMarkerIcon({
-                          isSelected: true,
-                          isCustom: false,
-                          tag: 'Cebu City Hall HQ'
+                        key={pin.id}
+                        position={[pin.lat, pin.lng]}
+                        icon={createEsteroMarkerIcon({
+                          status: pin.status,
+                          priorityScore: pin.score,
+                          needsReview: pin.review,
                         })}
                       />
-
-                      {/* Fake Unpressable Priority Estero Pins */}
-                      {DEMO_MAP_PINS.map((pin) => (
-                        <Marker
-                          key={pin.id}
-                          position={[pin.lat, pin.lng]}
-                          icon={createEsteroMarkerIcon({
-                            status: pin.status,
-                            priorityScore: pin.score,
-                            needsReview: pin.review,
-                          })}
-                        />
-                      ))}
-                    </MapContainer>
-
-                    {/* Floating Tactical Overlay Telemetry Pill */}
-                    <div className="absolute top-2 left-2 z-[400] pointer-events-none bg-black/75 backdrop-blur-md px-2.5 py-1 border border-white/20 text-[10px] font-mono text-white flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="font-bold uppercase tracking-wider">LIVE CEBU BASIN GIS // DRAG MAP TO EXPLORE</span>
-                    </div>
-
-                    {/* Bottom Floating Legend */}
-                    <div className="absolute bottom-2 right-2 z-[400] pointer-events-none bg-black/80 backdrop-blur-md px-2.5 py-1 border border-white/20 text-[9px] font-mono text-white/90 hidden sm:flex items-center gap-3">
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500" /> URGENT (&ge;80)</span>
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> HIGH (60-79)</span>
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> RESOLVED</span>
-                    </div>
-
-                  </div>
+                    ))}
+                  </MapContainer>
                 </div>
 
               </div>
