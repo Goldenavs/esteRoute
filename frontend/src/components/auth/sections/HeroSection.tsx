@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
+import {
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
   ArrowLeft,
-  Loader2, 
-  CheckCircle2, 
+  Loader2,
+  CheckCircle2,
   ChevronDown,
   Camera,
   Check
@@ -28,12 +28,12 @@ interface HeroSectionProps {
 // Subtle, slowly moving topographic / bathymetric contour lines
 const AnimatedContourLines = ({ isLight }: { isLight: boolean }) => {
   const strokeColor = isLight ? '#3F72AF' : '#112D4E';
-  
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-      <svg 
-        className="w-full h-full min-w-[800px] min-h-[700px] opacity-25" 
-        viewBox="0 0 1200 900" 
+      <svg
+        className="w-full h-full min-w-[800px] min-h-[700px] opacity-25"
+        viewBox="0 0 1200 900"
         preserveAspectRatio="none"
         fill="none"
       >
@@ -87,12 +87,11 @@ const AnimatedContourLines = ({ isLight }: { isLight: boolean }) => {
       </svg>
 
       {/* Subtle atmospheric sheen */}
-      <div 
-        className={`absolute inset-0 pointer-events-none ${
-          isLight 
-            ? 'bg-gradient-to-tr from-brand-primary/10 via-transparent to-brand-primary/5' 
+      <div
+        className={`absolute inset-0 pointer-events-none ${isLight
+            ? 'bg-gradient-to-tr from-brand-primary/10 via-transparent to-brand-primary/5'
             : 'bg-gradient-to-tr from-brand-primary/5 via-transparent to-transparent'
-        }`} 
+          }`}
       />
     </div>
   );
@@ -272,8 +271,8 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
   };
 
   return (
-    <section 
-      id="hero" 
+    <section
+      id="hero"
       className="relative w-full min-h-[100dvh] md:h-screen md:min-h-[700px] overflow-hidden bg-app-bg flex flex-col justify-between"
     >
       {/* ========================================================= */}
@@ -282,18 +281,18 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
       {/* ========================================================= */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Citizen Background Layer */}
-        <div 
+        <div
           className="absolute inset-0 bg-[url('/Auth/CitizenAuth.jpg')] bg-cover bg-center transition-opacity duration-700 ease-in-out"
-          style={{ 
+          style={{
             opacity: activePortal === 'citizen' ? 0.45 : 0,
             willChange: 'opacity',
           }}
         />
 
         {/* Admin Background Layer */}
-        <div 
+        <div
           className="absolute inset-0 bg-[url('/Auth/AdminAuth.jpg')] bg-cover bg-center transition-opacity duration-700 ease-in-out"
-          style={{ 
+          style={{
             opacity: activePortal === 'admin' ? 0.45 : 0,
             willChange: 'opacity',
           }}
@@ -524,9 +523,9 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                       {/* Password Strength Meter */}
                       <AnimatePresence>
                         {citizenMode === 'signup' && citizenPassword.length > 0 && (
-                          <motion.div 
-                            initial={{ opacity: 0, height: 0 }} 
-                            animate={{ opacity: 1, height: 'auto' }} 
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
                             className="space-y-1.5 overflow-hidden"
                           >
@@ -538,7 +537,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                                 if (/[A-Z]/.test(citizenPassword) || /[0-9]/.test(citizenPassword)) score += 1;
                                 if (/[^A-Za-z0-9]/.test(citizenPassword)) score += 1;
                                 const strength = Math.min(score, 4);
-                                
+
                                 let bgClass = "bg-border-subtle";
                                 if (strength >= level) {
                                   if (strength <= 1) bgClass = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]";
@@ -600,7 +599,7 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                     >
                       <div className="skew-x-12 flex items-center gap-2">
                         <Camera className="w-4 h-4 text-brand-primary" />
-                        <span>Continue as Guest (No Account)</span>
+                        <span>Continue as Guest</span>
                       </div>
                     </button>
 
@@ -635,11 +634,10 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
         {/* (Pure luxury surface with gently drifting wave contours)  */}
         {/* ========================================================= */}
         <motion.div
-          className={`hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden border-x-2 transition-colors duration-500 flex-col justify-center ${
-            isLight
+          className={`hidden md:flex absolute top-0 bottom-0 z-20 overflow-hidden border-x-2 transition-colors duration-500 flex-col justify-center ${isLight
               ? 'bg-[#081B33] border-brand-primary/50 text-white shadow-[0_12px_60px_rgba(0,0,0,0.5)]'
               : 'bg-[#F9FBFD] border-border-subtle/90 text-[#0B1E36] shadow-[0_12px_60px_rgba(0,0,0,0.6)]'
-          }`}
+            }`}
           style={{ width: '60vw' }}
           initial={false}
           animate={{
@@ -652,9 +650,9 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
           <AnimatedContourLines isLight={isLight} />
 
           {/* Un-skewed Content Container with Dynamic Responsive Padding */}
-          <div 
+          <div
             className="relative z-10 flex flex-col justify-center py-16 transition-all duration-500"
-            style={{ 
+            style={{
               transform: 'skewX(12deg)',
               paddingLeft: activePortal === 'citizen' ? '14vw' : '6vw',
               paddingRight: activePortal === 'citizen' ? '6vw' : '14vw',
@@ -669,9 +667,8 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <h1 className={`text-3xl lg:text-5xl font-heading font-black tracking-tight uppercase leading-[1.08] mb-4 drop-shadow-sm ${
-                    isLight ? 'text-white' : 'text-[#0B1E36]'
-                  }`}>
+                  <h1 className={`text-3xl lg:text-5xl font-heading font-black tracking-tight uppercase leading-[1.08] mb-4 drop-shadow-sm ${isLight ? 'text-white' : 'text-[#0B1E36]'
+                    }`}>
                     {activePortal === 'citizen' ? (
                       <>
                         Keep our esteros{' '}
@@ -714,9 +711,8 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                     )}
                   </h1>
 
-                  <p className={`text-sm lg:text-base leading-relaxed mb-8 font-normal max-w-md ${
-                    isLight ? 'text-slate-300' : 'text-slate-600'
-                  }`}>
+                  <p className={`text-sm lg:text-base leading-relaxed mb-8 font-normal max-w-md ${isLight ? 'text-slate-300' : 'text-slate-600'
+                    }`}>
                     {activePortal === 'citizen'
                       ? 'Submit photos of canal obstructions in seconds. AI and rain forecast models automatically alert municipal cleanup crews.'
                       : 'Prioritized drainage response for sanitation units. Dynamic hazard ranking and optimized cleanup routing.'}
@@ -725,23 +721,20 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
               </AnimatePresence>
 
               {/* Minimalist Feature Points */}
-              <div className={`space-y-3 max-w-md text-xs sm:text-sm font-medium ${
-                isLight ? 'text-slate-200' : 'text-slate-700'
-              }`}>
+              <div className={`space-y-3 max-w-md text-xs sm:text-sm font-medium ${isLight ? 'text-slate-200' : 'text-slate-700'
+                }`}>
                 {activePortal === 'citizen' ? (
                   <>
                     <div className="flex items-center gap-2.5">
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
-                      }`}>
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                        }`}>
                         <Check className="w-2.5 h-2.5 text-brand-primary" />
                       </div>
                       <span>Zero registration required to submit canal photos</span>
                     </div>
                     <div className="flex items-center gap-2.5">
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
-                      }`}>
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                        }`}>
                         <Check className="w-2.5 h-2.5 text-brand-primary" />
                       </div>
                       <span>Automated 48h flood risk & rain analysis</span>
@@ -750,17 +743,15 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
                 ) : (
                   <>
                     <div className="flex items-center gap-2.5">
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
-                      }`}>
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                        }`}>
                         <Check className="w-2.5 h-2.5 text-brand-primary" />
                       </div>
                       <span>Real-time weather-aware priority queue</span>
                     </div>
                     <div className="flex items-center gap-2.5">
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                        isLight ? 'bg-white/10' : 'bg-brand-primary/10'
-                      }`}>
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${isLight ? 'bg-white/10' : 'bg-brand-primary/10'
+                        }`}>
                         <Check className="w-2.5 h-2.5 text-brand-primary" />
                       </div>
                       <span>A* pathfinding for cleanup fleet routing</span>
@@ -777,13 +768,12 @@ export default function HeroSection({ activePortal, setActivePortal, scrollTo }:
 
       {/* Floating Bottom Explore Prompt */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 hidden md:flex">
-        <button 
+        <button
           onClick={() => scrollTo('features')}
-          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer group ${
-            activePortal === 'admin'
+          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer group ${activePortal === 'admin'
               ? 'text-brand-primary hover:text-white'
               : 'text-white hover:text-brand-primary'
-          }`}
+            }`}
         >
           <span className="text-[10px] font-bold uppercase tracking-widest group-hover:tracking-wider transition-all">
             Explore
