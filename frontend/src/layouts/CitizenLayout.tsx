@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import TacticalBackground from '../components/common/TacticalBackground';
 import ConfirmExitModal from '../components/common/ConfirmExitModal';
 
@@ -37,6 +38,29 @@ const AnimatedNavLink = ({
   );
 };
 
+const CITIZEN_PAGE_CONFIG: Record<string, { title: string; subtitle: string; icon: LucideIcon }> = {
+  '/citizen': {
+    title: 'Report a Blockage',
+    subtitle: 'Help prevent flooding by reporting clogged esteros and canals in your area. Our AI assesses severity instantly.',
+    icon: MapPin,
+  },
+  '/citizen/public-map': {
+    title: 'Public Basin Map',
+    subtitle: 'Live waterway flow, community blockage advisories, and ongoing city maintenance.',
+    icon: Map,
+  },
+  '/citizen/dashboard': {
+    title: 'My Reports',
+    subtitle: "Track real-time resolution status of canal blockages you've submitted.",
+    icon: Activity,
+  },
+  '/citizen/profile': {
+    title: 'Account Profile',
+    subtitle: 'Manage your verified citizen credentials, civic credits, and notification settings.',
+    icon: User,
+  },
+};
+
 export default function CitizenLayout() {
   const { theme, toggleTheme } = useTheme();
   const { logout, isGuestMode } = useAuth();
@@ -45,6 +69,29 @@ export default function CitizenLayout() {
   const navigate = useNavigate();
   const [isNavVisible, setIsNavVisible] = useState(true);
   const isNavVisibleRef = useRef(true);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const isMapFullscreenRef = useRef(false);
+
+  useEffect(() => {
+    isMapFullscreenRef.current = isMapFullscreen;
+  }, [isMapFullscreen]);
+
+  useEffect(() => {
+    const handleMapFs = (e: Event) => {
+      const customEvent = e as CustomEvent<{ isFullscreen: boolean }>;
+      setIsMapFullscreen(!!customEvent.detail?.isFullscreen);
+    };
+    const handleNativeFs = () => {
+      setIsMapFullscreen(document.fullscreenElement !== null);
+    };
+
+    window.addEventListener('map-fullscreen-change', handleMapFs);
+    document.addEventListener('fullscreenchange', handleNativeFs);
+    return () => {
+      window.removeEventListener('map-fullscreen-change', handleMapFs);
+      document.removeEventListener('fullscreenchange', handleNativeFs);
+    };
+  }, []);
   const isNavHoveredRef = useRef(false);
 
   useEffect(() => {
@@ -61,7 +108,7 @@ export default function CitizenLayout() {
     let timeout: ReturnType<typeof setTimeout> | null = null;
     
     const handleMouseMove = (e: MouseEvent) => {
-      if (document.body.getAttribute('data-camera-active') === 'true') {
+      if (isMapFullscreenRef.current || document.body.getAttribute('data-camera-active') === 'true') {
         setIsNavVisible(false);
         return;
       }
@@ -114,6 +161,9 @@ export default function CitizenLayout() {
   ];
 
   const isMapRoute = location.pathname.startsWith('/citizen/public-map');
+  const currentConfig = Object.entries(CITIZEN_PAGE_CONFIG).find(([path]) => 
+    path === '/citizen' ? location.pathname === '/citizen' : location.pathname.startsWith(path)
+  )?.[1] || CITIZEN_PAGE_CONFIG['/citizen'];
 
   return (
     <div className={twMerge(
@@ -129,12 +179,12 @@ export default function CitizenLayout() {
       {/* Tight Hover Zone (Top 20px Edge) to catch rapid mouse movements */}
       <div className="fixed top-0 left-0 w-full h-5 z-[999] md:block hidden pointer-events-none" />
 
-      {/* Top Navbar (Desktop Only) - Follows AuthNavbar Style */}
+      {/* Dynamic Top Bar: Nav Mode <-> Header Mode (Desktop Only) */}
       <div 
         className={twMerge(
           clsx(
-            "fixed top-4 w-full z-[1000] pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
-            isNavVisible && document.body.getAttribute('data-camera-active') !== 'true' ? "translate-y-0" : "-translate-y-[150%]"
+            "fixed top-4 w-full z-[1000] pointer-events-none transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
+            isMapFullscreen || document.body.getAttribute('data-camera-active') === 'true' ? "-translate-y-[160%]" : "translate-y-0"
           )
         )}
       >
@@ -148,56 +198,93 @@ export default function CitizenLayout() {
               onMouseLeave={() => {
                 isNavHoveredRef.current = false;
               }}
-              className="w-full flex items-center justify-between pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12"
+              className="w-full pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12 relative overflow-hidden min-h-[58px] flex items-center"
             >
-              
-              {/* Left: Brand Logo (Non-clickable, matching landing page hover effect & styling) */}
-              <div className="flex-1 flex justify-start skew-x-12">
-                <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default">
-                  <span className="text-text-primary group-hover:text-brand-primary transition-colors">
-                    este<span className="text-brand-primary">Route</span>
-                  </span>
-                </div>
+              {/* Static un-skew wrapper to protect text and icons from Framer Motion transform collisions */}
+              <div className="w-full skew-x-12 flex items-center">
+                <AnimatePresence mode="wait">
+                  {isNavVisible ? (
+                    <motion.div
+                      key="nav-mode"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="w-full flex items-center justify-between"
+                    >
+                      {/* Left: Brand Logo */}
+                      <div className="flex-1 flex justify-start">
+                        <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default">
+                          <span className="text-text-primary group-hover:text-brand-primary transition-colors">
+                            este<span className="text-brand-primary">Route</span>
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Center: Navigation Links */}
+                      <nav className="flex-1 flex justify-center items-center gap-7 xl:gap-10">
+                        {navItems.map((item) => {
+                          const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
+                          return (
+                            <AnimatedNavLink
+                              key={item.path}
+                              title={item.name}
+                              to={item.path}
+                              icon={item.icon}
+                              isActive={isActive}
+                            />
+                          );
+                        })}
+                      </nav>
+                      
+                      {/* Right: Actions */}
+                      <div className="flex-1 flex justify-end items-center gap-5">
+                        <button 
+                          onClick={toggleTheme} 
+                          className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-text-primary pointer-events-auto cursor-pointer"
+                          aria-label="Toggle Theme"
+                          title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                        >
+                          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                        </button>
+
+                        <div className="w-px h-4 bg-border-strong" />
+
+                        <button 
+                          type="button"
+                          onClick={() => setIsConfirmExitOpen(true)}
+                          className="text-xs xl:text-sm font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto cursor-pointer"
+                        >
+                          {isGuestMode ? 'Leave Session' : 'Logout'}
+                        </button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="header-mode"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="w-full flex items-center gap-3 overflow-hidden"
+                    >
+                      {/* Left: Exact nav icon without background */}
+                      <currentConfig.icon className="w-4 h-4 text-brand-primary shrink-0" />
+                      
+                      {/* Center/Main: Header + Subheader in nav typography */}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="font-heading text-xs xl:text-sm font-bold uppercase tracking-widest text-text-primary shrink-0">
+                          {currentConfig.title}
+                        </span>
+                        <span className="text-text-muted/40 text-xs font-mono select-none">•</span>
+                        <span className="text-xs xl:text-sm text-text-secondary font-heading font-medium tracking-wider truncate max-w-3xl">
+                          {currentConfig.subtitle}
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              
-              {/* Center: Navigation Links (Split-text & icon sliding animation) */}
-              <nav className="flex-1 flex justify-center items-center gap-7 xl:gap-10 skew-x-12">
-                {navItems.map((item) => {
-                  const isActive = location.pathname === item.path || (item.path !== '/citizen' && location.pathname.startsWith(item.path));
-                  return (
-                    <AnimatedNavLink
-                      key={item.path}
-                      title={item.name}
-                      to={item.path}
-                      icon={item.icon}
-                      isActive={isActive}
-                    />
-                  );
-                })}
-              </nav>
-              
-              {/* Right: Actions (Theme selector on the left, Logout on the right) */}
-              <div className="flex-1 flex justify-end items-center gap-5 skew-x-12">
-                <button 
-                  onClick={toggleTheme} 
-                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-text-primary pointer-events-auto cursor-pointer"
-                  aria-label="Toggle Theme"
-                  title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-                >
-                  {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-                </button>
-
-                <div className="w-px h-4 bg-border-strong" />
-
-                <button 
-                  type="button"
-                  onClick={() => setIsConfirmExitOpen(true)}
-                  className="text-xs xl:text-sm font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto cursor-pointer"
-                >
-                  {isGuestMode ? 'Leave Session' : 'Logout'}
-                </button>
-              </div>
-
             </div>
           </div>
         </div>
@@ -212,7 +299,7 @@ export default function CitizenLayout() {
           : "pb-24 md:pb-0 overflow-visible"
       )}>
         <div className={twMerge(
-          "flex-1 flex flex-col px-3.5 py-2 sm:p-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full animate-fade-in md:pt-28 lg:pt-32 pb-4 md:pb-8 lg:pb-10",
+          "flex-1 flex flex-col px-3.5 py-2 sm:p-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full animate-fade-in md:pt-20 lg:pt-22 pb-4 md:pb-8 lg:pb-10",
           isMapRoute ? "min-h-0 overflow-hidden md:overflow-visible" : "overflow-visible"
         )}>
           <Outlet />

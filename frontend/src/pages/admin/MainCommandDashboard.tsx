@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { 
@@ -27,7 +27,13 @@ import {
   SlidersHorizontal,
   Search,
   ArrowUpDown,
-  X
+  X,
+  CloudRain,
+  Edit3,
+  Check,
+  Sparkles,
+  Route,
+  ExternalLink
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
@@ -128,6 +134,69 @@ interface ReportItem {
   locationGroup: ReportItem[];
 }
 
+export interface DispatchRouteInfo {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  orderedStops: any[];
+  totalDistanceKm: number;
+  totalDurationMin: number;
+  geometry: [number, number][];
+  googleMapsUrl: string;
+}
+
+const CEBU_DEPOT = {
+  name: "Cebu City DPS Sanitation HQ",
+  address: "M.C. Briones St, Cebu City Hall Complex",
+  lat: 10.2934,
+  lng: 123.9015
+};
+
+const createDepotMarkerIcon = () => {
+  return L.divIcon({
+    className: 'custom-depot-marker',
+    html: `
+      <div class="relative flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2 cursor-pointer group select-none">
+        <div style="
+          background: linear-gradient(135deg, #059669, #047857);
+          border: 2px solid #34D399;
+          box-shadow: 0 0 16px rgba(16, 185, 129, 0.7);
+        " class="px-2 py-0.5 rounded-sm text-white font-mono font-black text-[9px] tracking-widest flex items-center gap-1 shadow-lg">
+          <span>HQ DEPOT</span>
+        </div>
+        <div class="w-1.5 h-1.5 bg-emerald-500 rotate-45 border-r border-b border-white -mt-0.5"></div>
+      </div>
+    `,
+    iconSize: [64, 26],
+    iconAnchor: [32, 26],
+    popupAnchor: [0, -28]
+  });
+};
+
+const createStopMarkerIcon = (stopNumber: number, priorityScore: number) => {
+  const isUrgent = priorityScore >= 70;
+  const bg = isUrgent ? 'linear-gradient(135deg, #EF4444, #B91C1C)' : 'linear-gradient(135deg, #F59E0B, #D97706)';
+  const border = isUrgent ? '#F87171' : '#FBBF24';
+  const shadow = isUrgent ? 'rgba(239, 68, 68, 0.7)' : 'rgba(245, 158, 11, 0.7)';
+
+  return L.divIcon({
+    className: 'custom-stop-marker',
+    html: `
+      <div class="relative flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2 cursor-pointer group select-none">
+        <div style="
+          background: ${bg};
+          border: 2px solid ${border};
+          box-shadow: 0 0 16px ${shadow};
+        " class="w-7 h-7 rounded-full text-white font-mono font-black text-xs flex items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-120">
+          <span>${stopNumber}</span>
+        </div>
+        <div class="w-1.5 h-1.5 bg-red-500 rotate-45 border-r border-b border-white -mt-0.5"></div>
+      </div>
+    `,
+    iconSize: [28, 34],
+    iconAnchor: [14, 34],
+    popupAnchor: [0, -36]
+  });
+};
+
 export default function MainCommandDashboard() { 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reports, setReports] = useState<any[]>([]);
@@ -136,6 +205,13 @@ export default function MainCommandDashboard() {
   const [isControlsOpen, setIsControlsOpen] = useState(true);
   const [isKpiOpen, setIsKpiOpen] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('map-fullscreen-change', { detail: { isFullscreen: isFocusMode } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('map-fullscreen-change', { detail: { isFullscreen: false } }));
+    };
+  }, [isFocusMode]);
 
   const toggleFocusMode = () => {
     if (isFocusMode) {
@@ -157,9 +233,148 @@ export default function MainCommandDashboard() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [visionResult, setVisionResult] = useState<any>(null);
   const [isReAssessing, setIsReAssessing] = useState<boolean>(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [weatherResult, setWeatherResult] = useState<any>(null);
+  const [manualSeverity, setManualSeverity] = useState<number>(70);
+  const [manualWaste, setManualWaste] = useState<string[]>(['Plastic', 'Organic']);
+  const [manualRationale, setManualRationale] = useState<string>('');
+  const [isManualTriageSubmitting, setIsManualTriageSubmitting] = useState<boolean>(false);
+  const [isManualEditOpen, setIsManualEditOpen] = useState<boolean>(false);
+  const [isRouteMode, setIsRouteMode] = useState<boolean>(false);
+  const [isGeneratingRoute, setIsGeneratingRoute] = useState<boolean>(false);
+  const [dispatchRoute, setDispatchRoute] = useState<DispatchRouteInfo | null>(null);
+
+  const calculateOptimalRoute = (activeList: ReportItem[]) => {
+    if (activeList.length === 0) return [];
+    
+    // Select top prioritized active blockage incidents (up to 6 stops)
+    const candidates = [...activeList]
+      .sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0))
+      .slice(0, 6);
+
+    const ordered: ReportItem[] = [];
+    let currentLat = CEBU_DEPOT.lat;
+    let currentLng = CEBU_DEPOT.lng;
+
+    const getDist = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+      const dLat = (lat2 - lat1) * 111.32;
+      const dLng = (lng2 - lng1) * (111.32 * Math.cos((lat1 * Math.PI) / 180));
+      return Math.sqrt(dLat * dLat + dLng * dLng);
+    };
+
+    const pool = [...candidates];
+    while (pool.length > 0) {
+      let bestIdx = 0;
+      let bestScore = -Infinity;
+
+      for (let i = 0; i < pool.length; i++) {
+        const candidate = pool[i];
+        const distKm = getDist(currentLat, currentLng, Number(candidate.latitude), Number(candidate.longitude));
+        const priority = Number(candidate.priority_score) || 50;
+        // Priority-weighted utility: balances severity urgency with shortest transit detour
+        const score = priority / (distKm + 0.7);
+        if (score > bestScore) {
+          bestScore = score;
+          bestIdx = i;
+        }
+      }
+
+      const nextStop = pool.splice(bestIdx, 1)[0];
+      ordered.push(nextStop);
+      currentLat = Number(nextStop.latitude);
+      currentLng = Number(nextStop.longitude);
+    }
+
+    return ordered;
+  };
+
+  const generateCleaningRoute = async () => {
+    if (isGeneratingRoute) return;
+
+    if (isRouteMode) {
+      setIsRouteMode(false);
+      return;
+    }
+
+    const activeList = reports.filter(r => r.status !== 'resolved');
+    if (activeList.length === 0) {
+      alert("No active canal blockage reports available to route. All current cases are resolved!");
+      return;
+    }
+
+    setIsGeneratingRoute(true);
+
+    try {
+      const orderedStops = calculateOptimalRoute(activeList);
+      
+      const waypoints = [
+        [CEBU_DEPOT.lng, CEBU_DEPOT.lat],
+        ...orderedStops.map(s => [Number(s.longitude), Number(s.latitude)])
+      ];
+
+      const coordsStr = waypoints.map(w => `${w[0]},${w[1]}`).join(';');
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson`;
+
+      let geometry: [number, number][] = [];
+      let totalDistanceKm = 0;
+      let totalDurationMin = 0;
+
+      try {
+        const resp = await fetch(osrmUrl);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.routes && data.routes.length > 0) {
+            const r = data.routes[0];
+            totalDistanceKm = Math.round((r.distance / 1000) * 10) / 10;
+            totalDurationMin = Math.round(r.duration / 60);
+            geometry = r.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]]);
+          }
+        }
+      } catch (osrmErr) {
+        console.warn("OSRM routing API error, using tactical straight-line fallback:", osrmErr);
+      }
+
+      if (geometry.length === 0) {
+        geometry = [
+          [CEBU_DEPOT.lat, CEBU_DEPOT.lng],
+          ...orderedStops.map(s => [Number(s.latitude), Number(s.longitude)] as [number, number])
+        ];
+        totalDistanceKm = Math.round(geometry.length * 2.6 * 10) / 10;
+        totalDurationMin = Math.round(totalDistanceKm * 2.8);
+      }
+
+      const gMapsStops = [
+        `${CEBU_DEPOT.lat},${CEBU_DEPOT.lng}`,
+        ...orderedStops.map(s => `${s.latitude},${s.longitude}`)
+      ].join('/');
+      const googleMapsUrl = `https://www.google.com/maps/dir/${gMapsStops}`;
+
+      setDispatchRoute({
+        orderedStops,
+        totalDistanceKm,
+        totalDurationMin,
+        geometry,
+        googleMapsUrl
+      });
+      setIsRouteMode(true);
+
+      if (mapRef.current && geometry.length > 0) {
+        mapRef.current.fitBounds(L.latLngBounds(geometry), { padding: [80, 80] });
+      }
+
+    } catch (err) {
+      console.error("Failed to generate route:", err);
+    } finally {
+      setIsGeneratingRoute(false);
+    }
+  };
   
   const mapRef = useRef<L.Map>(null);
   const markerRefs = useRef<{ [key: string]: L.Marker | null }>({});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reportsRef = useRef<any[]>([]);
+  const hasInitialCenteredRef = useRef<boolean>(false);
+  const lastFlyTargetRef = useRef<string | null>(null);
 
   const goToCurrentLocation = () => {
     if ('geolocation' in navigator) {
@@ -356,10 +571,172 @@ export default function MainCommandDashboard() {
       
     if (!error && data) {
       setVisionResult(data.result_json);
+      if (data.result_json?.blockage_severity_score !== undefined) {
+        setManualSeverity(Math.round(data.result_json.blockage_severity_score));
+      }
+      if (data.result_json?.waste_categories?.length) {
+        setManualWaste(data.result_json.waste_categories);
+      }
     } else {
       setVisionResult(null);
     }
+
+    // Meteorological / Weather Result
+    const { data: weatherData } = await supabase
+      .from('agent_results')
+      .select('*')
+      .eq('report_id', reportId)
+      .eq('agent_type', 'meteorological')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (weatherData) {
+      setWeatherResult(weatherData.result_json);
+    } else {
+      const rep = reportsRef.current.find(r => r.report_id === reportId);
+      if (rep?.latitude && rep?.longitude) {
+        try {
+          const mRes = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${rep.latitude}&longitude=${rep.longitude}&hourly=precipitation_probability&forecast_days=2&timezone=Asia/Manila`
+          );
+          if (mRes.ok) {
+            const mJson = await mRes.json();
+            const probs = mJson?.hourly?.precipitation_probability || [];
+            const rpi = probs.length ? Math.max(...probs) : 0;
+            setWeatherResult({ rain_probability_index: rpi, data_unavailable: false });
+          } else {
+            setWeatherResult(null);
+          }
+        } catch {
+          setWeatherResult(null);
+        }
+      } else {
+        setWeatherResult(null);
+      }
+    }
   }, []);
+
+  const handleManualTriageSubmit = async () => {
+    if (!selectedReport || isManualTriageSubmitting) return;
+    setIsManualTriageSubmitting(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      let success = false;
+      let newScore = 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let newVision: any = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let newWeather: any = null;
+
+      try {
+        const res = await fetch(`${API_URL}/api/reports/${selectedReport.report_id}/manual-triage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            blockage_severity_score: manualSeverity,
+            waste_categories: manualWaste,
+            rationale: manualRationale || `Manual triage verified by LGU sanitation officer. Blockage Severity: ${manualSeverity}%.`
+          })
+        });
+
+        if (res.ok) {
+          const resJson = await res.json();
+          success = true;
+          newScore = resJson.priority_score;
+          newVision = resJson.vision_result;
+          newWeather = resJson.weather_result;
+        }
+      } catch (backendFetchErr) {
+        console.warn("Backend API unreachable, using resilient direct Supabase fallback:", backendFetchErr);
+      }
+
+      // If backend was offline or failed, compute weather synthesis directly
+      if (!success) {
+        let rpi = weatherResult?.rain_probability_index ?? 0;
+        if (!weatherResult) {
+          try {
+            const meteoRes = await fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${selectedReport.latitude}&longitude=${selectedReport.longitude}&hourly=precipitation_probability&forecast_days=2&timezone=Asia/Manila`
+            );
+            if (meteoRes.ok) {
+              const meteoData = await meteoRes.json();
+              const probs = meteoData?.hourly?.precipitation_probability || [];
+              if (probs.length) rpi = Math.max(...probs);
+            }
+          } catch {
+            rpi = 0;
+          }
+        }
+
+        // Formula per SRS 3.6.2: 60% Vision Severity + 40% Rain Probability
+        newScore = Math.round(((0.60 * manualSeverity) + (0.40 * rpi)) * 100) / 100;
+        
+        newVision = {
+          report_id: selectedReport.report_id,
+          is_valid_waterway: true,
+          rejection_reason: null,
+          waste_categories: manualWaste,
+          blockage_severity_score: manualSeverity,
+          confidence: 'high',
+          rationale: manualRationale || `Manual triage verified by LGU sanitation officer. Blockage Severity: ${manualSeverity}%.`,
+          is_manual_override: true
+        };
+
+        newWeather = {
+          report_id: selectedReport.report_id,
+          rain_probability_index: rpi,
+          data_unavailable: false
+        };
+
+        await supabase
+          .from('reports')
+          .update({
+            status: 'triaged',
+            priority_score: newScore,
+            needs_human_review: false
+          })
+          .eq('report_id', selectedReport.report_id);
+
+        await supabase
+          .from('dispatch_status_log')
+          .insert({
+            report_id: selectedReport.report_id,
+            to_status: 'triaged'
+          });
+
+        await supabase
+          .from('agent_results')
+          .insert({
+            report_id: selectedReport.report_id,
+            agent_type: 'vision_triage',
+            result_json: newVision
+          });
+      }
+
+      // Instant state reflection
+      setReports(prev => prev.map(r => r.report_id === selectedReport.report_id ? {
+        ...r,
+        status: 'triaged',
+        priority_score: newScore,
+        needs_human_review: false
+      } : r));
+      if (newVision) setVisionResult(newVision);
+      if (newWeather) setWeatherResult(newWeather);
+      setIsManualEditOpen(false);
+
+    } catch (err) {
+      console.error("Failed to apply manual triage:", err);
+    } finally {
+      setIsManualTriageSubmitting(false);
+    }
+  };
 
   const handleReAssess = async (reportId: string) => {
     if (isReAssessing) return;
@@ -430,6 +807,7 @@ export default function MainCommandDashboard() {
     if (!selectedReportId) {
       // eslint-disable-next-line
       setVisionResult(null);
+      lastFlyTargetRef.current = null;
       return;
     }
 
@@ -437,26 +815,37 @@ export default function MainCommandDashboard() {
     fetchVisionResult(selectedReportId);
     setIsAnalysisOpen(true);
     
-    // Auto-pan to the selected report on the map
-    const report = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
-    if (report && mapRef.current) {
-      mapRef.current.flyTo([report.displayLat, report.displayLng], 17, { duration: 1.0 });
+    // Auto-pan to the selected report on the map ONLY if target changed
+    if (lastFlyTargetRef.current !== selectedReportId) {
+      lastFlyTargetRef.current = selectedReportId;
+      const report = reportsWithDisplayCoords.find(r => r.report_id === selectedReportId);
+      if (report && mapRef.current) {
+        const currentZoom = mapRef.current.getZoom();
+        const currentCenter = mapRef.current.getCenter();
+        const dist = currentCenter.distanceTo([report.displayLat, report.displayLng]);
 
-      // Automatically open the selected report's marker popup
-      const timer = setTimeout(() => {
-        const marker = markerRefs.current[selectedReportId];
-        if (marker) {
-          marker.openPopup();
+        // If map is already at zoom 17 and within 15 meters, do not re-run flyTo animation
+        if (currentZoom === 17 && dist < 15) {
+          markerRefs.current[selectedReportId]?.openPopup();
+        } else {
+          mapRef.current.flyTo([report.displayLat, report.displayLng], 17, { duration: 0.8 });
+
+          const timer = setTimeout(() => {
+            const marker = markerRefs.current[selectedReportId];
+            if (marker) {
+              marker.openPopup();
+            }
+          }, 850);
+
+          return () => clearTimeout(timer);
         }
-      }, 350);
 
-      // Scroll queue card into view in the right panel
-      const cardEl = document.getElementById(`queue-card-${selectedReportId}`);
-      if (cardEl) {
-        cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Scroll queue card into view in the right panel
+        const cardEl = document.getElementById(`queue-card-${selectedReportId}`);
+        if (cardEl) {
+          cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
       }
-
-      return () => clearTimeout(timer);
     }
   }, [selectedReportId, fetchVisionResult, reportsWithDisplayCoords]);
 
@@ -474,7 +863,11 @@ export default function MainCommandDashboard() {
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
-        setReports(prev => prev.map(r => r.report_id === reportId ? { ...r, status: newStatus } : r));
+        setReports(prev => {
+          const next = prev.map(r => r.report_id === reportId ? { ...r, status: newStatus } : r);
+          reportsRef.current = next;
+          return next;
+        });
       }
     } catch (error) {
       console.error("Failed to update status", error);
@@ -494,9 +887,11 @@ export default function MainCommandDashboard() {
         .limit(150);
       
       if (!error && data) {
+        reportsRef.current = data;
         setReports(data);
-        // If map is at default position and we have reports, center on the first report
-        if (data.length > 0 && mapRef.current) {
+        // Only center map on the first report once upon initial load! Never reset on subsequent fetches or updates!
+        if (!hasInitialCenteredRef.current && data.length > 0 && mapRef.current) {
+          hasInitialCenteredRef.current = true;
           const first = data[0];
           mapRef.current.setView([first.latitude, first.longitude], 14);
         }
@@ -511,12 +906,15 @@ export default function MainCommandDashboard() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updated = payload.new as any;
         if (updated && updated.report_id) {
-          setReports(prev => prev.map(r => r.report_id === updated.report_id ? { ...r, ...updated } : r));
+          setReports(prev => {
+            const next = prev.map(r => r.report_id === updated.report_id ? { ...r, ...updated } : r);
+            reportsRef.current = next;
+            return next;
+          });
           if (updated.status === 'triaged' || updated.status === 'failed_analysis') {
             fetchVisionResult(updated.report_id);
           }
         }
-        fetchReports();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_results' }, (payload) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -661,8 +1059,173 @@ export default function MainCommandDashboard() {
               </Marker>
             );
           })}
+
+          {/* AI Optimized Dispatch Route Polyline Layers */}
+          {isRouteMode && dispatchRoute && dispatchRoute.geometry.length > 0 && (
+            <>
+              {/* Outer Cyan Glow Path */}
+              <Polyline
+                positions={dispatchRoute.geometry}
+                pathOptions={{
+                  color: '#00F0FF',
+                  weight: 7,
+                  opacity: 0.45,
+                  lineCap: 'round',
+                  lineJoin: 'round'
+                }}
+              />
+              {/* Core Active Routing Line with Animated Dash */}
+              <Polyline
+                positions={dispatchRoute.geometry}
+                pathOptions={{
+                  color: '#0284C7',
+                  weight: 3.5,
+                  opacity: 0.95,
+                  dashArray: '10, 6',
+                  lineCap: 'round',
+                  lineJoin: 'round'
+                }}
+              />
+
+              {/* Depot Origin Marker */}
+              <Marker
+                position={[CEBU_DEPOT.lat, CEBU_DEPOT.lng]}
+                icon={createDepotMarkerIcon()}
+              >
+                <Popup className="custom-popup" closeButton={false}>
+                  <div className="bg-surface/95 backdrop-blur-md border border-border-subtle p-3 rounded-sm shadow-xl text-xs font-sans">
+                    <div className="font-mono font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-1">
+                      Dispatch Starting Depot
+                    </div>
+                    <div className="font-bold text-text-primary mb-1">{CEBU_DEPOT.name}</div>
+                    <div className="text-[11px] text-text-muted">{CEBU_DEPOT.address}</div>
+                  </div>
+                </Popup>
+              </Marker>
+
+              {/* Numbered Waypoint Badges along the Optimized Cleaning Route */}
+              {dispatchRoute.orderedStops.map((stop, idx) => (
+                <Marker
+                  key={`stop-badge-${stop.report_id}`}
+                  position={[Number(stop.latitude), Number(stop.longitude)]}
+                  icon={createStopMarkerIcon(idx + 1, stop.priority_score || 0)}
+                  zIndexOffset={2000 + idx * 10}
+                  eventHandlers={{
+                    click: () => {
+                      setSelectedReportId(stop.report_id);
+                    }
+                  }}
+                >
+                  <Popup className="custom-popup" closeButton={false}>
+                    <div className="bg-surface/95 backdrop-blur-md border border-border-subtle p-3 rounded-sm shadow-xl text-xs font-sans w-52">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono font-bold text-brand-primary uppercase text-[10px]">
+                          Route Stop #{idx + 1}
+                        </span>
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm bg-red-500/20 text-red-400 border border-red-500/30">
+                          Priority {stop.priority_score || 0}
+                        </span>
+                      </div>
+                      <div className="font-mono font-bold text-text-primary text-xs mb-1">
+                        {stop.tracking_reference}
+                      </div>
+                      <p className="text-[11px] text-text-secondary leading-snug line-clamp-2 mb-2">
+                        {stop.citizen_notes || "Reported canal blockage scheduled for priority clearing."}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedReportId(stop.report_id)}
+                        className="w-full py-1 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black font-mono font-bold uppercase text-[10px] tracking-wider rounded-sm transition-colors text-center cursor-pointer"
+                      >
+                        Inspect Case
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </>
+          )}
         </MapContainer>
       </div>
+
+      {/* Floating AI Route HUD Overlay Bar */}
+      {isRouteMode && dispatchRoute && (
+        <div className="absolute top-18 sm:top-20 left-1/2 -translate-x-1/2 z-[400] max-w-[94%] sm:max-w-2xl w-full pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="bg-surface/95 backdrop-blur-2xl border-2 border-brand-primary/60 rounded-sm shadow-2xl p-3 sm:p-3.5 -skew-x-[3deg] flex flex-col gap-2">
+            <div className="skew-x-[3deg] flex items-center justify-between gap-3">
+              {/* Left: Branding & Status */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-mono font-black uppercase tracking-widest text-brand-primary truncate flex items-center gap-1.5">
+                    <Navigation className="w-3.5 h-3.5 text-brand-primary" />
+                    <span>esteRoute AI Dispatch Optimizer</span>
+                  </span>
+                  <span className="text-[11px] font-mono font-bold text-text-primary">
+                    {dispatchRoute.orderedStops.length} Clogged Canal Stops • {dispatchRoute.totalDistanceKm} km • ~{dispatchRoute.totalDurationMin} mins
+                  </span>
+                </div>
+              </div>
+
+              {/* Right: Actions */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Google Maps Turn-by-Turn Link */}
+                <a
+                  href={dispatchRoute.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95"
+                  title="Open multi-stop driving directions in Google Maps"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Navigate in Google Maps</span>
+                  <span className="sm:hidden">Maps</span>
+                </a>
+
+                {/* Close / Exit Route Mode */}
+                <button
+                  type="button"
+                  onClick={() => setIsRouteMode(false)}
+                  className="p-1.5 bg-surface-subtle hover:bg-surface border border-border-subtle hover:border-border-strong rounded-sm text-text-muted hover:text-text-primary transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Exit Route Mode"
+                  aria-label="Exit Route Mode"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Stop Sequence Pills Strip */}
+            <div className="skew-x-[3deg] flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-1 border-t border-border-subtle/60 text-[10px] font-mono custom-scrollbar">
+              <span className="px-1.5 py-0.5 rounded-xs bg-emerald-500/20 text-emerald-400 font-bold shrink-0 border border-emerald-500/30">
+                HQ Depot
+              </span>
+              <ArrowRight className="w-3 h-3 text-text-muted shrink-0" />
+              {dispatchRoute.orderedStops.map((stop, idx) => (
+                <button
+                  key={stop.report_id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedReportId(stop.report_id);
+                  }}
+                  className={twMerge(
+                    "px-2 py-0.5 rounded-xs font-bold shrink-0 border transition-all cursor-pointer flex items-center gap-1",
+                    selectedReportId === stop.report_id
+                      ? "bg-brand-primary text-white border-brand-primary shadow-xs"
+                      : "bg-surface-subtle text-text-secondary hover:text-text-primary border-border-subtle hover:border-brand-primary/50"
+                  )}
+                  title={`Stop #${idx + 1}: ${stop.tracking_reference} (Priority ${stop.priority_score})`}
+                >
+                  <span className="w-3.5 h-3.5 rounded-full bg-brand-primary/30 text-[9px] flex items-center justify-center font-bold">
+                    {idx + 1}
+                  </span>
+                  <span>{stop.tracking_reference.replace('ER-2026-', '')}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Inline styles to nuke Leaflet's default white popup box */}
       <style>{`
@@ -756,6 +1319,22 @@ export default function MainCommandDashboard() {
               aria-label="Toggle Focus Mode"
             >
               {isFocusMode ? <Minimize2 className="w-4 h-4 skew-x-6" /> : <Maximize2 className="w-4 h-4 skew-x-6" />}
+            </button>
+
+            {/* AI Dispatch Route Generator Toggle */}
+            <button
+              type="button"
+              onClick={generateCleaningRoute}
+              disabled={isGeneratingRoute}
+              className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center gap-1.5 ${
+                isRouteMode
+                  ? 'bg-brand-primary text-white border-brand-primary shadow-brand-primary/40 shadow-lg'
+                  : 'bg-surface/90 border-border-subtle text-brand-primary hover:bg-brand-primary hover:text-white'
+              }`}
+              title={isRouteMode ? "Turn Off AI Route Mode" : "Generate Optimized AI Dispatch Route"}
+              aria-label="Toggle Dispatch Route"
+            >
+              <Route className={twMerge("w-4 h-4 skew-x-6", isGeneratingRoute && "animate-spin")} />
             </button>
           </div>
 
@@ -1063,22 +1642,231 @@ export default function MainCommandDashboard() {
                     </div>
                   )}
 
+                  {/* Manual Triage & Weather Synthesis Panel (Active when review needed or officer opens manual override) */}
+                  {(isManualEditOpen || selectedReport.status === 'failed_analysis' || selectedReport.needs_human_review) && (
+                    <div className="bg-surface border-2 border-brand-primary/40 rounded-sm p-4 flex flex-col gap-3 shadow-xl relative overflow-hidden -skew-x-[3deg]">
+                      <div className="skew-x-[3deg] flex flex-col gap-3">
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+                          <div className="flex items-center gap-1.5 text-xs font-heading font-black uppercase tracking-wider text-brand-primary">
+                            <Edit3 className="w-4 h-4 text-brand-primary" />
+                            <span>Manual Triage & Weather Fusion</span>
+                          </div>
+                          <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm bg-brand-primary/15 text-brand-primary border border-brand-primary/30">
+                            LGU Review
+                          </span>
+                        </div>
+
+                        {/* Live Weather Forecast Metric */}
+                        <div className="bg-surface-subtle p-2.5 rounded-sm border border-border-subtle flex items-center justify-between text-xs font-mono">
+                          <div className="flex items-center gap-2">
+                            <CloudRain className="w-4 h-4 text-blue-400 shrink-0" />
+                            <span className="text-text-muted text-[11px]">Open-Meteo 48h Rain Risk:</span>
+                          </div>
+                          <span className="font-bold text-blue-400 font-mono">
+                            {weatherResult?.rain_probability_index !== undefined ? `${weatherResult.rain_probability_index}%` : 'Scanning...'}
+                          </span>
+                        </div>
+
+                        {/* Blockage Severity Slider */}
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                              Assessed Blockage Severity:
+                            </span>
+                            <span className={twMerge(
+                              "font-mono font-black text-sm px-2 py-0.5 rounded-sm",
+                              manualSeverity >= 80 ? "text-semantic-urgent bg-semantic-urgent/10 border border-semantic-urgent/30" :
+                              manualSeverity >= 60 ? "text-semantic-warning bg-semantic-warning/10 border border-semantic-warning/30" :
+                              manualSeverity >= 30 ? "text-amber-400 bg-amber-500/10 border border-amber-500/30" :
+                              "text-emerald-400 bg-emerald-500/10 border border-emerald-500/30"
+                            )}>
+                              {manualSeverity}%
+                            </span>
+                          </div>
+
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            step="1"
+                            value={manualSeverity}
+                            onChange={(e) => setManualSeverity(Number(e.target.value))}
+                            className="w-full accent-brand-primary cursor-pointer h-2 bg-surface-subtle rounded-sm"
+                          />
+
+                          {/* Severity Presets */}
+                          <div className="grid grid-cols-4 gap-1 mt-1">
+                            {[
+                              { label: 'Clear 15%', val: 15 },
+                              { label: 'Mod 45%', val: 45 },
+                              { label: 'Heavy 75%', val: 75 },
+                              { label: 'Full 95%', val: 95 }
+                            ].map((preset) => (
+                              <button
+                                key={preset.val}
+                                type="button"
+                                onClick={() => setManualSeverity(preset.val)}
+                                className={twMerge(
+                                  "py-1 text-[9px] font-mono uppercase font-bold rounded-xs border transition-all cursor-pointer active:scale-95 text-center",
+                                  manualSeverity === preset.val
+                                    ? "bg-brand-primary text-white border-brand-primary"
+                                    : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle hover:border-border-strong"
+                                )}
+                              >
+                                {preset.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Waste Category Selection */}
+                        <div className="flex flex-col gap-1.5">
+                          <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                            Observed Waste Categories:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {['Plastic', 'Organic', 'Silt', 'Construction', 'Other'].map((cat) => {
+                              const isSelected = manualWaste.includes(cat);
+                              return (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setManualWaste(prev => prev.filter(c => c !== cat));
+                                    } else {
+                                      setManualWaste(prev => [...prev, cat]);
+                                    }
+                                  }}
+                                  className={twMerge(
+                                    "px-2 py-1 rounded-sm text-[10px] font-mono font-bold uppercase transition-all cursor-pointer flex items-center gap-1 border",
+                                    isSelected
+                                      ? "bg-brand-primary text-white border-brand-primary shadow-xs"
+                                      : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle"
+                                  )}
+                                >
+                                  {isSelected && <Check className="w-3 h-3 text-white" />}
+                                  <span>{cat}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Optional Dispatcher Observation Note */}
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                            Dispatcher Audit Note (Optional):
+                          </span>
+                          <input
+                            type="text"
+                            value={manualRationale}
+                            onChange={(e) => setManualRationale(e.target.value)}
+                            placeholder="e.g. Verified 75% obstruction with heavy silt"
+                            className="bg-surface-subtle border border-border-subtle rounded-sm px-2.5 py-1.5 text-xs text-text-primary focus:border-brand-primary outline-hidden placeholder:text-text-muted"
+                          />
+                        </div>
+
+                        {/* Real-Time Priority Score Preview Formula */}
+                        {(() => {
+                          const rpi = weatherResult?.rain_probability_index ?? 0;
+                          const projectedScore = Math.round(((0.60 * manualSeverity) + (0.40 * rpi)) * 100) / 100;
+                          const priorityLabel = projectedScore < 30 ? "Low" : projectedScore < 60 ? "Medium" : projectedScore < 80 ? "High" : "Urgent";
+                          return (
+                            <div className="bg-brand-primary/10 border border-brand-primary/30 p-2.5 rounded-sm flex items-center justify-between text-xs">
+                              <div className="flex flex-col">
+                                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-text-muted">
+                                  Synthesized Priority (60% Vision + 40% Rain)
+                                </span>
+                                <span className="text-[11px] font-mono text-text-secondary">
+                                  ({(0.60 * manualSeverity).toFixed(1)} + {(0.40 * rpi).toFixed(1)})
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={twMerge(
+                                  "text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-sm",
+                                  priorityLabel === 'Urgent' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                  priorityLabel === 'High' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                                  priorityLabel === 'Medium' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" :
+                                  "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                )}>
+                                  {priorityLabel}
+                                </span>
+                                <span className="text-lg font-mono font-black text-brand-primary">
+                                  {projectedScore}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Submit / Confirm Button */}
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={handleManualTriageSubmit}
+                            disabled={isManualTriageSubmitting}
+                            className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black py-2.5 px-3 rounded-sm font-bold uppercase text-[11px] tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
+                          >
+                            {isManualTriageSubmitting ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>Synthesizing...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span>Confirm Manual Triage & Weather Score</span>
+                              </>
+                            )}
+                          </button>
+
+                          {isManualEditOpen && selectedReport.status === 'triaged' && (
+                            <button
+                              type="button"
+                              onClick={() => setIsManualEditOpen(false)}
+                              className="px-3 py-2 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Dispatcher Actions */}
                   <div className="pt-3 border-t border-border-subtle mt-auto">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[9px] uppercase font-bold text-text-muted tracking-widest">Command Controls</span>
                       
-                      {/* Re-run AI Analysis Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleReAssess(selectedReport.report_id)}
-                        disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-                        title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
-                      >
-                        <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
-                        <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {/* Manual Triage Toggle Button (If already triaged and form closed) */}
+                        {selectedReport.status === 'triaged' && !isManualEditOpen && (
+                          <button
+                            type="button"
+                            onClick={() => setIsManualEditOpen(true)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-sm bg-surface-subtle hover:bg-surface text-text-secondary hover:text-brand-primary border border-border-subtle text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-xs"
+                            title="Manually adjust severity score & waste types with live weather recalculation"
+                          >
+                            <Edit3 className="w-3 h-3 text-brand-primary" />
+                            <span>Adjust Triage</span>
+                          </button>
+                        )}
+
+                        {/* Re-run AI Analysis Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleReAssess(selectedReport.report_id)}
+                          disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                          title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
+                        >
+                          <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
+                          <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex gap-2">
@@ -1210,6 +1998,24 @@ export default function MainCommandDashboard() {
                   <span>{sortOrder === 'newest' ? 'Newest' : 'Oldest'}</span>
                 </button>
               </div>
+
+              {/* AI Dispatch Route Generator Bar */}
+              <button
+                type="button"
+                onClick={generateCleaningRoute}
+                disabled={isGeneratingRoute}
+                className={twMerge(
+                  "w-full py-2 px-3 rounded-sm font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95 border -skew-x-[3deg]",
+                  isRouteMode
+                    ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/25 shadow-md"
+                    : "bg-brand-primary/10 hover:bg-brand-primary hover:text-white border-brand-primary/30 text-brand-primary"
+                )}
+              >
+                <Route className={twMerge("w-3.5 h-3.5 skew-x-[3deg]", isGeneratingRoute && "animate-spin")} />
+                <span className="skew-x-[3deg]">
+                  {isGeneratingRoute ? 'Calculating Road Route...' : isRouteMode ? 'Hide Dispatch Route' : 'Generate Cleaning Route'}
+                </span>
+              </button>
             </div>
 
             {/* Queue List */}

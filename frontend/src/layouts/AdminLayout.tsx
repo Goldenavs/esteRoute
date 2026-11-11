@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import SystemLogsModal from '../components/admin/SystemLogsModal';
 import TacticalBackground from '../components/common/TacticalBackground';
 
@@ -37,6 +38,24 @@ const AnimatedNavLink = ({
   );
 };
 
+const ADMIN_PAGE_CONFIG: Record<string, { title: string; subtitle: string; icon: LucideIcon }> = {
+  '/admin': {
+    title: 'Command Center',
+    subtitle: 'Live situational map, active incident triage queue, and dispatch telemetry.',
+    icon: LayoutDashboard,
+  },
+  '/admin/analytics': {
+    title: 'Waterway Analytics',
+    subtitle: 'Predictive flood risk intelligence, waste classification metrics, and operational dispatch efficiency.',
+    icon: BarChart3,
+  },
+  '/admin/archive': {
+    title: 'Historical Archive',
+    subtitle: 'Master records of canal blockage reports, field resolutions, and triage intelligence logs.',
+    icon: Archive,
+  },
+};
+
 export default function AdminLayout() {
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
@@ -44,6 +63,29 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const [isNavVisible, setIsNavVisible] = useState(true);
   const isNavVisibleRef = useRef(true);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const isMapFullscreenRef = useRef(false);
+
+  useEffect(() => {
+    isMapFullscreenRef.current = isMapFullscreen;
+  }, [isMapFullscreen]);
+
+  useEffect(() => {
+    const handleMapFs = (e: Event) => {
+      const customEvent = e as CustomEvent<{ isFullscreen: boolean }>;
+      setIsMapFullscreen(!!customEvent.detail?.isFullscreen);
+    };
+    const handleNativeFs = () => {
+      setIsMapFullscreen(document.fullscreenElement !== null);
+    };
+
+    window.addEventListener('map-fullscreen-change', handleMapFs);
+    document.addEventListener('fullscreenchange', handleNativeFs);
+    return () => {
+      window.removeEventListener('map-fullscreen-change', handleMapFs);
+      document.removeEventListener('fullscreenchange', handleNativeFs);
+    };
+  }, []);
   const isNavHoveredRef = useRef(false);
 
   useEffect(() => {
@@ -60,6 +102,10 @@ export default function AdminLayout() {
     let timeout: ReturnType<typeof setTimeout> | null = null;
     
     const handleMouseMove = (e: MouseEvent) => {
+      if (isMapFullscreenRef.current) {
+        setIsNavVisible(false);
+        return;
+      }
       // Tight edge hover:
       // When navbar is hidden, only touching the extreme top edge (<= 20px) reveals it.
       // When navbar is open, keep it open if cursor is within navbar area (<= 90px) or hovering the bar.
@@ -99,6 +145,10 @@ export default function AdminLayout() {
     };
   }, []);
 
+  const currentConfig = Object.entries(ADMIN_PAGE_CONFIG).find(([path]) => 
+    path === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(path)
+  )?.[1] || ADMIN_PAGE_CONFIG['/admin'];
+
   const navItems = [
     { name: 'Command', path: '/admin', icon: LayoutDashboard },
     { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
@@ -114,12 +164,12 @@ export default function AdminLayout() {
       {/* Tight Hover Zone (Top 20px Edge) to catch rapid mouse movements */}
       <div className="fixed top-0 left-0 w-full h-5 z-[999] md:block hidden pointer-events-none" />
 
-      {/* Top Navbar (Desktop Only) - Follows AuthNavbar / Citizen Style */}
+      {/* Dynamic Top Bar: Nav Mode <-> Header Mode (Desktop Only) */}
       <div 
         className={twMerge(
           clsx(
-            "fixed top-4 w-full z-[1000] pointer-events-none transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
-            isNavVisible ? "translate-y-0" : "-translate-y-[150%]"
+            "fixed top-4 w-full z-[1000] pointer-events-none transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] hidden md:block",
+            isMapFullscreen ? "-translate-y-[160%]" : "translate-y-0"
           )
         )}
       >
@@ -133,62 +183,99 @@ export default function AdminLayout() {
               onMouseLeave={() => {
                 isNavHoveredRef.current = false;
               }}
-              className="w-full flex items-center justify-between pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12"
+              className="w-full pointer-events-auto bg-surface/90 backdrop-blur-2xl border border-border-subtle rounded-sm px-6 sm:px-10 py-3 shadow-2xl shadow-black/10 transition-all duration-500 hover:border-border-strong -skew-x-12 relative overflow-hidden min-h-[58px] flex items-center"
             >
-              
-              {/* Left: Brand Logo (Non-clickable, matching landing page hover effect & styling) */}
-              <div className="flex-1 flex justify-start skew-x-12">
-                <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default">
-                  <span className="text-text-primary group-hover:text-brand-primary transition-colors">
-                    este<span className="text-brand-primary">Route</span>
-                  </span>
-                </div>
+              {/* Static un-skew wrapper to protect text and icons from Framer Motion transform collisions */}
+              <div className="w-full skew-x-12 flex items-center">
+                <AnimatePresence mode="wait">
+                  {isNavVisible ? (
+                    <motion.div
+                      key="nav-mode"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="w-full flex items-center justify-between"
+                    >
+                      {/* Left: Brand Logo */}
+                      <div className="flex-1 flex justify-start">
+                        <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default">
+                          <span className="text-text-primary group-hover:text-brand-primary transition-colors">
+                            este<span className="text-brand-primary">Route</span>
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Center: Navigation Links */}
+                      <nav className="flex-1 flex justify-center items-center gap-7 xl:gap-10">
+                        {navItems.map((item) => {
+                          const isActive = location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path));
+                          return (
+                            <AnimatedNavLink 
+                              key={item.path} 
+                              title={item.name}
+                              to={item.path}
+                              icon={item.icon}
+                              isActive={isActive}
+                            />
+                          );
+                        })}
+                      </nav>
+                      
+                      {/* Right: Actions */}
+                      <div className="flex-1 flex justify-end items-center gap-4 xl:gap-5">
+                        <button 
+                          onClick={() => setIsLogsOpen(true)}
+                          className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-brand-primary pointer-events-auto cursor-pointer"
+                          aria-label="System Logs"
+                          title="System Logs"
+                        >
+                          <Terminal size={16} />
+                        </button>
+                        <button 
+                          onClick={toggleTheme} 
+                          className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-text-primary pointer-events-auto cursor-pointer"
+                          aria-label="Toggle Theme"
+                          title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                        >
+                          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                        </button>
+                        <div className="w-px h-4 bg-border-strong"></div>
+                        <button 
+                          type="button"
+                          onClick={handleLogout}
+                          className="text-xs xl:text-sm font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto cursor-pointer"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="header-mode"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="w-full flex items-center gap-3 overflow-hidden"
+                    >
+                      {/* Left: Exact nav icon without background */}
+                      <currentConfig.icon className="w-4 h-4 text-brand-primary shrink-0" />
+                      
+                      {/* Center/Main: Header + Subheader in nav typography */}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="font-heading text-xs xl:text-sm font-bold uppercase tracking-widest text-text-primary shrink-0">
+                          {currentConfig.title}
+                        </span>
+                        <span className="text-text-muted/40 text-xs font-mono select-none">•</span>
+                        <span className="text-xs xl:text-sm text-text-secondary font-heading font-medium tracking-wider truncate max-w-3xl">
+                          {currentConfig.subtitle}
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              
-              {/* Center: Navigation Links (Split-text & icon sliding animation) */}
-              <nav className="flex-1 flex justify-center items-center gap-7 xl:gap-10 skew-x-12">
-                {navItems.map((item) => {
-                  const isActive = location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path));
-                  return (
-                    <AnimatedNavLink 
-                      key={item.path} 
-                      title={item.name}
-                      to={item.path}
-                      icon={item.icon}
-                      isActive={isActive}
-                    />
-                  );
-                })}
-              </nav>
-              
-              {/* Right: Actions */}
-              <div className="flex-1 flex justify-end items-center gap-4 xl:gap-5 skew-x-12">
-                <button 
-                  onClick={() => setIsLogsOpen(true)}
-                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-brand-primary pointer-events-auto cursor-pointer"
-                  aria-label="System Logs"
-                  title="System Logs"
-                >
-                  <Terminal size={16} />
-                </button>
-                <button 
-                  onClick={toggleTheme} 
-                  className="p-1.5 hover:bg-surface rounded-sm transition-colors text-text-secondary hover:text-text-primary pointer-events-auto cursor-pointer"
-                  aria-label="Toggle Theme"
-                  title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-                >
-                  {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-                </button>
-                <div className="w-px h-4 bg-border-strong"></div>
-                <button 
-                  type="button"
-                  onClick={handleLogout}
-                  className="text-xs xl:text-sm font-bold uppercase tracking-widest text-semantic-urgent hover:text-red-400 transition-colors pointer-events-auto cursor-pointer"
-                >
-                  Logout
-                </button>
-              </div>
-
             </div>
           </div>
         </div>
@@ -202,7 +289,7 @@ export default function AdminLayout() {
             "flex-1 flex flex-col w-full animate-fade-in",
             location.pathname === '/admin' 
               ? "p-0 max-w-none" 
-              : "p-4 md:p-6 lg:p-8 pt-4 md:pt-28 lg:pt-32 max-w-7xl mx-auto"
+              : "p-4 md:p-6 lg:p-8 pt-4 md:pt-20 lg:pt-22 max-w-7xl mx-auto"
           )
         )}>
           <Outlet />

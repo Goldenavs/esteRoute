@@ -649,7 +649,7 @@ export default function CitizenProfile() {
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {isLevelsModalOpen && (
-            <div className="fixed inset-0 z-[320] flex items-center justify-center p-3 sm:p-4">
+            <div className="fixed inset-0 z-[3000] flex items-center justify-center p-3 sm:p-4">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -816,7 +816,7 @@ export default function CitizenProfile() {
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {!profile.isGuest && isIdModalOpen && (
-            <div className="fixed inset-0 z-[250] flex items-center justify-center p-3 sm:p-4">
+            <div className="fixed inset-0 z-[3000] flex items-center justify-center p-3 sm:p-4">
               {/* Backdrop Blur */}
               <motion.div
                 initial={{ opacity: 0 }}
@@ -1090,7 +1090,7 @@ export default function CitizenProfile() {
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {isPasswordModalOpen && (
-          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -1312,7 +1312,7 @@ export default function CitizenProfile() {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="shrink-0 mb-4 sm:mb-6 flex items-center justify-between gap-3"
+        className="shrink-0 mb-4 sm:mb-6 flex items-center justify-between gap-3 md:hidden"
       >
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl md:text-5xl font-heading font-black tracking-tight text-text-primary mb-0 md:mb-3 border-l-4 border-brand-primary pl-3 md:pl-4 truncate">

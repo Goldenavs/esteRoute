@@ -48,14 +48,31 @@ export default function UniversalLogin() {
   const scrollTo = (id: string) => {
     setActiveSection(id);
     isScrollingRef.current = true;
-    
+
+    if (id === 'hero') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 800);
+      return;
+    }
+
     const element = document.getElementById(id);
     if (element) {
-      // Scroll flush so target section occupies the full screen
-      const top = element.getBoundingClientRect().top + window.scrollY;
+      // Target the section header (h2) or fall back to section container
+      const headerEl = element.querySelector('h2') || element;
+      const headerRect = headerEl.getBoundingClientRect();
       
-      window.scrollTo({ top, behavior: 'smooth' });
-      
+      // Floating navbar is top-4 (16px) with ~68px height (bottom ~84px).
+      // Leaving ~24px-28px breathing room below the navbar ensures the header is never covered.
+      const navOffset = window.innerWidth < 768 ? 90 : 112;
+      const targetTop = headerRect.top + window.scrollY - navOffset;
+
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: 'smooth'
+      });
+
       setTimeout(() => {
         isScrollingRef.current = false;
       }, 800);

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform, type Variants } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -48,8 +48,6 @@ const BorderBeam = ({ delay = 0 }: { delay?: number }) => (
 );
 
 export default function FeaturesSection() {
-  const ref = useRef<HTMLElement>(null);
-  
   // Dynamic header cycling word (cycles every 3 seconds)
   const [headerWordIndex, setHeaderWordIndex] = useState(0);
   const headerWords = ['Vision.', 'Meteorology.', 'Dispatch.'];
@@ -61,20 +59,10 @@ export default function FeaturesSection() {
     return () => clearInterval(timer);
   }, []);
 
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end start"]
-  });
-  
-  const y = useTransform(scrollYProgress, [0, 1], ["0px", "120px"]);
-  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0.6]);
-
   return (
-    <motion.section 
-      ref={ref}
+    <section 
       id="features" 
-      style={{ y, opacity }}
-      className="pt-24 pb-48 md:pb-64 px-6 lg:px-16 bg-transparent relative overflow-hidden z-10"
+      className="pt-28 md:pt-36 pb-48 md:pb-64 px-6 lg:px-16 bg-transparent relative overflow-hidden z-10"
     >
       <div className="w-full max-w-7xl mx-auto">
         
@@ -85,12 +73,6 @@ export default function FeaturesSection() {
           viewport={{ once: true, margin: "-100px" }}
           className="mb-16"
         >
-          <div className="inline-flex items-center justify-center px-4 py-1.5 bg-brand-primary/10 border border-brand-primary/30 -skew-x-12 mb-6 backdrop-blur-md">
-            <span className="skew-x-12 text-[11px] font-heading font-black tracking-widest text-brand-primary uppercase">
-              Core Capabilities
-            </span>
-          </div>
-
           <h2 className="text-4xl lg:text-6xl font-heading font-black text-text-primary mb-4 flex flex-col items-start tracking-tighter uppercase leading-[1.08]">
             <span>Triage infrastructure.</span>
             <span className="text-text-muted mt-2">
@@ -262,6 +244,6 @@ export default function FeaturesSection() {
 
         </motion.div>
       </div>
-    </motion.section>
+    </section>
   );
 }
