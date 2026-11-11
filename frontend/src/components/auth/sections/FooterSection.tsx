@@ -52,7 +52,8 @@ export default function FooterSection() {
 
         {/* Brand & Text (Left) */}
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
-          <div className="flex-shrink-0 cursor-default">
+          <div className="flex-shrink-0 cursor-default flex items-center gap-3">
+            <img src="/Logos/Icon-Full.png" alt="esteRoute" className="w-9 h-9 object-contain" />
             {/* Text Logo Replacement */}
             <div className="font-heading font-black text-2xl tracking-tighter uppercase text-brand-primary -skew-x-12 border-2 border-brand-primary/20 bg-surface px-4 py-1">
               <span className="skew-x-12 block">esteRoute</span>

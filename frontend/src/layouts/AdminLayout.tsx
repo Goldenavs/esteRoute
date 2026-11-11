@@ -199,7 +199,8 @@ export default function AdminLayout() {
                     >
                       {/* Left: Brand Logo */}
                       <div className="flex-1 flex justify-start">
-                        <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default">
+                        <div className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 select-none cursor-default flex items-center gap-2.5">
+                          <img src="/Logos/Icon-Full.png" alt="esteRoute" className="w-6 h-6 sm:w-7 sm:h-7 object-contain" />
                           <span className="text-text-primary group-hover:text-brand-primary transition-colors">
                             este<span className="text-brand-primary">Route</span>
                           </span>

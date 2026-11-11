@@ -185,8 +185,8 @@ export default function FaqsSection() {
                     key={i}
                     className={`group relative border-2 rounded-none transition-all duration-500 -skew-x-3 md:-skew-x-12 overflow-hidden ${
                       isOpen 
-                        ? 'bg-surface/85 backdrop-blur-xl border-brand-primary shadow-lg' 
-                        : 'bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-border-subtle hover:border-brand-primary shadow-sm hover:shadow-xl'
+                        ? 'bg-surface/90 tactical-grid backdrop-blur-xl border-brand-primary shadow-lg' 
+                        : 'bg-surface/30 tactical-grid hover:bg-surface/90 hover:backdrop-blur-xl border-border-subtle hover:border-brand-primary shadow-sm hover:shadow-xl'
                     }`}
                   >
                     {/* Perimeter running light */}
