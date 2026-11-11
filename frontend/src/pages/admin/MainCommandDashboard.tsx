@@ -564,6 +564,8 @@ export default function MainCommandDashboard() {
   const [isOriginModalOpen, setIsOriginModalOpen] = useState<boolean>(false);
   const [tempOrigin, setTempOrigin] = useState<RouteOriginPoint>(ROUTE_ORIGIN_PRESETS[0]);
   const [isImageFocused, setIsImageFocused] = useState<boolean>(false);
+  const [confirmReAssessReportId, setConfirmReAssessReportId] = useState<string | null>(null);
+  const reAssessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const calculateOptimalRoute = (activeList: ReportItem[], origin: RouteOriginPoint = routeOrigin) => {
     if (activeList.length === 0) return [];
@@ -760,7 +762,7 @@ export default function MainCommandDashboard() {
     });
   }, [reports, reportsByLocation]);
 
-  const { theme: globalTheme, toggleTheme } = useTheme();
+  const { theme: globalTheme } = useTheme();
   const [isMapDark, setIsMapDark] = useState<boolean>(globalTheme === 'dark');
 
   // Synchronize map theme whenever the global navbar theme changes
@@ -776,11 +778,14 @@ export default function MainCommandDashboard() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const activePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Clean up active polling interval on unmount
+  // Clean up active polling interval and re-assess confirmation timer on unmount
   useEffect(() => {
     return () => {
       if (activePollRef.current) {
         clearInterval(activePollRef.current);
+      }
+      if (reAssessTimerRef.current) {
+        clearTimeout(reAssessTimerRef.current);
       }
     };
   }, []);
@@ -1134,6 +1139,20 @@ export default function MainCommandDashboard() {
     }
   };
 
+  const handleReAssessClick = (reportId: string) => {
+    if (confirmReAssessReportId === reportId) {
+      if (reAssessTimerRef.current) clearTimeout(reAssessTimerRef.current);
+      setConfirmReAssessReportId(null);
+      handleReAssess(reportId);
+    } else {
+      if (reAssessTimerRef.current) clearTimeout(reAssessTimerRef.current);
+      setConfirmReAssessReportId(reportId);
+      reAssessTimerRef.current = setTimeout(() => {
+        setConfirmReAssessReportId(null);
+      }, 3000);
+    }
+  };
+
   useEffect(() => {
     if (!selectedReportId) {
       // eslint-disable-next-line
@@ -1303,9 +1322,9 @@ export default function MainCommandDashboard() {
           >
             <Popup className="custom-popup" closeButton={false}>
               <div className="bg-surface/95 backdrop-blur-md border border-border-subtle p-3 rounded-sm shadow-xl text-xs font-sans min-w-[210px]">
-                <div className="font-mono font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-1 flex items-center justify-between">
+                <div className="font-heading font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-1 flex items-center justify-between">
                   <span>Operations Base / Depot</span>
-                  <span className="text-[9px] bg-emerald-500/20 px-1 py-0.5 rounded text-emerald-300">
+                  <span className="text-[9px] bg-emerald-500/20 px-1 py-0.5 rounded text-emerald-300 font-heading font-bold">
                     {routeOrigin.id.includes('custom') ? 'CUSTOM BASE' : 'ACTIVE HQ'}
                   </span>
                 </div>
@@ -1438,23 +1457,12 @@ export default function MainCommandDashboard() {
                   <span className="hidden sm:inline">Navigate in Google Maps</span>
                   <span className="sm:hidden">Maps</span>
                 </a>
-
-                {/* Close / Exit Route Mode */}
-                <button
-                  type="button"
-                  onClick={() => setIsRouteMode(false)}
-                  className="p-1.5 bg-surface-subtle hover:bg-surface border border-border-subtle hover:border-border-strong rounded-sm text-text-muted hover:text-text-primary transition-all cursor-pointer shadow-xs active:scale-95"
-                  title="Exit Route Mode"
-                  aria-label="Exit Route Mode"
-                >
-                  <X className="w-4 h-4" />
-                </button>
               </div>
             </div>
 
             {/* Stop Sequence Pills Strip */}
             <div className="skew-x-[3deg] flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-1 border-t border-border-subtle/60 text-[10px] font-mono custom-scrollbar">
-              <span className="px-1.5 py-0.5 rounded-xs bg-emerald-500/20 text-emerald-400 font-bold shrink-0 border border-emerald-500/30">
+              <span className="px-1.5 py-0.5 rounded-xs bg-emerald-500/20 text-emerald-400 font-heading font-bold uppercase tracking-wider shrink-0 border border-emerald-500/30">
                 HQ Depot
               </span>
               <ArrowRight className="w-3 h-3 text-text-muted shrink-0" />
@@ -1603,10 +1611,10 @@ export default function MainCommandDashboard() {
           <div className="w-px h-6 bg-border-subtle my-auto mx-0.5" />
 
           <div className="flex items-center gap-1 sm:gap-1.5">
-            {/* Map Theme Toggle (Sun / Moon) */}
+            {/* Map Theme Toggle (Sun / Moon) - Local map tile theme only */}
             <button
               type="button"
-              onClick={toggleTheme}
+              onClick={() => setIsMapDark(prev => !prev)}
               className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center ${
                 isMapDark
                   ? "bg-surface/90 border-brand-primary/40 text-amber-400 hover:bg-brand-primary/20"
@@ -1906,7 +1914,7 @@ export default function MainCommandDashboard() {
                              </span>
                            ) : (visionResult?.waste_categories || []).length > 0 ? (
                              (visionResult.waste_categories).map((c: string) => (
-                                <span key={c} className="text-[8px] bg-brand-primary/10 border border-brand-primary/30 text-brand-primary px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider">{c}</span>
+                                <span key={c} className="flex-1 min-w-[70px] text-center text-[8.5px] sm:text-[9px] bg-brand-primary/10 border border-brand-primary/30 text-brand-primary px-2 py-1 rounded-sm font-bold uppercase tracking-wider flex items-center justify-center">{c}</span>
                              ))
                            ) : (
                              <span className="text-[9px] text-text-muted italic">Scanning...</span>
@@ -1919,8 +1927,8 @@ export default function MainCommandDashboard() {
                   {/* AI Rationale */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-[10px] uppercase font-bold text-brand-primary tracking-widest flex items-center gap-1.5">
-                        <ShieldAlert className="w-3.5 h-3.5" /> AI Assessment
+                      <div className="text-[10px] uppercase font-bold text-brand-primary tracking-widest">
+                        AI Assessment
                       </div>
                       {selectedReport.status === 'failed_analysis' && (
                         <span className="text-[9px] font-mono text-amber-500 font-bold uppercase tracking-wider">
@@ -2150,13 +2158,28 @@ export default function MainCommandDashboard() {
                         {selectedReport.status !== 'resolved' && selectedReport.status !== 'in_progress' && (
                           <button
                             type="button"
-                            onClick={() => handleReAssess(selectedReport.report_id)}
+                            onClick={() => handleReAssessClick(selectedReport.report_id)}
                             disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-                            title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
+                            className={twMerge(
+                              "flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs",
+                              confirmReAssessReportId === selectedReport.report_id
+                                ? "bg-amber-500/20 text-amber-400 border border-amber-500/60 animate-pulse hover:bg-amber-500/30"
+                                : "bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30"
+                            )}
+                            title={
+                              confirmReAssessReportId === selectedReport.report_id
+                                ? "Click again within 3 seconds to confirm re-run"
+                                : "Re-run Gemini Vision & Multi-Agent Triage Pipeline"
+                            }
                           >
                             <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
-                            <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
+                            <span>
+                              {isReAssessing || selectedReport.status === 'pending_analysis'
+                                ? 'Analyzing...'
+                                : confirmReAssessReportId === selectedReport.report_id
+                                  ? 'Confirm Re-run (3s)'
+                                  : 'Re-run AI Analysis'}
+                            </span>
                           </button>
                         )}
                       </div>
@@ -2253,8 +2276,43 @@ export default function MainCommandDashboard() {
               </button>
             </div>
 
-            {/* Reference Number Search & Newest/Oldest Sort Controls */}
+            {/* Live Dispatch Queue Header Controls */}
             <div className="p-3 border-b border-border-subtle bg-surface/60 space-y-2 relative z-20">
+              {/* AI Dispatch Route Generator Bar (Strictly 1 Line) */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => generateCleaningRoute()}
+                  disabled={isGeneratingRoute}
+                  className={twMerge(
+                    "flex-1 py-2 px-3 rounded-sm font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95 border -skew-x-[3deg]",
+                    isRouteMode
+                      ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/25 shadow-md"
+                      : "bg-brand-primary/10 hover:bg-brand-primary hover:text-white border-brand-primary/30 text-brand-primary"
+                  )}
+                  title={isRouteMode ? "Turn Off AI Route Mode" : `Generate Cleaning Route (Starting: ${routeOrigin.name})`}
+                >
+                  <Route className={twMerge("w-3.5 h-3.5 skew-x-[3deg]", isGeneratingRoute && "animate-spin")} />
+                  <span className="skew-x-[3deg] truncate">
+                    {isGeneratingRoute ? 'Calculating Road Route...' : isRouteMode ? 'Hide Dispatch Route' : 'Generate Cleaning Route'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempOrigin(routeOrigin);
+                    setIsOriginModalOpen(true);
+                  }}
+                  className="h-[33px] w-[33px] rounded-sm bg-surface hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary text-text-secondary hover:text-brand-primary flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 -skew-x-[3deg]"
+                  title={`Set Route Starting Origin (Current: ${routeOrigin.name})`}
+                  aria-label="Set Route Starting Origin"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 skew-x-[3deg] text-brand-primary" />
+                </button>
+              </div>
+
+              {/* Reference Number Search & Newest/Oldest Sort Controls */}
               <div className="relative flex items-center">
                 <Search className="w-3.5 h-3.5 absolute left-2.5 text-text-muted pointer-events-none" />
                 <input
@@ -2289,40 +2347,6 @@ export default function MainCommandDashboard() {
                 >
                   <ArrowUpDown className="w-3 h-3 text-brand-primary" />
                   <span>{sortOrder === 'newest' ? 'Newest' : 'Oldest'}</span>
-                </button>
-              </div>
-
-              {/* AI Dispatch Route Generator Bar (Strictly 1 Line) */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => generateCleaningRoute()}
-                  disabled={isGeneratingRoute}
-                  className={twMerge(
-                    "flex-1 py-2 px-3 rounded-sm font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95 border -skew-x-[3deg]",
-                    isRouteMode
-                      ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/25 shadow-md"
-                      : "bg-brand-primary/10 hover:bg-brand-primary hover:text-white border-brand-primary/30 text-brand-primary"
-                  )}
-                  title={isRouteMode ? "Turn Off AI Route Mode" : `Generate Cleaning Route (Starting: ${routeOrigin.name})`}
-                >
-                  <Route className={twMerge("w-3.5 h-3.5 skew-x-[3deg]", isGeneratingRoute && "animate-spin")} />
-                  <span className="skew-x-[3deg] truncate">
-                    {isGeneratingRoute ? 'Calculating Road Route...' : isRouteMode ? 'Hide Dispatch Route' : 'Generate Cleaning Route'}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTempOrigin(routeOrigin);
-                    setIsOriginModalOpen(true);
-                  }}
-                  className="h-[33px] w-[33px] rounded-sm bg-surface hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary text-text-secondary hover:text-brand-primary flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 -skew-x-[3deg]"
-                  title={`Set Route Starting Origin (Current: ${routeOrigin.name})`}
-                  aria-label="Set Route Starting Origin"
-                >
-                  <SlidersHorizontal className="w-3.5 h-3.5 skew-x-[3deg] text-brand-primary" />
                 </button>
               </div>
             </div>

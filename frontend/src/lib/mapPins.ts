@@ -268,7 +268,7 @@ export function createDepotMarkerIcon(options: DepotPinOptions | string = {}): L
     html: `
       <div class="relative flex flex-col items-center justify-center cursor-pointer group select-none pointer-events-auto">
         ${svgHtml}
-        <div class="-mt-1 px-1.5 py-0.2 bg-black/80 backdrop-blur-md border border-emerald-500/60 rounded-xs text-[8px] font-mono font-black text-emerald-400 tracking-wider shadow-md whitespace-nowrap uppercase">
+        <div class="-mt-1 px-1.5 py-0.2 bg-black/80 backdrop-blur-md border border-emerald-500/60 rounded-xs text-[8.5px] font-heading font-black text-emerald-400 tracking-wider shadow-md whitespace-nowrap uppercase">
           ${tagText}
         </div>
       </div>
