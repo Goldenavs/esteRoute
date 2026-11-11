@@ -676,22 +676,11 @@ export default function CitizenProfile() {
                         <Trophy className="w-4 h-4" />
                       </div>
                       <div>
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
-                          esteRoute Gamified Tiers
-                        </span>
                         <h3 className="text-base sm:text-lg font-heading font-extrabold uppercase tracking-wider text-text-primary">
                           Level Progression
                         </h3>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsLevelsModalOpen(false)}
-                      className="p-1.5 rounded-sm bg-surface/80 hover:bg-semantic-urgent/20 border border-border-strong text-text-muted hover:text-semantic-urgent transition-colors cursor-pointer"
-                      aria-label="Close level progression modal"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
                   </div>
 
                 {/* Score & Next Milestone Card */}
@@ -1130,17 +1119,6 @@ export default function CitizenProfile() {
                         </p>
                       </div>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => !isUpdatingPassword && setIsPasswordModalOpen(false)}
-                      disabled={isUpdatingPassword}
-                      className="p-1 text-text-muted hover:text-text-primary rounded-sm transition-colors cursor-pointer hover:bg-app-bg"
-                      title="Close"
-                      aria-label="Close"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
                   </div>
 
                   {/* Error Notification */}
