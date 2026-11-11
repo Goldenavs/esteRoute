@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { createPortal } from 'react-dom';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { 
@@ -144,6 +145,34 @@ const createDepotMarkerIcon = (label: string = 'ROUTE ORIGIN') => {
     popupAnchor: [0, -28]
   });
 };
+
+function OriginMapClickHandler({ onSelect }: { onSelect: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(e) {
+      onSelect(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+function OriginMapFlyTo({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo(center, Math.max(map.getZoom(), 14), { duration: 0.5 });
+  }, [center, map]);
+  return null;
+}
+
+function OriginMapResize() {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
 
 const createStopMarkerIcon = (stopNumber: number, priorityScore: number) => {
   const isUrgent = priorityScore >= 70;
@@ -557,9 +586,7 @@ export default function MainCommandDashboard() {
   const [dispatchRoute, setDispatchRoute] = useState<DispatchRouteInfo | null>(null);
   const [routeOrigin, setRouteOrigin] = useState<RouteOriginPoint>(ROUTE_ORIGIN_PRESETS[0]);
   const [isOriginModalOpen, setIsOriginModalOpen] = useState<boolean>(false);
-  const [customOriginName, setCustomOriginName] = useState<string>('');
-  const [customOriginLat, setCustomOriginLat] = useState<string>('');
-  const [customOriginLng, setCustomOriginLng] = useState<string>('');
+  const [tempOrigin, setTempOrigin] = useState<RouteOriginPoint>(ROUTE_ORIGIN_PRESETS[0]);
 
   const calculateOptimalRoute = (activeList: ReportItem[], origin: RouteOriginPoint = routeOrigin) => {
     if (activeList.length === 0) return [];
@@ -1321,7 +1348,10 @@ export default function MainCommandDashboard() {
                     <div className="text-[11px] text-text-muted mb-2">{routeOrigin.address}</div>
                     <button
                       type="button"
-                      onClick={() => setIsOriginModalOpen(true)}
+                      onClick={() => {
+                        setTempOrigin(routeOrigin);
+                        setIsOriginModalOpen(true);
+                      }}
                       className="w-full py-1 px-2 bg-brand-primary/15 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
                     >
                       Change Origin Base
@@ -2250,7 +2280,10 @@ export default function MainCommandDashboard() {
 
                 <button
                   type="button"
-                  onClick={() => setIsOriginModalOpen(true)}
+                  onClick={() => {
+                    setTempOrigin(routeOrigin);
+                    setIsOriginModalOpen(true);
+                  }}
                   className="h-[33px] w-[33px] rounded-sm bg-surface hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary text-text-secondary hover:text-brand-primary flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 -skew-x-[3deg]"
                   title={`Set Route Starting Origin (Current: ${routeOrigin.name})`}
                   aria-label="Set Route Starting Origin"
@@ -2410,182 +2443,164 @@ export default function MainCommandDashboard() {
           </button>
         )}
 
-        {/* Starting Origin Location Configuration Modal */}
-        {isOriginModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 select-none">
-            <div className="bg-surface border-2 border-border-strong rounded-sm shadow-2xl max-w-lg w-full p-5 flex flex-col gap-4 text-text-primary animate-in fade-in zoom-in-95 duration-200">
-              {/* Header */}
-              <div className="border-b border-border-subtle pb-3">
+        {/* Starting Origin Location Configuration Modal (Portaled to document.body to ensure top z-index & unblocked click events) */}
+        {isOriginModalOpen && createPortal(
+          <div 
+            className="fixed inset-0 z-[2000] pointer-events-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 select-none"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsOriginModalOpen(false);
+            }}
+          >
+            <div 
+              className="bg-surface border-2 border-border-strong rounded-sm shadow-2xl max-w-lg w-full max-h-[86vh] flex flex-col text-text-primary animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header - Unskewed, no MapPin, no X */}
+              <div className="px-5 py-3.5 border-b border-border-subtle bg-surface-subtle shrink-0">
                 <h3 className="font-heading font-black text-sm uppercase tracking-wider text-text-primary">
                   Set Route Starting Origin
                 </h3>
                 <p className="text-[11px] text-text-muted mt-0.5">
-                  Configure where the AI cleaning fleet should originate its route
+                  Select an LGU station or drop a custom pin on the map
                 </p>
               </div>
 
-              {/* Presets List */}
-              <div className="space-y-2">
-                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted">
-                  Available LGU Stations & Presets
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {ROUTE_ORIGIN_PRESETS.map((preset) => {
-                    const isActive = routeOrigin.id === preset.id;
-                    return (
-                      <div
-                        key={preset.id}
-                        onClick={() => {
-                          setRouteOrigin(preset);
-                          if (isRouteMode) {
-                            generateCleaningRoute(preset);
-                          }
-                          setIsOriginModalOpen(false);
-                        }}
-                        className={twMerge(
-                          "p-3 rounded-sm border transition-all cursor-pointer flex items-center justify-between gap-3 text-left group",
-                          isActive
-                            ? "bg-brand-primary/15 border-brand-primary shadow-xs ring-1 ring-brand-primary/50"
-                            : "bg-surface-subtle hover:bg-surface border-border-subtle hover:border-brand-primary/50"
-                        )}
-                      >
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-xs text-text-primary group-hover:text-brand-primary transition-colors">
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-4">
+                {/* Presets List */}
+                <div>
+                  <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted mb-2">
+                    Available LGU Stations & Presets
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {ROUTE_ORIGIN_PRESETS.map((preset) => {
+                      const isSelected = tempOrigin.id === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setTempOrigin(preset)}
+                          className={twMerge(
+                            "p-2.5 rounded-sm border transition-all cursor-pointer text-left flex flex-col justify-between group",
+                            isSelected
+                              ? "bg-brand-primary/15 border-brand-primary shadow-xs ring-1 ring-brand-primary/50"
+                              : "bg-surface-subtle hover:bg-surface border-border-subtle hover:border-brand-primary/50"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-1.5 w-full">
+                            <span className="font-bold text-xs text-text-primary group-hover:text-brand-primary transition-colors truncate">
                               {preset.name}
                             </span>
-                            {isActive && (
-                              <span className="text-[8px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded">
-                                Active Base
+                            {isSelected && (
+                              <span className="text-[8px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-400 px-1 py-0.2 rounded shrink-0">
+                                Active
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-text-muted truncate mt-0.5">
+                          <div className="text-[10px] text-text-muted truncate mt-1">
                             {preset.address}
                           </div>
-                          <div className="text-[9px] font-mono text-text-muted/80 mt-0.5">
+                          <div className="text-[9px] font-mono text-text-muted/70 mt-0.5">
                             GPS: {preset.lat.toFixed(4)}, {preset.lng.toFixed(4)}
                           </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          className={twMerge(
-                            "px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-xs transition-colors shrink-0 -skew-x-[6deg]",
-                            isActive
-                              ? "bg-brand-primary text-white"
-                              : "bg-surface group-hover:bg-brand-primary group-hover:text-white border border-border-subtle text-text-secondary"
-                          )}
-                        >
-                          <span className="inline-block skew-x-[6deg]">{isActive ? 'Active' : 'Select'}</span>
                         </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
 
-              {/* Quick Action: Selected Incident Coords */}
-              {selectedReport && (
-                <div className="p-3 bg-app-bg/60 border border-border-subtle rounded-sm flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-mono font-bold uppercase text-brand-primary">
-                      Start From Selected Case
+                {/* Interactive Mini Map to drop or drag pin */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted">
+                    <span>Interactive Origin Map</span>
+                    <span className="text-brand-primary lowercase font-normal">click to drop pin or drag marker</span>
+                  </div>
+
+                  <div className="h-48 w-full rounded-sm border border-border-subtle overflow-hidden relative shadow-inner">
+                    <MapContainer
+                      center={[tempOrigin.lat, tempOrigin.lng]}
+                      zoom={14}
+                      className="w-full h-full"
+                      zoomControl={false}
+                      attributionControl={false}
+                    >
+                      <TileLayer url={getTileUrl(mapType)} />
+                      <Marker
+                        position={[tempOrigin.lat, tempOrigin.lng]}
+                        icon={createDepotMarkerIcon(tempOrigin.name)}
+                        draggable={true}
+                        eventHandlers={{
+                          dragend(e) {
+                            const marker = e.target;
+                            const pos = marker.getLatLng();
+                            setTempOrigin({
+                              id: 'custom-pin',
+                              name: 'Custom Depot Pin',
+                              address: `Custom Location (${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)})`,
+                              lat: pos.lat,
+                              lng: pos.lng
+                            });
+                          }
+                        }}
+                      />
+                      <OriginMapClickHandler
+                        onSelect={(lat, lng) => {
+                          setTempOrigin({
+                            id: 'custom-pin',
+                            name: 'Custom Depot Pin',
+                            address: `Custom Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+                            lat,
+                            lng
+                          });
+                        }}
+                      />
+                      <OriginMapFlyTo center={[tempOrigin.lat, tempOrigin.lng]} />
+                      <OriginMapResize />
+                    </MapContainer>
+                  </div>
+
+                  <div className="p-2.5 bg-surface-subtle border border-border-subtle rounded-sm flex items-center justify-between text-xs">
+                    <div className="min-w-0 pr-2">
+                      <span className="font-bold text-text-primary truncate block text-xs">
+                        {tempOrigin.name}
+                      </span>
+                      <span className="text-[10px] text-text-muted truncate block">
+                        {tempOrigin.address}
+                      </span>
                     </div>
-                    <div className="text-xs font-bold text-text-primary truncate">
-                      {selectedReport.tracking_reference} ({selectedReport.displayLat.toFixed(4)}, {selectedReport.displayLng.toFixed(4)})
+                    <div className="font-mono text-[10px] text-brand-primary shrink-0 bg-brand-primary/10 px-2 py-0.5 rounded border border-brand-primary/20">
+                      GPS: {tempOrigin.lat.toFixed(4)}, {tempOrigin.lng.toFixed(4)}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const customPoint: RouteOriginPoint = {
-                        id: `incident-${selectedReport.report_id}`,
-                        name: `Incident ${selectedReport.tracking_reference}`,
-                        address: selectedReport.citizen_notes || "Field Incident Location",
-                        lat: selectedReport.displayLat,
-                        lng: selectedReport.displayLng
-                      };
-                      setRouteOrigin(customPoint);
-                      if (isRouteMode) {
-                        generateCleaningRoute(customPoint);
-                      }
-                      setIsOriginModalOpen(false);
-                    }}
-                    className="px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-primary hover:bg-brand-secondary text-white rounded-xs transition-colors cursor-pointer shrink-0 -skew-x-[6deg] active:scale-95 shadow-sm"
-                  >
-                    <span className="inline-block skew-x-[6deg]">Use Location</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Custom Coordinates Input */}
-              <div className="pt-2 border-t border-border-subtle space-y-2">
-                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted">
-                  Or Custom GPS Coordinates
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <input
-                    type="text"
-                    placeholder="Base Name (e.g. Truck 1)"
-                    value={customOriginName}
-                    onChange={(e) => setCustomOriginName(e.target.value)}
-                    className="bg-app-bg border border-border-subtle focus:border-brand-primary text-text-primary text-xs px-2.5 py-1.5 rounded-sm outline-none font-mono"
-                  />
-                  <input
-                    type="number"
-                    step="0.0001"
-                    placeholder="Latitude (e.g. 10.315)"
-                    value={customOriginLat}
-                    onChange={(e) => setCustomOriginLat(e.target.value)}
-                    className="bg-app-bg border border-border-subtle focus:border-brand-primary text-text-primary text-xs px-2.5 py-1.5 rounded-sm outline-none font-mono"
-                  />
-                  <input
-                    type="number"
-                    step="0.0001"
-                    placeholder="Longitude (e.g. 123.89)"
-                    value={customOriginLng}
-                    onChange={(e) => setCustomOriginLng(e.target.value)}
-                    className="bg-app-bg border border-border-subtle focus:border-brand-primary text-text-primary text-xs px-2.5 py-1.5 rounded-sm outline-none font-mono"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsOriginModalOpen(false)}
-                    className="px-3.5 py-1.5 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer -skew-x-[6deg] active:scale-95"
-                  >
-                    <span className="inline-block skew-x-[6deg]">Cancel</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!customOriginLat || !customOriginLng}
-                    onClick={() => {
-                      const latNum = parseFloat(customOriginLat);
-                      const lngNum = parseFloat(customOriginLng);
-                      if (isNaN(latNum) || isNaN(lngNum)) return;
-                      const customPoint: RouteOriginPoint = {
-                        id: `custom-${Date.now()}`,
-                        name: customOriginName.trim() || "Custom Dispatch Base",
-                        address: `Custom GPS (${latNum.toFixed(4)}, ${lngNum.toFixed(4)})`,
-                        lat: latNum,
-                        lng: lngNum
-                      };
-                      setRouteOrigin(customPoint);
-                      if (isRouteMode) {
-                        generateCleaningRoute(customPoint);
-                      }
-                      setIsOriginModalOpen(false);
-                    }}
-                    className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-sm text-xs font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-sm -skew-x-[6deg] active:scale-95"
-                  >
-                    <span className="inline-block skew-x-[6deg]">Apply Custom Origin</span>
-                  </button>
                 </div>
               </div>
+
+              {/* Footer - Skewed buttons only */}
+              <div className="px-5 py-3 border-t border-border-subtle bg-surface-subtle flex justify-end gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsOriginModalOpen(false)}
+                  className="px-4 py-1.5 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer -skew-x-[6deg] active:scale-95"
+                >
+                  <span className="inline-block skew-x-[6deg]">Cancel</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRouteOrigin(tempOrigin);
+                    if (isRouteMode) {
+                      generateCleaningRoute(tempOrigin);
+                    }
+                    setIsOriginModalOpen(false);
+                  }}
+                  className="px-4 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white rounded-sm text-xs font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-sm -skew-x-[6deg] active:scale-95"
+                >
+                  <span className="inline-block skew-x-[6deg]">Set as Route Origin</span>
+                </button>
+              </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
         
       </div>
