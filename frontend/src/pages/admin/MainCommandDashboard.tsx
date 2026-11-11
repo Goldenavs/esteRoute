@@ -28,10 +28,7 @@ import {
   Search,
   ArrowUpDown,
   X,
-  CloudRain,
   Edit3,
-  Check,
-  Sparkles,
   Route,
   ExternalLink
 } from 'lucide-react';
@@ -1821,7 +1818,19 @@ export default function MainCommandDashboard() {
                   <div className="flex gap-3">
                     <div className="flex-1 bg-surface-subtle p-3 rounded-sm border border-border-subtle shadow-sm transform -skew-x-[6deg]">
                        <div className="transform skew-x-[6deg]">
-                         <div className="text-[9px] uppercase font-bold text-text-muted mb-1 tracking-widest">Blockage Severity</div>
+                         <div className="text-[9px] uppercase font-bold text-text-muted mb-1 tracking-widest flex items-center justify-between">
+                           <span>Priority Severity</span>
+                           {selectedReport.status === 'triaged' && selectedReport.priority_score !== undefined && (
+                             <span className={twMerge(
+                               "text-[8px] font-mono font-bold uppercase px-1 py-0.2 rounded-xs",
+                               selectedReport.priority_score >= 80 ? "bg-red-500/20 text-red-400" :
+                               selectedReport.priority_score >= 60 ? "bg-amber-500/20 text-amber-400" :
+                               "bg-emerald-500/20 text-emerald-400"
+                             )}>
+                               {selectedReport.priority_score >= 80 ? 'Urgent' : selectedReport.priority_score >= 60 ? 'High' : selectedReport.priority_score >= 30 ? 'Medium' : 'Low'}
+                             </span>
+                           )}
+                         </div>
                          <div className="text-2xl font-black text-semantic-warning leading-none">
                            {selectedReport.status === 'pending_analysis' ? (
                              <span className="text-sm font-mono text-brand-primary animate-pulse flex items-center gap-1">
@@ -1833,10 +1842,18 @@ export default function MainCommandDashboard() {
                                 0 <span className="text-xs text-red-400 font-sans uppercase">(REJECTED)</span>
                               </span>
                             ) : (
-                              <>{visionResult?.blockage_severity_score ?? selectedReport.priority_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></>
+                              <>{selectedReport.priority_score ?? visionResult?.blockage_severity_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></>
                             )
                            )}
                          </div>
+                         {/* Minor Sub-Scores: Vision Blockage & Rain Risk */}
+                         {selectedReport.status !== 'pending_analysis' && visionResult?.is_valid_waterway !== false && (
+                           <div className="text-[9px] font-mono text-text-muted mt-2 pt-1.5 border-t border-border-subtle/60 flex items-center justify-between">
+                             <span>Vision: <strong className="text-text-primary">{visionResult?.blockage_severity_score ?? '—'}%</strong></span>
+                             <span className="text-border-subtle opacity-60">|</span>
+                             <span>Rain: <strong className="text-blue-400">{weatherResult?.rain_probability_index !== undefined ? `${weatherResult.rain_probability_index}%` : '—'}</strong></span>
+                           </div>
+                         )}
                        </div>
                     </div>
                     <div className="flex-1 bg-surface-subtle p-3 rounded-sm border border-border-subtle shadow-sm transform -skew-x-[6deg]">
@@ -1896,196 +1913,176 @@ export default function MainCommandDashboard() {
                     </div>
                   )}
 
-                  {/* Manual Triage & Weather Synthesis Panel (Active when review needed or officer opens manual override) */}
+                  {/* Manual Triage Panel */}
                   {(isManualEditOpen || selectedReport.status === 'failed_analysis' || selectedReport.needs_human_review) && (
-                    <div id="manual-triage-card" className="bg-surface border-2 border-brand-primary/40 rounded-sm p-4 flex flex-col gap-3 shadow-xl relative overflow-hidden -skew-x-[3deg]">
-                      <div className="skew-x-[3deg] flex flex-col gap-3">
-                        {/* Header */}
-                        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
-                          <div className="flex items-center gap-1.5 text-xs font-heading font-black uppercase tracking-wider text-brand-primary">
-                            <Edit3 className="w-4 h-4 text-brand-primary" />
-                            <span>Manual Triage & Weather Fusion</span>
-                          </div>
-                          <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm bg-brand-primary/15 text-brand-primary border border-brand-primary/30">
-                            LGU Review
+                    <div id="manual-triage-card" className="bg-surface border-2 border-brand-primary/40 rounded-sm p-4 flex flex-col gap-3 shadow-xl">
+                      {/* Header - No icons, no pill, just "Manual Triage" */}
+                      <div className="border-b border-border-subtle pb-2">
+                        <h3 className="text-xs font-heading font-black uppercase tracking-wider text-text-primary">
+                          Manual Triage
+                        </h3>
+                      </div>
+
+                      {/* Live Weather Forecast Metric (Minimal 1-line, no icon) */}
+                      <div className="flex items-center justify-between text-[11px] font-mono text-text-muted py-1 border-b border-border-subtle/50">
+                        <span>48h Rain Probability:</span>
+                        <span className="font-bold text-blue-400">
+                          {weatherResult?.rain_probability_index !== undefined ? `${weatherResult.rain_probability_index}%` : 'Scanning...'}
+                        </span>
+                      </div>
+
+                      {/* Blockage Severity Slider */}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                            Assessed Blockage Severity:
+                          </span>
+                          <span className={twMerge(
+                            "font-mono font-black text-sm px-2 py-0.5 rounded-sm",
+                            manualSeverity >= 80 ? "text-semantic-urgent bg-semantic-urgent/10 border border-semantic-urgent/30" :
+                            manualSeverity >= 60 ? "text-semantic-warning bg-semantic-warning/10 border border-semantic-warning/30" :
+                            manualSeverity >= 30 ? "text-amber-400 bg-amber-500/10 border border-amber-500/30" :
+                            "text-emerald-400 bg-emerald-500/10 border border-emerald-500/30"
+                          )}>
+                            {manualSeverity}%
                           </span>
                         </div>
 
-                        {/* Live Weather Forecast Metric */}
-                        <div className="bg-surface-subtle p-2.5 rounded-sm border border-border-subtle flex items-center justify-between text-xs font-mono">
-                          <div className="flex items-center gap-2">
-                            <CloudRain className="w-4 h-4 text-blue-400 shrink-0" />
-                            <span className="text-text-muted text-[11px]">Open-Meteo 48h Rain Risk:</span>
-                          </div>
-                          <span className="font-bold text-blue-400 font-mono">
-                            {weatherResult?.rain_probability_index !== undefined ? `${weatherResult.rain_probability_index}%` : 'Scanning...'}
-                          </span>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="100" 
+                          step="1"
+                          value={manualSeverity}
+                          onChange={(e) => setManualSeverity(Number(e.target.value))}
+                          className="w-full accent-brand-primary cursor-pointer h-2 bg-surface-subtle rounded-sm"
+                        />
+
+                        {/* Severity Presets */}
+                        <div className="grid grid-cols-4 gap-1 mt-1">
+                          {[
+                            { label: 'Clear 15%', val: 15 },
+                            { label: 'Mod 45%', val: 45 },
+                            { label: 'Heavy 75%', val: 75 },
+                            { label: 'Full 95%', val: 95 }
+                          ].map((preset) => (
+                            <button
+                              key={preset.val}
+                              type="button"
+                              onClick={() => setManualSeverity(preset.val)}
+                              className={twMerge(
+                                "py-1 text-[9px] font-mono uppercase font-bold rounded-xs border transition-all cursor-pointer active:scale-95 text-center -skew-x-[4deg]",
+                                manualSeverity === preset.val
+                                  ? "bg-brand-primary text-white border-brand-primary"
+                                  : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle hover:border-border-strong"
+                              )}
+                            >
+                              <span className="inline-block skew-x-[4deg]">{preset.label}</span>
+                            </button>
+                          ))}
                         </div>
+                      </div>
 
-                        {/* Blockage Severity Slider */}
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
-                              Assessed Blockage Severity:
-                            </span>
-                            <span className={twMerge(
-                              "font-mono font-black text-sm px-2 py-0.5 rounded-sm",
-                              manualSeverity >= 80 ? "text-semantic-urgent bg-semantic-urgent/10 border border-semantic-urgent/30" :
-                              manualSeverity >= 60 ? "text-semantic-warning bg-semantic-warning/10 border border-semantic-warning/30" :
-                              manualSeverity >= 30 ? "text-amber-400 bg-amber-500/10 border border-amber-500/30" :
-                              "text-emerald-400 bg-emerald-500/10 border border-emerald-500/30"
-                            )}>
-                              {manualSeverity}%
-                            </span>
-                          </div>
-
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            step="1"
-                            value={manualSeverity}
-                            onChange={(e) => setManualSeverity(Number(e.target.value))}
-                            className="w-full accent-brand-primary cursor-pointer h-2 bg-surface-subtle rounded-sm"
-                          />
-
-                          {/* Severity Presets */}
-                          <div className="grid grid-cols-4 gap-1 mt-1">
-                            {[
-                              { label: 'Clear 15%', val: 15 },
-                              { label: 'Mod 45%', val: 45 },
-                              { label: 'Heavy 75%', val: 75 },
-                              { label: 'Full 95%', val: 95 }
-                            ].map((preset) => (
+                      {/* Waste Category Selection (No check icon) */}
+                      <div className="flex flex-col gap-1.5">
+                        <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                          Observed Waste Categories:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {['Plastic', 'Organic', 'Silt', 'Construction', 'Other'].map((cat) => {
+                            const isSelected = manualWaste.includes(cat);
+                            return (
                               <button
-                                key={preset.val}
+                                key={cat}
                                 type="button"
-                                onClick={() => setManualSeverity(preset.val)}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setManualWaste(prev => prev.filter(c => c !== cat));
+                                  } else {
+                                    setManualWaste(prev => [...prev, cat]);
+                                  }
+                                }}
                                 className={twMerge(
-                                  "py-1 text-[9px] font-mono uppercase font-bold rounded-xs border transition-all cursor-pointer active:scale-95 text-center",
-                                  manualSeverity === preset.val
-                                    ? "bg-brand-primary text-white border-brand-primary"
-                                    : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle hover:border-border-strong"
+                                  "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase transition-all cursor-pointer border -skew-x-[4deg] active:scale-95",
+                                  isSelected
+                                    ? "bg-brand-primary text-white border-brand-primary shadow-xs"
+                                    : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle"
                                 )}
                               >
-                                {preset.label}
+                                <span className="inline-block skew-x-[4deg]">{cat}</span>
                               </button>
-                            ))}
-                          </div>
+                            );
+                          })}
                         </div>
+                      </div>
 
-                        {/* Waste Category Selection */}
-                        <div className="flex flex-col gap-1.5">
-                          <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
-                            Observed Waste Categories:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {['Plastic', 'Organic', 'Silt', 'Construction', 'Other'].map((cat) => {
-                              const isSelected = manualWaste.includes(cat);
-                              return (
-                                <button
-                                  key={cat}
-                                  type="button"
-                                  onClick={() => {
-                                    if (isSelected) {
-                                      setManualWaste(prev => prev.filter(c => c !== cat));
-                                    } else {
-                                      setManualWaste(prev => [...prev, cat]);
-                                    }
-                                  }}
-                                  className={twMerge(
-                                    "px-2 py-1 rounded-sm text-[10px] font-mono font-bold uppercase transition-all cursor-pointer flex items-center gap-1 border",
-                                    isSelected
-                                      ? "bg-brand-primary text-white border-brand-primary shadow-xs"
-                                      : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle"
-                                  )}
-                                >
-                                  {isSelected && <Check className="w-3 h-3 text-white" />}
-                                  <span>{cat}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
+                      {/* Optional Dispatcher Observation Note */}
+                      <div className="flex flex-col gap-1">
+                        <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                          Dispatcher Audit Note (Optional):
+                        </span>
+                        <input
+                          type="text"
+                          value={manualRationale}
+                          onChange={(e) => setManualRationale(e.target.value)}
+                          placeholder="e.g. Verified 75% obstruction with heavy silt"
+                          className="bg-surface-subtle border border-border-subtle rounded-sm px-2.5 py-1.5 text-xs text-text-primary focus:border-brand-primary outline-hidden placeholder:text-text-muted font-mono"
+                        />
+                      </div>
 
-                        {/* Optional Dispatcher Observation Note */}
-                        <div className="flex flex-col gap-1">
-                          <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
-                            Dispatcher Audit Note (Optional):
-                          </span>
-                          <input
-                            type="text"
-                            value={manualRationale}
-                            onChange={(e) => setManualRationale(e.target.value)}
-                            placeholder="e.g. Verified 75% obstruction with heavy silt"
-                            className="bg-surface-subtle border border-border-subtle rounded-sm px-2.5 py-1.5 text-xs text-text-primary focus:border-brand-primary outline-hidden placeholder:text-text-muted"
-                          />
-                        </div>
-
-                        {/* Real-Time Priority Score Preview Formula */}
-                        {(() => {
-                          const rpi = weatherResult?.rain_probability_index ?? 0;
-                          const projectedScore = Math.round(((0.60 * manualSeverity) + (0.40 * rpi)) * 100) / 100;
-                          const priorityLabel = projectedScore < 30 ? "Low" : projectedScore < 60 ? "Medium" : projectedScore < 80 ? "High" : "Urgent";
-                          return (
-                            <div className="bg-brand-primary/10 border border-brand-primary/30 p-2.5 rounded-sm flex items-center justify-between text-xs">
-                              <div className="flex flex-col">
-                                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-text-muted">
-                                  Synthesized Priority (60% Vision + 40% Rain)
-                                </span>
-                                <span className="text-[11px] font-mono text-text-secondary">
-                                  ({(0.60 * manualSeverity).toFixed(1)} + {(0.40 * rpi).toFixed(1)})
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={twMerge(
-                                  "text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-sm",
-                                  priorityLabel === 'Urgent' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                                  priorityLabel === 'High' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
-                                  priorityLabel === 'Medium' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" :
-                                  "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                )}>
-                                  {priorityLabel}
-                                </span>
-                                <span className="text-lg font-mono font-black text-brand-primary">
-                                  {projectedScore}
-                                </span>
-                              </div>
+                      {/* Real-Time Priority Score Preview Formula (Minimal 1-line) */}
+                      {(() => {
+                        const rpi = weatherResult?.rain_probability_index ?? 0;
+                        const projectedScore = Math.round(((0.60 * manualSeverity) + (0.40 * rpi)) * 100) / 100;
+                        const priorityLabel = projectedScore < 30 ? "Low" : projectedScore < 60 ? "Medium" : projectedScore < 80 ? "High" : "Urgent";
+                        return (
+                          <div className="bg-surface-subtle border border-border-subtle px-3 py-2 rounded-sm flex items-center justify-between text-xs font-mono">
+                            <span className="text-[10px] uppercase font-bold text-text-muted">
+                              Synthesized Priority
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-text-muted">
+                                ({(0.60 * manualSeverity).toFixed(1)} + {(0.40 * rpi).toFixed(1)})
+                              </span>
+                              <span className={twMerge(
+                                "text-[10px] font-bold uppercase px-1.5 py-0.2 rounded-xs",
+                                priorityLabel === 'Urgent' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                priorityLabel === 'High' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                                priorityLabel === 'Medium' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" :
+                                "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                              )}>
+                                {priorityLabel}
+                              </span>
+                              <span className="text-sm font-black text-brand-primary">
+                                {projectedScore}
+                              </span>
                             </div>
-                          );
-                        })()}
+                          </div>
+                        );
+                      })()}
 
-                        {/* Submit / Confirm Button */}
-                        <div className="flex gap-2 pt-1">
+                      {/* Submit / Confirm Button */}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleManualTriageSubmit}
+                          disabled={isManualTriageSubmitting}
+                          className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black py-2.5 px-3 rounded-sm font-bold uppercase text-[11px] tracking-wider transition-all flex items-center justify-center cursor-pointer shadow-md active:scale-95 disabled:opacity-50 -skew-x-[6deg]"
+                        >
+                          <span className="inline-block skew-x-[6deg]">
+                            {isManualTriageSubmitting ? 'Synthesizing...' : 'Confirm Manual Triage'}
+                          </span>
+                        </button>
+
+                        {isManualEditOpen && selectedReport.status === 'triaged' && (
                           <button
                             type="button"
-                            onClick={handleManualTriageSubmit}
-                            disabled={isManualTriageSubmitting}
-                            className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black py-2.5 px-3 rounded-sm font-bold uppercase text-[11px] tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
+                            onClick={() => setIsManualEditOpen(false)}
+                            className="px-3.5 py-2 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer -skew-x-[6deg] active:scale-95"
                           >
-                            {isManualTriageSubmitting ? (
-                              <>
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                <span>Synthesizing...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span>Confirm Manual Triage & Weather Score</span>
-                              </>
-                            )}
+                            <span className="inline-block skew-x-[6deg]">Cancel</span>
                           </button>
-
-                          {isManualEditOpen && selectedReport.status === 'triaged' && (
-                            <button
-                              type="button"
-                              onClick={() => setIsManualEditOpen(false)}
-                              className="px-3 py-2 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
                   )}
