@@ -51,33 +51,6 @@ const BorderBeam = ({ delay = 0 }: { delay?: number }) => (
   </div>
 );
 
-// Static Topographic Wave Background Texture for Containers (matches TacticalBackground style)
-const StaticWaveTexture = ({ isLight }: { isLight: boolean }) => {
-  const strokeColor = isLight ? '#3F72AF' : '#60A5FA';
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
-      <svg 
-        className="w-full h-full min-w-[700px] min-h-[350px] opacity-25" 
-        viewBox="0 0 900 450" 
-        preserveAspectRatio="none" 
-        fill="none"
-      >
-        <g stroke={strokeColor} strokeWidth="1.4" opacity={isLight ? 0.35 : 0.45}>
-          <path d="M-100,50 C120,10 260,110 480,60 S680,15 950,80" />
-          <path d="M-100,130 C80,80 280,190 500,130 S720,80 950,160" />
-          <path d="M-100,220 C140,160 240,280 520,220 S750,160 950,250" />
-          <path d="M-100,310 C100,250 300,360 540,300 S740,240 950,330" />
-          <path d="M-100,390 C160,330 260,440 530,380 S760,320 950,410" />
-        </g>
-        <g stroke={strokeColor} strokeWidth="1.0" strokeDasharray="6 6" opacity={isLight ? 0.25 : 0.35}>
-          <path d="M-100,90 C160,40 340,150 560,95 S780,40 950,120" />
-          <path d="M-100,265 C120,205 320,325 550,260 S770,205 950,290" />
-        </g>
-      </svg>
-    </div>
-  );
-};
-
 // Fake unpressable demo pins for the LGU Dispatcher interactive map
 const DEMO_MAP_PINS = [
   { id: '1', lat: 10.3289, lng: 123.9212, score: 91.0, status: 'triaged', review: false },
@@ -89,7 +62,6 @@ const DEMO_MAP_PINS = [
 
 export default function FeaturesSection() {
   const { theme } = useTheme();
-  const isLight = theme === 'light';
 
   // Dynamic header cycling
   const [headerWordIndex, setHeaderWordIndex] = useState(0);
@@ -179,15 +151,13 @@ export default function FeaturesSection() {
 
           {/* ========================================================================= */}
           {/* FEATURE 1: Frictionless Citizen Reporting (2 cols)                        */}
-          {/* Outer Box: Clean unskewed | Inner Bottom Stepper Container: SKEWED        */}
+          {/* Outer Box: Clean unskewed | Steps: Direct Stepper Buttons without box     */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
-              {/* Static Wave Background Texture */}
-              <StaticWaveTexture isLight={isLight} />
+            <div className="group relative bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-center">
               <BorderBeam delay={0} />
 
-              <div className="relative z-10 flex flex-col justify-between h-full space-y-6">
+              <div className="relative z-10 flex flex-col justify-center h-full space-y-6 sm:space-y-8">
                 
                 {/* Upper Area: Title & Dynamic Description that changes per clicked button */}
                 <div className="pr-2">
@@ -202,7 +172,7 @@ export default function FeaturesSection() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -6 }}
                       transition={{ duration: 0.2 }}
-                      className="mt-2"
+                      className="mt-2 min-h-[4rem]"
                     >
                       <p className="text-xs font-mono font-bold text-brand-primary uppercase tracking-wider mb-1.5">
                         {CITIZEN_STEP_DESCRIPTIONS[citizenStep].headline}
@@ -214,9 +184,9 @@ export default function FeaturesSection() {
                   </AnimatePresence>
                 </div>
 
-                {/* Bottom Area: SKEWED container with exact Stepper UI from Citizen Report Screen */}
-                <div className="w-full bg-surface/75 backdrop-blur-md border border-border-subtle p-3.5 sm:p-4.5 rounded-none -skew-x-3 md:-skew-x-6 overflow-hidden">
-                  <div className="skew-x-3 md:skew-x-6 flex items-center justify-between px-2 sm:px-6 w-full max-w-md mx-auto">
+                {/* Bottom Area: Exact Stepper UI directly, NO background container box */}
+                <div className="w-full">
+                  <div className="flex items-center justify-between px-1 sm:px-4 w-full max-w-md">
                     
                     {/* Step 1: Photo Button */}
                     <button
@@ -354,9 +324,7 @@ export default function FeaturesSection() {
           {/* Outer Box: Clean unskewed | Inner Data Box: SKEWED                        */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
-              {/* Static Wave Background Texture */}
-              <StaticWaveTexture isLight={isLight} />
+            <div className="group relative bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               <BorderBeam delay={2.25} />
 
               <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
@@ -370,7 +338,7 @@ export default function FeaturesSection() {
                 </div>
 
                 {/* SKEWED Inner Data Box */}
-                <div className="w-full bg-surface/75 backdrop-blur-md border border-border-subtle p-4 sm:p-5 rounded-none -skew-x-3 md:-skew-x-6 overflow-hidden">
+                <div className="w-full bg-surface/30 backdrop-blur-md border border-border-subtle p-4 sm:p-5 rounded-none -skew-x-3 md:-skew-x-6 overflow-hidden">
                   <div className="skew-x-3 md:skew-x-6 space-y-3 px-1">
                     
                     {/* Real Numbers & Computed RPI */}
@@ -384,11 +352,11 @@ export default function FeaturesSection() {
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="font-mono text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 border border-amber-500/30">
-                          HIGH HAZARD
-                        </span>
-                        <span className="block font-data text-[9px] text-text-muted mt-1">
+                        <span className="font-mono text-xs font-bold text-text-primary">
                           Peak 17:00 PHT
+                        </span>
+                        <span className="block font-data text-[9px] text-text-muted mt-0.5">
+                          Next 48 Hours
                         </span>
                       </div>
                     </div>
@@ -402,7 +370,7 @@ export default function FeaturesSection() {
                               style={{ height: `${val}%` }} 
                               className={`w-full rounded-none transition-all ${
                                 idx === 4 
-                                  ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' 
+                                   ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' 
                                   : val > 50 ? 'bg-amber-400' : 'bg-brand-primary/70'
                               }`} 
                             />
@@ -433,9 +401,7 @@ export default function FeaturesSection() {
           {/* Outer Box: Clean unskewed | Inner Data Box: SKEWED                        */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
-              {/* Static Wave Background Texture */}
-              <StaticWaveTexture isLight={isLight} />
+            <div className="group relative bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               <BorderBeam delay={4.5} />
 
               <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
@@ -449,7 +415,7 @@ export default function FeaturesSection() {
                 </div>
 
                 {/* SKEWED Inner Data Box */}
-                <div className="w-full bg-surface/75 backdrop-blur-md border border-border-subtle p-4 sm:p-5 rounded-none -skew-x-3 md:-skew-x-6 overflow-hidden">
+                <div className="w-full bg-surface/30 backdrop-blur-md border border-border-subtle p-4 sm:p-5 rounded-none -skew-x-3 md:-skew-x-6 overflow-hidden">
                   <div className="skew-x-3 md:skew-x-6 space-y-3 px-1">
                     
                     {/* Real Numbers & Computed Severity */}
@@ -463,11 +429,11 @@ export default function FeaturesSection() {
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="font-mono text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 border border-emerald-500/30 inline-block">
-                          AUTHENTIC CANAL
+                        <span className="font-mono text-xs font-bold text-rose-500">
+                          Critical Choke
                         </span>
-                        <span className="block font-data text-[9px] text-text-muted mt-1">
-                          Inference: 1.84s
+                        <span className="block font-data text-[9px] text-text-muted mt-0.5">
+                          Multimodal Triage
                         </span>
                       </div>
                     </div>
@@ -521,9 +487,7 @@ export default function FeaturesSection() {
           {/* Outer Box: Clean unskewed | Map Container: SKEWED WITH OVERSIZED MAP (NO WHITE GAPS) */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
-              {/* Static Wave Background Texture */}
-              <StaticWaveTexture isLight={isLight} />
+            <div className="group relative bg-surface/20 hover:bg-surface/85 hover:backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               <BorderBeam delay={6.75} />
 
               <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
