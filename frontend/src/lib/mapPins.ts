@@ -140,3 +140,69 @@ export function createEsteroMarkerIcon(options: EsteroPinOptions = {}): L.DivIco
     popupAnchor: [0, -height],
   });
 }
+
+/**
+ * Creates a high-grade cluster badge showing the aggregated report count and highest severity.
+ */
+export function createClusterIcon(count: number, highestStatus: string = 'critical'): L.DivIcon {
+  const colorMap: Record<string, { bg: string; border: string; shadow: string }> = {
+    critical: {
+      bg: 'linear-gradient(135deg, #EF4444, #B91C1C)',
+      border: '#F87171',
+      shadow: 'rgba(239, 68, 68, 0.45)',
+    },
+    blocked: {
+      bg: 'linear-gradient(135deg, #EF4444, #B91C1C)',
+      border: '#F87171',
+      shadow: 'rgba(239, 68, 68, 0.45)',
+    },
+    moderate: {
+      bg: 'linear-gradient(135deg, #F59E0B, #B45309)',
+      border: '#FBBF24',
+      shadow: 'rgba(245, 158, 11, 0.45)',
+    },
+    dispatched: {
+      bg: 'linear-gradient(135deg, #F59E0B, #D97706)',
+      border: '#FBBF24',
+      shadow: 'rgba(245, 158, 11, 0.45)',
+    },
+    resolved: {
+      bg: 'linear-gradient(135deg, #10B981, #047857)',
+      border: '#34D399',
+      shadow: 'rgba(16, 185, 129, 0.45)',
+    },
+    review: {
+      bg: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+      border: '#A78BFA',
+      shadow: 'rgba(139, 92, 246, 0.45)',
+    },
+    pending: {
+      bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
+      border: '#60A5FA',
+      shadow: 'rgba(59, 130, 246, 0.45)',
+    },
+  };
+
+  const style = colorMap[highestStatus] || colorMap.critical;
+  const size = count >= 50 ? 44 : count >= 10 ? 38 : 32;
+
+  return L.divIcon({
+    className: 'custom-cluster-marker',
+    html: `
+      <div class="relative w-full h-full flex items-center justify-center cursor-pointer group select-none pointer-events-auto">
+        <div style="
+          width: ${size}px; 
+          height: ${size}px; 
+          background: ${style.bg}; 
+          border: 2px solid ${style.border}; 
+          box-shadow: 0 4px 14px ${style.shadow};
+        " class="rounded-full flex items-center justify-center text-white font-mono font-black text-xs transition-transform duration-200 group-hover:scale-115">
+          <span>${count}</span>
+        </div>
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+}

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { 
@@ -39,7 +39,7 @@ import {
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
 import BorderBeam from '../../components/common/BorderBeam';
-import { createEsteroMarkerIcon } from '../../lib/mapPins';
+import { createEsteroMarkerIcon, createClusterIcon } from '../../lib/mapPins';
 
 export type MapTileType = 'detailed' | 'standard';
 const getTileUrl = (type: MapTileType) => {
@@ -138,6 +138,356 @@ const createStopMarkerIcon = (stopNumber: number, priorityScore: number) => {
     popupAnchor: [0, -36]
   });
 };
+
+function getClusterHighestStatus(reports: ReportItem[]): 'critical' | 'moderate' | 'dispatched' | 'resolved' | 'review' | 'pending' {
+  if (reports.some(r => r.status === 'triaged' && (r.priority_score || 0) >= 70)) return 'critical';
+  if (reports.some(r => r.status === 'failed_analysis' || r.needs_human_review)) return 'review';
+  if (reports.some(r => r.status === 'dispatched')) return 'dispatched';
+  if (reports.some(r => r.status === 'triaged')) return 'moderate';
+  if (reports.some(r => r.status === 'pending_analysis')) return 'pending';
+  return 'resolved';
+}
+
+interface CommandClusteredMarkersProps {
+  reports: ReportItem[];
+  selectedReportId: string | null;
+  setSelectedReportId: (id: string) => void;
+  markerRefs: React.RefObject<{ [key: string]: L.Marker | null }>;
+  getMarkerIcon: (status: string, score: number, needsReview: boolean, isSelected?: boolean) => L.DivIcon;
+}
+
+function CommandClusteredMarkers({
+  reports,
+  selectedReportId,
+  setSelectedReportId,
+  markerRefs,
+  getMarkerIcon,
+}: CommandClusteredMarkersProps) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+
+  useEffect(() => {
+    const handleZoom = () => setZoom(map.getZoom());
+    map.on('zoomend', handleZoom);
+    return () => {
+      map.off('zoomend', handleZoom);
+    };
+  }, [map]);
+
+  const clusters = useMemo(() => {
+    // Zoom >= 15: show all individual markers (spiderfied by displayLat/displayLng)
+    if (zoom >= 15) {
+      return reports.map(r => ({
+        id: r.report_id,
+        lat: r.displayLat,
+        lng: r.displayLng,
+        reports: [r],
+        highestStatus: getClusterHighestStatus([r]),
+      }));
+    }
+
+    // Zoom < 15: Spatial proximity clustering
+    // Keep selected report unclustered if present so its marker and popup stay visible
+    const nonSelectedReports = selectedReportId
+      ? reports.filter(r => r.report_id !== selectedReportId)
+      : reports;
+
+    const clusterRadius = 45 / Math.pow(2, zoom);
+    const clusterList: {
+      id: string;
+      lat: number;
+      lng: number;
+      reports: ReportItem[];
+      highestStatus: 'critical' | 'moderate' | 'dispatched' | 'resolved' | 'review' | 'pending';
+    }[] = [];
+    const visited = new Set<string>();
+
+    for (let i = 0; i < nonSelectedReports.length; i++) {
+      const report = nonSelectedReports[i];
+      if (visited.has(report.report_id)) continue;
+
+      const nearby: ReportItem[] = [report];
+      visited.add(report.report_id);
+
+      for (let j = i + 1; j < nonSelectedReports.length; j++) {
+        const other = nonSelectedReports[j];
+        if (visited.has(other.report_id)) continue;
+
+        const dLat = Number(report.latitude) - Number(other.latitude);
+        const dLng = Number(report.longitude) - Number(other.longitude);
+        const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+
+        if (dist < clusterRadius) {
+          nearby.push(other);
+          visited.add(other.report_id);
+        }
+      }
+
+      const avgLat = nearby.reduce((sum, r) => sum + Number(r.latitude), 0) / nearby.length;
+      const avgLng = nearby.reduce((sum, r) => sum + Number(r.longitude), 0) / nearby.length;
+
+      clusterList.push({
+        id: nearby.length === 1 ? report.report_id : `cluster-${report.report_id}-${nearby.length}`,
+        lat: avgLat,
+        lng: avgLng,
+        reports: nearby,
+        highestStatus: getClusterHighestStatus(nearby),
+      });
+    }
+
+    if (selectedReportId) {
+      const selected = reports.find(r => r.report_id === selectedReportId);
+      if (selected) {
+        clusterList.unshift({
+          id: selected.report_id,
+          lat: selected.displayLat,
+          lng: selected.displayLng,
+          reports: [selected],
+          highestStatus: getClusterHighestStatus([selected]),
+        });
+      }
+    }
+
+    return clusterList;
+  }, [reports, zoom, selectedReportId]);
+
+  const renderSingleMarker = (report: ReportItem, isSelected: boolean) => {
+    const sameLocationReports = report.locationGroup || [];
+
+    return (
+      <Marker 
+        key={report.report_id} 
+        ref={(ref) => {
+          if (ref) {
+            markerRefs.current[report.report_id] = ref;
+          } else {
+            delete markerRefs.current[report.report_id];
+          }
+        }}
+        position={[report.displayLat, report.displayLng]} 
+        icon={getMarkerIcon(report.status, report.priority_score, !!report.needs_human_review, isSelected)}
+        zIndexOffset={isSelected ? 1000 : (report.coordIndex || 0) * 10}
+        eventHandlers={{
+          click: () => {
+            setSelectedReportId(report.report_id);
+          }
+        }}
+      >
+        <Popup className="custom-popup" closeButton={false}>
+          <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-1 mb-2 border-b border-border-subtle pb-2">
+              <div>
+                <div className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
+                  {report.tracking_reference}
+                </div>
+                <div className="text-xs font-heading font-black text-text-primary">
+                  {report.status === 'resolved'
+                    ? 'Cleared Waterway'
+                    : report.status === 'dispatched'
+                      ? 'Cleanup Dispatched'
+                      : report.status === 'failed_analysis' || report.needs_human_review
+                        ? 'Manual Review Needed'
+                        : report.status === 'pending_analysis'
+                          ? 'AI Triage in Progress'
+                          : report.priority_score >= 70
+                            ? 'Critical Constriction'
+                            : 'Active Constriction'}
+                </div>
+              </div>
+
+              <span className={twMerge(
+                "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider",
+                report.status === 'resolved'
+                  ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                  : report.status === 'dispatched'
+                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                    : report.status === 'failed_analysis' || report.needs_human_review
+                      ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                      : report.status === 'pending_analysis'
+                        ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                        : report.priority_score >= 70
+                          ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                          : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+              )}>
+                {report.status === 'resolved' ? 'RESOLVED' :
+                 report.status === 'dispatched' ? 'DISPATCHED' :
+                 report.status === 'failed_analysis' || report.needs_human_review ? 'REVIEW' :
+                 report.status === 'pending_analysis' ? 'PENDING' :
+                 `PRIORITY ${report.priority_score || 0}`}
+              </span>
+            </div>
+
+            {/* Image Preview if available */}
+            {report.image_url && (
+              <div className="w-full h-28 mb-2 rounded-sm overflow-hidden border border-border-subtle bg-black/40 relative">
+                <img 
+                  src={report.image_url} 
+                  alt="Canal Condition" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Notes */}
+            <p className="text-[11px] text-text-secondary line-clamp-2 mb-2 leading-relaxed">
+              "{report.citizen_notes || 'Citizen canal blockage observation.'}"
+            </p>
+
+            {/* Footer Info */}
+            <div className="flex items-center justify-between text-[10px] font-mono text-text-muted pt-1 border-t border-border-subtle">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {new Date(report.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span className="text-brand-primary font-bold">
+                {report.status === 'resolved' 
+                  ? 'Restored' 
+                  : report.status === 'failed_analysis'
+                    ? 'Needs Verification'
+                    : (report.priority_score || 0) >= 70 
+                      ? 'High Impact' 
+                      : (report.priority_score || 0) < 40 
+                        ? 'Low Impact' 
+                        : 'Moderate'}
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-2.5 pt-2 border-t border-border-subtle flex flex-col gap-1.5">
+              {report.status === 'failed_analysis' || report.needs_human_review ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedReportId(report.report_id);
+                    setTimeout(() => {
+                      const el = document.getElementById('manual-triage-card');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                  }}
+                  className="w-full py-2 px-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors active:scale-95"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Manual Verify Case</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedReportId(report.report_id);
+                  }}
+                  className="w-full py-2 px-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors active:scale-95"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Inspect in Side Panel</span>
+                </button>
+              )}
+            </div>
+
+            {/* Multiple reports at this location switcher */}
+            {sameLocationReports.length > 1 && (
+              <div className="mt-2 pt-2 border-t border-border-subtle/70 text-[9px] text-text-muted">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-text-secondary">Location Cluster:</span>
+                  <span className="font-mono text-[8px] bg-surface-subtle px-1 rounded">{sameLocationReports.length} reports</span>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {sameLocationReports.map((other: ReportItem) => {
+                    const isThisOne = other.report_id === report.report_id;
+                    return (
+                      <button
+                        key={other.report_id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedReportId(other.report_id);
+                        }}
+                        className={`px-1.5 py-0.5 rounded text-[8px] font-mono cursor-pointer transition-colors ${
+                          isThisOne 
+                            ? 'bg-brand-primary text-white font-bold shadow-xs' 
+                            : 'bg-surface hover:bg-surface-subtle text-text-secondary border border-border-subtle'
+                        }`}
+                        title={`Switch to ${other.tracking_reference}`}
+                      >
+                        {other.tracking_reference.replace('ER-2026-', '#')}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </Popup>
+      </Marker>
+    );
+  };
+
+  return (
+    <>
+      {clusters.map((cluster) => {
+        if (cluster.reports.length === 1) {
+          const report = cluster.reports[0];
+          return renderSingleMarker(report, selectedReportId === report.report_id);
+        }
+
+        const resolvedCount = cluster.reports.filter(r => r.status === 'resolved').length;
+        const activeCount = cluster.reports.length - resolvedCount;
+
+        return (
+          <Marker
+            key={cluster.id}
+            position={[cluster.lat, cluster.lng]}
+            icon={createClusterIcon(cluster.reports.length, cluster.highestStatus)}
+            zIndexOffset={500}
+            eventHandlers={{
+              click: () => {
+                map.setView([cluster.lat, cluster.lng], Math.min(zoom + 3, 16), { animate: true });
+              },
+            }}
+          >
+            <Popup className="custom-popup" closeButton={false}>
+              <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary font-sans">
+                <div className="flex items-center justify-between border-b border-border-subtle pb-2 mb-2">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-primary">
+                    Sector Cluster
+                  </span>
+                  <span className={twMerge(
+                    "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider",
+                    cluster.highestStatus === 'critical' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                    cluster.highestStatus === 'review' ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" :
+                    cluster.highestStatus === 'dispatched' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                    cluster.highestStatus === 'pending' ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" :
+                    cluster.highestStatus === 'resolved' ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                    "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                  )}>
+                    {cluster.reports.length} Incidents
+                  </span>
+                </div>
+                <p className="text-[11px] text-text-secondary mb-2.5 leading-snug">
+                  {activeCount === 0
+                    ? `${cluster.reports.length} cleared blockage reports in this sector. All cleared!`
+                    : `${cluster.reports.length} waterway incident reports grouped here (${resolvedCount} cleared, ${activeCount} active). Zoom in to inspect individual cases.`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => map.setView([cluster.lat, cluster.lng], Math.min(zoom + 3, 16), { animate: true })}
+                  className="w-full py-1.5 px-2 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black text-xs font-mono font-bold uppercase tracking-wider rounded-sm transition-colors text-center cursor-pointer shadow-sm active:scale-95"
+                >
+                  Zoom into Sector ({cluster.reports.length})
+                </button>
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
 
 export default function MainCommandDashboard() { 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -895,182 +1245,13 @@ export default function MainCommandDashboard() {
             url={getTileUrl(mapType)}
           />
           
-          {filteredReports.map((report) => {
-            const isSelected = selectedReportId === report.report_id;
-            const sameLocationReports = report.locationGroup || [];
-
-            return (
-              <Marker 
-                key={report.report_id} 
-                ref={(ref) => {
-                  if (ref) {
-                    markerRefs.current[report.report_id] = ref;
-                  } else {
-                    delete markerRefs.current[report.report_id];
-                  }
-                }}
-                position={[report.displayLat, report.displayLng]} 
-                icon={getMarkerIcon(report.status, report.priority_score, report.needs_human_review, isSelected)}
-                zIndexOffset={isSelected ? 1000 : report.coordIndex * 10}
-                eventHandlers={{
-                  click: () => {
-                    setSelectedReportId(report.report_id);
-                  }
-                }}
-              >
-                <Popup className="custom-popup" closeButton={false}>
-                  <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary">
-                    {/* Header */}
-                    <div className="flex items-center justify-between gap-1 mb-2 border-b border-border-subtle pb-2">
-                      <div>
-                        <div className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
-                          {report.tracking_reference}
-                        </div>
-                        <div className="text-xs font-heading font-black text-text-primary">
-                          {report.status === 'resolved'
-                            ? 'Cleared Waterway'
-                            : report.status === 'dispatched'
-                              ? 'Cleanup Dispatched'
-                              : report.status === 'failed_analysis' || report.needs_human_review
-                                ? 'Manual Review Needed'
-                                : report.status === 'pending_analysis'
-                                  ? 'AI Triage in Progress'
-                                  : report.priority_score >= 70
-                                    ? 'Critical Constriction'
-                                    : 'Active Constriction'}
-                        </div>
-                      </div>
-
-                      <span className={twMerge(
-                        "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider",
-                        report.status === 'resolved'
-                          ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                          : report.status === 'dispatched'
-                            ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                            : report.status === 'failed_analysis' || report.needs_human_review
-                              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                              : report.status === 'pending_analysis'
-                                ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                                : report.priority_score >= 70
-                                  ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                                  : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                      )}>
-                        {report.status === 'resolved' ? 'RESOLVED' :
-                         report.status === 'dispatched' ? 'DISPATCHED' :
-                         report.status === 'failed_analysis' || report.needs_human_review ? 'REVIEW' :
-                         report.status === 'pending_analysis' ? 'PENDING' :
-                         `PRIORITY ${report.priority_score || 0}`}
-                      </span>
-                    </div>
-
-                    {/* Image Preview if available */}
-                    {report.image_url && (
-                      <div className="w-full h-28 mb-2 rounded-sm overflow-hidden border border-border-subtle bg-black/40 relative">
-                        <img 
-                          src={report.image_url} 
-                          alt="Canal Condition" 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Notes */}
-                    <p className="text-[11px] text-text-secondary line-clamp-2 mb-2 leading-relaxed">
-                      "{report.citizen_notes || 'Citizen canal blockage observation.'}"
-                    </p>
-
-                    {/* Footer Info */}
-                    <div className="flex items-center justify-between text-[10px] font-mono text-text-muted pt-1 border-t border-border-subtle">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {new Date(report.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      <span className="text-brand-primary font-bold">
-                        {report.status === 'resolved' 
-                          ? 'Restored' 
-                          : report.status === 'failed_analysis'
-                            ? 'Needs Verification'
-                            : (report.priority_score || 0) >= 70 
-                              ? 'High Impact' 
-                              : (report.priority_score || 0) < 40 
-                                ? 'Low Impact' 
-                                : 'Moderate'}
-                      </span>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="mt-2.5 pt-2 border-t border-border-subtle flex flex-col gap-1.5">
-                      {report.status === 'failed_analysis' || report.needs_human_review ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedReportId(report.report_id);
-                            setTimeout(() => {
-                              const el = document.getElementById('manual-triage-card');
-                              el?.scrollIntoView({ behavior: 'smooth' });
-                            }, 100);
-                          }}
-                          className="w-full py-2 px-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors active:scale-95"
-                        >
-                          <SlidersHorizontal className="w-3.5 h-3.5" />
-                          <span>Manual Verify Case</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedReportId(report.report_id);
-                          }}
-                          className="w-full py-2 px-2.5 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors active:scale-95"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>Inspect in Side Panel</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Multiple reports at this location switcher */}
-                    {sameLocationReports.length > 1 && (
-                      <div className="mt-2 pt-2 border-t border-border-subtle/70 text-[9px] text-text-muted">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-text-secondary">Location Cluster:</span>
-                          <span className="font-mono text-[8px] bg-surface-subtle px-1 rounded">{sameLocationReports.length} reports</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {sameLocationReports.map((other: ReportItem) => {
-                            const isThisOne = other.report_id === report.report_id;
-                            return (
-                              <button
-                                key={other.report_id}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedReportId(other.report_id);
-                                }}
-                                className={`px-1.5 py-0.5 rounded text-[8px] font-mono cursor-pointer transition-colors ${
-                                  isThisOne 
-                                    ? 'bg-brand-primary text-white font-bold shadow-xs' 
-                                    : 'bg-surface hover:bg-surface-subtle text-text-secondary border border-border-subtle'
-                                }`}
-                                title={`Switch to ${other.tracking_reference}`}
-                              >
-                                {other.tracking_reference.replace('ER-2026-', '#')}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+          <CommandClusteredMarkers
+            reports={filteredReports}
+            selectedReportId={selectedReportId}
+            setSelectedReportId={setSelectedReportId}
+            markerRefs={markerRefs}
+            getMarkerIcon={getMarkerIcon}
+          />
 
           {/* AI Optimized Dispatch Route Polyline Layers */}
           {isRouteMode && dispatchRoute && dispatchRoute.geometry.length > 0 && (

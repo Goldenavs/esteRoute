@@ -21,7 +21,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { createEsteroMarkerIcon } from '../../lib/mapPins';
+import { createEsteroMarkerIcon, createClusterIcon } from '../../lib/mapPins';
 
 // Traveling perimeter highlight matching landing page frosted cards
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
@@ -209,50 +209,6 @@ function CustomMapControls({
     </div>
   );
 }
-
-// Tactical Cluster Marker Generator (Displays aggregated incident count with severity styling)
-const createClusterIcon = (count: number, highestStatus: 'blocked' | 'dispatched' | 'resolved') => {
-  const colorMap = {
-    blocked: {
-      bg: 'linear-gradient(135deg, #EF4444, #B91C1C)',
-      border: '#F87171',
-      shadow: 'rgba(239, 68, 68, 0.45)',
-    },
-    dispatched: {
-      bg: 'linear-gradient(135deg, #F59E0B, #B45309)',
-      border: '#FBBF24',
-      shadow: 'rgba(245, 158, 11, 0.45)',
-    },
-    resolved: {
-      bg: 'linear-gradient(135deg, #10B981, #047857)',
-      border: '#34D399',
-      shadow: 'rgba(16, 185, 129, 0.45)',
-    },
-  };
-
-  const style = colorMap[highestStatus] || colorMap.blocked;
-  const size = count >= 50 ? 44 : count >= 10 ? 38 : 32;
-
-  return L.divIcon({
-    className: 'custom-cluster-marker',
-    html: `
-      <div class="relative w-full h-full flex items-center justify-center cursor-pointer group select-none pointer-events-auto">
-        <div style="
-          width: ${size}px; 
-          height: ${size}px; 
-          background: ${style.bg}; 
-          border: 2px solid ${style.border}; 
-          box-shadow: 0 4px 14px ${style.shadow};
-        " class="rounded-full flex items-center justify-center text-white font-mono font-black text-xs transition-transform duration-200 group-hover:scale-115">
-          <span>${count}</span>
-        </div>
-      </div>
-    `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -size / 2],
-  });
-};
 
 interface PublicReportItem {
   id: string;
