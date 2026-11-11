@@ -33,6 +33,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
+import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import BorderBeam from '../../components/common/BorderBeam';
 import { createEsteroMarkerIcon, createClusterIcon, createDepotMarkerIcon } from '../../lib/mapPins';
@@ -757,7 +758,16 @@ export default function MainCommandDashboard() {
     });
   }, [reports, reportsByLocation]);
 
-  const [isMapDark, setIsMapDark] = useState<boolean>(true);
+  const { theme: globalTheme, toggleTheme } = useTheme();
+  const [isMapDark, setIsMapDark] = useState<boolean>(globalTheme === 'dark');
+
+  // Synchronize map theme whenever the global navbar theme changes
+  useEffect(() => {
+    queueMicrotask(() => {
+      setIsMapDark(globalTheme === 'dark');
+    });
+  }, [globalTheme]);
+
   const [mapType, setMapType] = useState<MapTileType>('standard');
   const [statusFilter, setStatusFilter] = useState<'all' | 'critical' | 'review' | 'pending' | 'resolved'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1595,7 +1605,7 @@ export default function MainCommandDashboard() {
             {/* Map Theme Toggle (Sun / Moon) */}
             <button
               type="button"
-              onClick={() => setIsMapDark((prev) => !prev)}
+              onClick={toggleTheme}
               className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center ${
                 isMapDark
                   ? "bg-surface/90 border-brand-primary/40 text-amber-400 hover:bg-brand-primary/20"
@@ -2510,7 +2520,7 @@ export default function MainCommandDashboard() {
                     <span className="text-brand-primary lowercase font-normal">click to drop pin or drag marker</span>
                   </div>
 
-                  <div className="h-48 w-full rounded-sm border border-border-subtle overflow-hidden relative shadow-inner">
+                  <div className={`h-48 w-full rounded-sm border border-border-subtle overflow-hidden relative shadow-inner ${isMapDark ? 'dark-map' : ''}`}>
                     <MapContainer
                       center={[tempOrigin.lat, tempOrigin.lng]}
                       zoom={14}
@@ -2518,7 +2528,10 @@ export default function MainCommandDashboard() {
                       zoomControl={false}
                       attributionControl={false}
                     >
-                      <TileLayer url={getTileUrl(mapType)} />
+                      <TileLayer
+                        key={`${mapType}-${isMapDark ? 'dark' : 'light'}`}
+                        url={getTileUrl(mapType)}
+                      />
                       <Marker
                         position={[tempOrigin.lat, tempOrigin.lng]}
                         icon={createDepotMarkerIcon({
