@@ -168,7 +168,7 @@ export default function FeaturesSection() {
           />
         </motion.div>
 
-        {/* Feature Bento-Box Grid with Wave Textures */}
+        {/* Feature Bento-Box Grid: Outer Boxes are NOT skewed */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -179,18 +179,18 @@ export default function FeaturesSection() {
 
           {/* ========================================================================= */}
           {/* FEATURE 1: Frictionless Citizen Reporting (2 cols)                        */}
-          {/* Top Area: Dynamic Description | Bottom Area: Exact Mobile Stepper Buttons */}
+          {/* Outer Box: Clean unskewed | Inner Bottom Stepper Container: SKEWED        */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               {/* Static Wave Background Texture */}
               <StaticWaveTexture isLight={isLight} />
               <BorderBeam delay={0} />
 
-              <div className="skew-x-3 md:skew-x-12 relative z-10 flex flex-col justify-between h-full space-y-6">
+              <div className="relative z-10 flex flex-col justify-between h-full space-y-6">
                 
                 {/* Upper Area: Title & Dynamic Description that changes per clicked button */}
-                <div className="pl-1 md:pl-3 pr-2">
+                <div className="pr-2">
                   <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary uppercase tracking-tight group-hover:text-brand-primary transition-colors mb-2">
                     Frictionless Citizen Reporting
                   </h3>
@@ -214,9 +214,9 @@ export default function FeaturesSection() {
                   </AnimatePresence>
                 </div>
 
-                {/* Bottom Area: EXACT Stepper UI from Citizen Report Screen */}
-                <div className="w-full bg-surface/70 backdrop-blur-md border border-border-subtle p-3 sm:p-4 rounded-sm">
-                  <div className="flex items-center justify-between px-2 sm:px-6 w-full max-w-md mx-auto">
+                {/* Bottom Area: SKEWED container with exact Stepper UI from Citizen Report Screen */}
+                <div className="w-full bg-surface/75 backdrop-blur-md border border-border-subtle p-3.5 sm:p-4.5 rounded-none -skew-x-3 md:-skew-x-6 overflow-hidden">
+                  <div className="skew-x-3 md:skew-x-6 flex items-center justify-between px-2 sm:px-6 w-full max-w-md mx-auto">
                     
                     {/* Step 1: Photo Button */}
                     <button
@@ -350,16 +350,17 @@ export default function FeaturesSection() {
           </motion.div>
 
           {/* ========================================================================= */}
-          {/* FEATURE 2: Meteorological Agent (Clean, Unskewed Centered Visual)          */}
+          {/* FEATURE 2: Meteorological Agent                                           */}
+          {/* Outer Box: Clean unskewed | Inner Data Box: SKEWED                        */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               {/* Static Wave Background Texture */}
               <StaticWaveTexture isLight={isLight} />
               <BorderBeam delay={2.25} />
 
-              <div className="skew-x-3 md:skew-x-12 relative z-10 flex flex-col justify-between h-full space-y-5">
-                <div className="pl-1 md:pl-3 pr-1">
+              <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
+                <div>
                   <h3 className="font-heading font-black text-2xl text-text-primary mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Meteorological Agent
                   </h3>
@@ -368,74 +369,77 @@ export default function FeaturesSection() {
                   </p>
                 </div>
 
-                {/* Centered, Cleanly Padded Visual Box (No nested skews to avoid clipping) */}
-                <div className="w-full bg-surface/75 backdrop-blur-md border border-border-subtle p-4 rounded-sm space-y-3">
-                  
-                  {/* Real Numbers & Computed RPI */}
-                  <div className="flex items-baseline justify-between border-b border-border-subtle/70 pb-2">
+                {/* SKEWED Inner Data Box */}
+                <div className="w-full bg-surface/75 backdrop-blur-md border border-border-subtle p-4 sm:p-5 rounded-none -skew-x-3 md:-skew-x-6 overflow-hidden">
+                  <div className="skew-x-3 md:skew-x-6 space-y-3 px-1">
+                    
+                    {/* Real Numbers & Computed RPI */}
+                    <div className="flex items-baseline justify-between border-b border-border-subtle/70 pb-2">
+                      <div>
+                        <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none">
+                          84%
+                        </span>
+                        <span className="block font-data text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                          Rain Probability Index (RPI)
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 border border-amber-500/30">
+                          HIGH HAZARD
+                        </span>
+                        <span className="block font-data text-[9px] text-text-muted mt-1">
+                          Peak 17:00 PHT
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 48-Hour Rainfall Distribution Histogram */}
                     <div>
-                      <span className="font-heading font-black text-3xl md:text-4xl text-brand-primary leading-none">
-                        84%
-                      </span>
-                      <span className="block font-data text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
-                        Rain Probability Index (RPI)
-                      </span>
+                      <div className="flex items-end justify-between gap-1.5 h-12 pt-1 border-b border-border-subtle">
+                        {[22, 35, 52, 68, 84, 76, 55, 38, 20].map((val, idx) => (
+                          <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end">
+                            <div 
+                              style={{ height: `${val}%` }} 
+                              className={`w-full rounded-none transition-all ${
+                                idx === 4 
+                                  ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' 
+                                  : val > 50 ? 'bg-amber-400' : 'bg-brand-primary/70'
+                              }`} 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between text-[8px] font-mono text-text-muted mt-1 uppercase">
+                        <span>Now</span>
+                        <span className="text-rose-400 font-bold">+18h (Peak 38.5mm)</span>
+                        <span>+48h</span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-mono text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 border border-amber-500/30">
-                        HIGH HAZARD
-                      </span>
-                      <span className="block font-data text-[9px] text-text-muted mt-1">
-                        Peak 17:00 PHT
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* 48-Hour Rainfall Distribution Histogram */}
-                  <div>
-                    <div className="flex items-end justify-between gap-1.5 h-12 pt-1 border-b border-border-subtle">
-                      {[22, 35, 52, 68, 84, 76, 55, 38, 20].map((val, idx) => (
-                        <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end">
-                          <div 
-                            style={{ height: `${val}%` }} 
-                            className={`w-full rounded-none transition-all ${
-                              idx === 4 
-                                ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' 
-                                : val > 50 ? 'bg-amber-400' : 'bg-brand-primary/70'
-                            }`} 
-                          />
-                        </div>
-                      ))}
+                    {/* Formula Chip */}
+                    <div className="bg-surface-subtle/60 border border-border-subtle px-2.5 py-1.5 text-[10px] font-mono flex items-center justify-between">
+                      <span className="text-text-muted">FORMULA:</span>
+                      <span className="text-brand-primary font-bold">RPI = max(Hourly Precip %)</span>
                     </div>
-                    <div className="flex justify-between text-[8px] font-mono text-text-muted mt-1 uppercase">
-                      <span>Now</span>
-                      <span className="text-rose-400 font-bold">+18h (Peak 38.5mm)</span>
-                      <span>+48h</span>
-                    </div>
-                  </div>
 
-                  {/* Formula Chip */}
-                  <div className="bg-surface-subtle/60 border border-border-subtle px-2.5 py-1.5 text-[10px] font-mono flex items-center justify-between">
-                    <span className="text-text-muted">FORMULA:</span>
-                    <span className="text-brand-primary font-bold">RPI = max(Hourly Precip %)</span>
                   </div>
-
                 </div>
               </div>
             </div>
           </motion.div>
 
           {/* ========================================================================= */}
-          {/* FEATURE 3: Vision Triage Agent (Clean, Unskewed Centered Visual)          */}
+          {/* FEATURE 3: Vision Triage Agent                                            */}
+          {/* Outer Box: Clean unskewed | Inner Data Box: SKEWED                        */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-1">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               {/* Static Wave Background Texture */}
               <StaticWaveTexture isLight={isLight} />
               <BorderBeam delay={4.5} />
 
-              <div className="skew-x-3 md:skew-x-12 relative z-10 flex flex-col justify-between h-full space-y-5">
-                <div className="pl-1 md:pl-3 pr-1">
+              <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
+                <div>
                   <h3 className="font-heading font-black text-2xl text-text-primary mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     Vision Triage Agent
                   </h3>
@@ -444,85 +448,88 @@ export default function FeaturesSection() {
                   </p>
                 </div>
 
-                {/* Centered, Cleanly Padded Visual Box (No nested skews to avoid clipping) */}
-                <div className="w-full bg-surface/75 backdrop-blur-md border border-border-subtle p-4 rounded-sm space-y-3">
-                  
-                  {/* Real Numbers & Computed Severity */}
-                  <div className="flex items-baseline justify-between border-b border-border-subtle/70 pb-2">
-                    <div>
-                      <span className="font-heading font-black text-3xl md:text-4xl text-rose-500 leading-none">
-                        78.0
-                      </span>
-                      <span className="block font-data text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
-                        Blockage Severity (0-100)
-                      </span>
+                {/* SKEWED Inner Data Box */}
+                <div className="w-full bg-surface/75 backdrop-blur-md border border-border-subtle p-4 sm:p-5 rounded-none -skew-x-3 md:-skew-x-6 overflow-hidden">
+                  <div className="skew-x-3 md:skew-x-6 space-y-3 px-1">
+                    
+                    {/* Real Numbers & Computed Severity */}
+                    <div className="flex items-baseline justify-between border-b border-border-subtle/70 pb-2">
+                      <div>
+                        <span className="font-heading font-black text-3xl md:text-4xl text-rose-500 leading-none">
+                          78.0
+                        </span>
+                        <span className="block font-data text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                          Blockage Severity (0-100)
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 border border-emerald-500/30 inline-block">
+                          AUTHENTIC CANAL
+                        </span>
+                        <span className="block font-data text-[9px] text-text-muted mt-1">
+                          Inference: 1.84s
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-mono text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/30 inline-block">
-                        AUTHENTIC CANAL
-                      </span>
-                      <span className="block font-data text-[9px] text-text-muted mt-1">
-                        Inference: 1.84s
-                      </span>
+
+                    {/* Real Waste Breakdown Progress Bars */}
+                    <div className="space-y-1.5 text-[10px] font-mono">
+                      <div>
+                        <div className="flex justify-between text-text-secondary mb-0.5">
+                          <span>PLASTICS (CHOKING):</span>
+                          <span className="font-bold text-text-primary">48%</span>
+                        </div>
+                        <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
+                          <div className="h-full bg-rose-500" style={{ width: '48%' }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-text-secondary mb-0.5">
+                          <span>ORGANIC / WEEDS:</span>
+                          <span className="font-bold text-text-primary">28%</span>
+                        </div>
+                        <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
+                          <div className="h-full bg-amber-500" style={{ width: '28%' }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-text-secondary mb-0.5">
+                          <span>SILT & SEDIMENT:</span>
+                          <span className="font-bold text-text-primary">16%</span>
+                        </div>
+                        <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
+                          <div className="h-full bg-brand-primary" style={{ width: '16%' }} />
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Rationale Quote */}
+                    <p className="text-[9px] font-mono text-text-muted italic truncate">
+                      "Heavy plastic bottles and vegetative debris obstructing intake."
+                    </p>
+
                   </div>
-
-                  {/* Real Waste Breakdown Progress Bars */}
-                  <div className="space-y-1.5 text-[10px] font-mono">
-                    <div>
-                      <div className="flex justify-between text-text-secondary mb-0.5">
-                        <span>PLASTICS (CHOKING):</span>
-                        <span className="font-bold text-text-primary">48%</span>
-                      </div>
-                      <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
-                        <div className="h-full bg-rose-500" style={{ width: '48%' }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-text-secondary mb-0.5">
-                        <span>ORGANIC / WEEDS:</span>
-                        <span className="font-bold text-text-primary">28%</span>
-                      </div>
-                      <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
-                        <div className="h-full bg-amber-500" style={{ width: '28%' }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-text-secondary mb-0.5">
-                        <span>SILT & SEDIMENT:</span>
-                        <span className="font-bold text-text-primary">16%</span>
-                      </div>
-                      <div className="h-1.5 bg-surface border border-border-subtle overflow-hidden">
-                        <div className="h-full bg-brand-primary" style={{ width: '16%' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Rationale Quote */}
-                  <p className="text-[9px] font-mono text-text-muted italic truncate">
-                    "Heavy plastic bottles and vegetative debris obstructing intake."
-                  </p>
-
                 </div>
               </div>
             </div>
           </motion.div>
 
           {/* ========================================================================= */}
-          {/* FEATURE 4: LGU Dispatcher Dashboard (Real Interactive Movable Map)        */}
+          {/* FEATURE 4: LGU Dispatcher Dashboard                                       */}
+          {/* Outer Box: Clean unskewed | Map Container: SKEWED WITH OVERSIZED MAP (NO WHITE GAPS) */}
           {/* ========================================================================= */}
           <motion.div variants={cardVariants} className="md:col-span-2">
-            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 -skew-x-3 md:-skew-x-12 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
+            <div className="group relative bg-surface/35 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary hover:bg-surface/90 transition-all duration-300 p-6 md:p-8 h-full rounded-none shadow-sm hover:shadow-2xl overflow-hidden flex flex-col justify-between">
               {/* Static Wave Background Texture */}
               <StaticWaveTexture isLight={isLight} />
               <BorderBeam delay={6.75} />
 
-              <div className="skew-x-3 md:skew-x-12 relative z-10 flex flex-col justify-between h-full space-y-5">
+              <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
                 
-                {/* Header (No AI pills) */}
-                <div className="pl-1 md:pl-3 pr-2">
+                {/* Header */}
+                <div className="pr-2">
                   <h3 className="font-heading font-black text-2xl lg:text-3xl text-text-primary mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                     LGU Dispatcher Dashboard
                   </h3>
@@ -531,42 +538,48 @@ export default function FeaturesSection() {
                   </p>
                 </div>
 
-                {/* Clean, Non-Skewed Rectangular Interactive Map Frame (No white corner gaps) */}
-                <div className="w-full h-52 sm:h-60 rounded-sm border border-border-subtle overflow-hidden relative shadow-inner">
-                  <MapContainer
-                    center={[10.3157, 123.9050]}
-                    zoom={14}
-                    scrollWheelZoom={false}
-                    attributionControl={false}
-                    className={`w-full h-full z-0 cursor-grab active:cursor-grabbing ${
-                      theme === 'dark' ? 'dark-map' : ''
-                    }`}
-                  >
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                {/* SKEWED Map Container with Oversized Non-Skewed Leaflet Viewport (100% Tile Bleed, NO White Gaps) */}
+                <div className="w-full h-52 sm:h-64 rounded-none border border-border-subtle overflow-hidden relative shadow-inner -skew-x-3 md:-skew-x-8 bg-black/40">
+                  <div className="skew-x-3 md:skew-x-8 w-full h-full relative flex items-center justify-center">
                     
-                    {/* Operations Base Depot Pin */}
-                    <Marker
-                      position={[10.2930, 123.9015]}
-                      icon={createDepotMarkerIcon({
-                        isSelected: true,
-                        isCustom: false,
-                        tag: 'Cebu City Hall HQ'
-                      })}
-                    />
-
-                    {/* Real Priority Estero Pins */}
-                    {DEMO_MAP_PINS.map((pin) => (
+                    {/* Oversized Map to completely cover skewed bounding angles */}
+                    <MapContainer
+                      center={[10.3157, 123.9050]}
+                      zoom={14}
+                      scrollWheelZoom={false}
+                      attributionControl={false}
+                      style={{ width: '135%', height: '120%', minWidth: '135%', flexShrink: 0 }}
+                      className={`z-0 cursor-grab active:cursor-grabbing ${
+                        theme === 'dark' ? 'dark-map' : ''
+                      }`}
+                    >
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      
+                      {/* Operations Base Depot Pin */}
                       <Marker
-                        key={pin.id}
-                        position={[pin.lat, pin.lng]}
-                        icon={createEsteroMarkerIcon({
-                          status: pin.status,
-                          priorityScore: pin.score,
-                          needsReview: pin.review,
+                        position={[10.2930, 123.9015]}
+                        icon={createDepotMarkerIcon({
+                          isSelected: true,
+                          isCustom: false,
+                          tag: 'Cebu City Hall HQ'
                         })}
                       />
-                    ))}
-                  </MapContainer>
+
+                      {/* Real Priority Estero Pins */}
+                      {DEMO_MAP_PINS.map((pin) => (
+                        <Marker
+                          key={pin.id}
+                          position={[pin.lat, pin.lng]}
+                          icon={createEsteroMarkerIcon({
+                            status: pin.status,
+                            priorityScore: pin.score,
+                            needsReview: pin.review,
+                          })}
+                        />
+                      ))}
+                    </MapContainer>
+
+                  </div>
                 </div>
 
               </div>
