@@ -12,9 +12,10 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../../context/ThemeContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { createEsteroMarkerIcon } from '../../lib/mapPins';
 
 // Subtle, eye-friendly traveling perimeter highlight (matching Landing Page features)
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
@@ -55,16 +56,13 @@ const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: 
   );
 };
 
-const customMarkerIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+const customMarkerIcon = createEsteroMarkerIcon({
+  variant: 'critical',
+  isSelected: true,
 });
 
-// Component to dynamically re-center map if geolocation successfully fetches on mount
-function MapFlyTo({ position, defaultPosition }: { position: L.LatLng; defaultPosition: L.LatLng }) {
+// Component to dynamically re-center map if geolocation or URL coords successfully fetch on mount
+function MapFlyTo({ position, defaultPosition, hasUrlCoords }: { position: L.LatLng; defaultPosition: L.LatLng; hasUrlCoords?: boolean }) {
   const map = useMap();
   const hasInitiallyFlown = useRef(false);
 
@@ -73,7 +71,7 @@ function MapFlyTo({ position, defaultPosition }: { position: L.LatLng; defaultPo
     if (!position || typeof position.lat !== 'number' || isNaN(position.lat) || typeof position.lng !== 'number' || isNaN(position.lng)) return;
     if (!defaultPosition || typeof defaultPosition.lat !== 'number' || isNaN(defaultPosition.lat)) return;
 
-    if (position.lat !== defaultPosition.lat || position.lng !== defaultPosition.lng) {
+    if (hasUrlCoords || position.lat !== defaultPosition.lat || position.lng !== defaultPosition.lng) {
       const container = map.getContainer();
       if (!container || container.clientWidth === 0 || container.clientHeight === 0) return;
 
@@ -84,7 +82,7 @@ function MapFlyTo({ position, defaultPosition }: { position: L.LatLng; defaultPo
         console.warn("MapFlyTo skipped:", err);
       }
     }
-  }, [map, position, defaultPosition]);
+  }, [map, position, defaultPosition, hasUrlCoords]);
   return null;
 }
 
@@ -433,9 +431,19 @@ export default function BlockageSubmissionForm() {
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
 
-  // Geolocation State (Defaults to Cebu City Center)
+  const [searchParams] = useSearchParams();
+  const urlLat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : null;
+  const urlLng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : null;
+  const hasUrlCoords = urlLat !== null && urlLng !== null && !isNaN(urlLat) && !isNaN(urlLng);
+
+  // Geolocation State (Defaults to Cebu City Center or coordinates from URL)
   const defaultPosition = useMemo(() => new L.LatLng(10.3157, 123.8854), []);
-  const [position, setPosition] = useState<L.LatLng>(defaultPosition);
+  const [position, setPosition] = useState<L.LatLng>(() => {
+    if (hasUrlCoords) {
+      return new L.LatLng(urlLat!, urlLng!);
+    }
+    return defaultPosition;
+  });
   const markerRef = useRef<L.Marker>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -511,8 +519,12 @@ export default function BlockageSubmissionForm() {
     }
   }, [isCameraActive, isCameraExpanded]);
 
-  // Task 3.2: Auto-capture Geolocation on mount
+  // Task 3.2: Auto-capture Geolocation on mount ONLY if no URL coordinates were provided
   useEffect(() => {
+    if (hasUrlCoords) {
+      // User explicitly clicked "Report Issue Near Here" on a specific map pin
+      return;
+    }
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -532,7 +544,7 @@ export default function BlockageSubmissionForm() {
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     }
-  }, []);
+  }, [hasUrlCoords]);
 
   // Draggable marker event handler
   const eventHandlers = useMemo(
@@ -969,7 +981,18 @@ export default function BlockageSubmissionForm() {
 
                 {/* Action Buttons */}
                 <div className="w-full flex flex-col gap-2.5">
-                  {!isGuest ? (
+                  {!hasCopied ? (
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="w-full font-bold py-3.5 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 -skew-x-3 sm:-skew-x-6 border-2 bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary hover:text-black cursor-pointer active:scale-[0.99] shadow-lg shadow-brand-primary/20 shrink-0"
+                    >
+                      <span className="skew-x-3 sm:skew-x-6 uppercase tracking-widest text-xs sm:text-sm font-black flex items-center gap-2">
+                        <Copy className="w-4 h-4" />
+                        <span>Copy Reference to Continue</span>
+                      </span>
+                    </button>
+                  ) : !isGuest ? (
                     <>
                       <button
                         type="button"
@@ -985,54 +1008,39 @@ export default function BlockageSubmissionForm() {
                         </span>
                       </button>
 
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            resetForm();
-                            navigate('/citizen/public-map');
-                          }}
-                          className="w-full font-bold py-2.5 px-3 rounded-sm transition-all duration-300 flex items-center justify-center -skew-x-3 sm:-skew-x-6 border border-border-subtle bg-surface hover:bg-surface-subtle text-text-secondary hover:text-text-primary cursor-pointer active:scale-[0.99]"
-                        >
-                          <span className="skew-x-3 sm:skew-x-6 uppercase tracking-wider text-[11px] font-bold">
-                            Public Map
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={resetForm}
-                          className="w-full font-bold py-2.5 px-3 rounded-sm transition-all duration-300 flex items-center justify-center -skew-x-3 sm:-skew-x-6 border border-border-subtle bg-surface hover:bg-surface-subtle text-text-secondary hover:text-text-primary cursor-pointer active:scale-[0.99]"
-                        >
-                          <span className="skew-x-3 sm:skew-x-6 uppercase tracking-wider text-[11px] font-bold">
-                            Submit Another
-                          </span>
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={resetForm}
+                        className="w-full font-bold py-2.5 px-3 rounded-sm transition-all duration-300 flex items-center justify-center -skew-x-3 sm:-skew-x-6 border border-border-subtle bg-surface hover:bg-surface-subtle text-text-secondary hover:text-text-primary cursor-pointer active:scale-[0.99]"
+                      >
+                        <span className="skew-x-3 sm:skew-x-6 uppercase tracking-wider text-xs font-bold">
+                          Submit Another Report
+                        </span>
+                      </button>
                     </>
                   ) : (
                     <>
                       <button
                         type="button"
-                        onClick={() => {
-                          resetForm();
-                          navigate('/citizen/public-map');
-                        }}
+                        onClick={resetForm}
                         className="w-full font-bold py-3 px-4 rounded-sm transition-all duration-300 flex items-center justify-center gap-2 -skew-x-3 sm:-skew-x-6 border-2 bg-brand-primary border-brand-primary text-white hover:bg-brand-secondary hover:text-black cursor-pointer active:scale-[0.99] shadow-lg shadow-brand-primary/20 shrink-0"
                       >
                         <span className="skew-x-3 sm:skew-x-6 uppercase tracking-widest text-xs sm:text-sm font-black flex items-center gap-2">
-                          <span>View on Public Map</span>
-                          <ArrowRight className="w-4 h-4" />
+                          <Check className="w-4 h-4" />
+                          <span>Done / Close</span>
                         </span>
                       </button>
 
                       <button
                         type="button"
-                        onClick={resetForm}
-                        className="w-full font-bold py-2.5 px-4 rounded-sm transition-all duration-300 flex items-center justify-center -skew-x-3 sm:-skew-x-6 border border-border-subtle bg-surface hover:bg-surface-subtle text-text-secondary hover:text-text-primary cursor-pointer active:scale-[0.99]"
+                        onClick={() => {
+                          resetForm();
+                          navigate('/citizen/dashboard');
+                        }}
+                        className="w-full font-bold py-2.5 px-3 rounded-sm transition-all duration-300 flex items-center justify-center -skew-x-3 sm:-skew-x-6 border border-border-subtle bg-surface hover:bg-surface-subtle text-text-secondary hover:text-text-primary cursor-pointer active:scale-[0.99]"
                       >
                         <span className="skew-x-3 sm:skew-x-6 uppercase tracking-widest text-xs font-bold">
-                          Submit Another Report
+                          Track in Guest Dashboard
                         </span>
                       </button>
                     </>
@@ -1578,7 +1586,7 @@ export default function BlockageSubmissionForm() {
                     eventHandlers={eventHandlers}
                     ref={markerRef}
                   />
-                  <MapFlyTo position={position} defaultPosition={defaultPosition} />
+                  <MapFlyTo position={position} defaultPosition={defaultPosition} hasUrlCoords={hasUrlCoords} />
                   <MapResizeHandler active={mobileStep === 2} />
                   <OffscreenPinTracker position={position} />
                   <CustomMapControls

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { CheckCircle2, MapPin, Activity, Copy, Check } from 'lucide-react';
+import { CheckCircle2, Activity, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import BorderBeam from '../../components/common/BorderBeam';
@@ -56,7 +56,7 @@ export default function SubmissionConfirmation() {
 
         {/* Actions */}
         <div className="space-y-2.5">
-          {!isGuest && (
+          {!isGuest ? (
             <Link
               to="/citizen/dashboard"
               className="w-full bg-brand-primary hover:bg-brand-secondary hover:text-black text-white py-3 px-4 rounded-sm font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-brand-primary/20"
@@ -64,19 +64,19 @@ export default function SubmissionConfirmation() {
               <Activity className="w-4 h-4" />
               <span>Track in My Reports</span>
             </Link>
+          ) : (
+            <Link
+              to="/citizen/dashboard"
+              className="w-full bg-brand-primary hover:bg-brand-secondary hover:text-black text-white py-3 px-4 rounded-sm font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-brand-primary/20"
+            >
+              <Activity className="w-4 h-4" />
+              <span>Track in Guest Dashboard</span>
+            </Link>
           )}
 
           <Link
-            to="/citizen/public-map"
-            className="w-full bg-surface hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary/40 text-text-primary py-3 px-4 rounded-sm font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all"
-          >
-            <MapPin className="w-4 h-4 text-brand-primary" />
-            <span>View on Public Map</span>
-          </Link>
-
-          <Link
             to="/citizen"
-            className="w-full text-text-muted hover:text-text-primary py-2 px-4 rounded-sm font-bold uppercase tracking-wider text-[11px] block transition-colors"
+            className="w-full bg-surface hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary/40 text-text-primary py-2.5 px-4 rounded-sm font-bold uppercase tracking-wider text-xs block transition-colors"
           >
             Submit Another Report
           </Link>

@@ -137,9 +137,9 @@ export default function LGUAnalyticsOverview() {
     // Severity Breakdown Pie Chart
     const severityData = [
       { name: 'Critical (>70)', value: critical, color: '#EF4444' },
-      { name: 'Manual Review', value: review, color: '#F59E0B' },
+      { name: 'Manual Review', value: review, color: '#8B5CF6' },
       { name: 'Pending AI', value: pending, color: '#3B82F6' },
-      { name: 'In Operation', value: inProgress, color: '#8B5CF6' },
+      { name: 'In Operation', value: inProgress, color: '#F59E0B' },
       { name: 'Resolved', value: resolved, color: '#10B981' },
     ].filter(item => item.value > 0);
 
@@ -327,7 +327,7 @@ export default function LGUAnalyticsOverview() {
       </motion.div>
 
       {/* 2. Top Metric Cards (Clean, Professional, Elevated Frames) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
         
         {/* Card 1: Total Reports */}
         <motion.div 
@@ -404,21 +404,21 @@ export default function LGUAnalyticsOverview() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.15 }}
-          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-semantic-warning/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
+          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-purple-500/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
         >
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-semantic-warning" />
-          <div className="absolute top-0 right-0 w-24 h-24 bg-semantic-warning/10 rounded-full blur-2xl group-hover:bg-semantic-warning/20 transition-all pointer-events-none" />
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-500" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all pointer-events-none" />
           
           <div className="relative z-10 flex flex-col justify-between h-full">
             <div className="flex items-center justify-between gap-1 mb-2">
               <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-muted">
                 Needs Human Review
               </span>
-              <AlertTriangle className="w-4 h-4 text-semantic-warning" />
+              <AlertTriangle className="w-4 h-4 text-purple-400" />
             </div>
 
             <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-2xl sm:text-4xl font-mono font-black text-semantic-warning">
+              <span className="text-2xl sm:text-4xl font-mono font-black text-purple-400">
                 {analytics.review}
               </span>
               <span className="text-[10px] font-mono font-bold text-text-muted">
@@ -428,19 +428,55 @@ export default function LGUAnalyticsOverview() {
 
             <div className="w-full bg-border-subtle/40 h-1 rounded-full overflow-hidden">
               <div 
-                className="bg-semantic-warning h-full transition-all duration-500" 
+                className="bg-purple-500 h-full transition-all duration-500" 
                 style={{ width: `${analytics.total > 0 ? (analytics.review / analytics.total) * 100 : 0}%` }} 
               />
             </div>
           </div>
         </motion.div>
 
-        {/* Card 4: Operations & Clearance Rate */}
+        {/* Card 4: Pending AI Pipeline */}
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.2 }}
-          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-emerald-500/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
+          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-blue-500/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group"
+        >
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between gap-1 mb-2">
+              <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase text-text-muted">
+                Pending AI Pipeline
+              </span>
+              <Clock className="w-4 h-4 text-blue-400" />
+            </div>
+
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-2xl sm:text-4xl font-mono font-black text-blue-400">
+                {analytics.pending}
+              </span>
+              <span className="text-[10px] font-mono font-bold text-text-muted">
+                Awaiting AI Triage
+              </span>
+            </div>
+
+            <div className="w-full bg-border-subtle/40 h-1 rounded-full overflow-hidden">
+              <div 
+                className="bg-blue-500 h-full transition-all duration-500" 
+                style={{ width: `${analytics.total > 0 ? (analytics.pending / analytics.total) * 100 : 0}%` }} 
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Card 5: Operations & Clearance Rate */}
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.25 }}
+          className="relative bg-surface/40 hover:bg-surface/80 backdrop-blur-xl border border-border-subtle hover:border-emerald-500/60 transition-all duration-300 rounded-sm p-4 sm:p-5 shadow-xs hover:shadow-md overflow-hidden group col-span-2 md:col-span-1"
         >
           <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" />
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />

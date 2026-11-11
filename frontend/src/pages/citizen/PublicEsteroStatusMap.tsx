@@ -19,7 +19,9 @@ import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { createEsteroMarkerIcon, createClusterIcon } from '../../lib/mapPins';
 
 // Traveling perimeter highlight matching landing page frosted cards
 const BorderBeam = ({ delay = 0, color = "#60A5FA" }: { delay?: number; color?: string }) => {
@@ -208,88 +210,6 @@ function CustomMapControls({
   );
 }
 
-// Custom Citizen Pin Marker Generator (Clean, crisp, no annoying constant flashing)
-const createCitizenIcon = (status: 'blocked' | 'dispatched' | 'resolved') => {
-  const colorMap = {
-    blocked: {
-      bg: '#DC2626',
-    },
-    dispatched: {
-      bg: '#D97706',
-    },
-    resolved: {
-      bg: '#059669',
-    },
-  };
-
-  const style = colorMap[status] || colorMap.blocked;
-
-  return L.divIcon({
-    className: 'custom-citizen-marker',
-    html: `
-      <div class="relative flex flex-col items-center -translate-x-1/2 -translate-y-full cursor-pointer group">
-        <div style="background-color: ${style.bg};" class="w-6 h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white transition-transform duration-200 group-hover:scale-125">
-          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            ${status === 'resolved' 
-              ? '<polyline points="20 6 9 17 4 12"></polyline>' 
-              : status === 'dispatched'
-                ? '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>'
-                : '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>'}
-          </svg>
-        </div>
-        <div style="background-color: ${style.bg};" class="w-1.5 h-1.5 -mt-1 rotate-45 border-r border-b border-white"></div>
-      </div>
-    `,
-    iconSize: [24, 28],
-    iconAnchor: [12, 28],
-    popupAnchor: [0, -30],
-  });
-};
-
-// Tactical Cluster Marker Generator (Displays aggregated incident count with severity styling)
-const createClusterIcon = (count: number, highestStatus: 'blocked' | 'dispatched' | 'resolved') => {
-  const colorMap = {
-    blocked: {
-      bg: 'linear-gradient(135deg, #EF4444, #B91C1C)',
-      border: '#F87171',
-      shadow: 'rgba(239, 68, 68, 0.45)',
-    },
-    dispatched: {
-      bg: 'linear-gradient(135deg, #F59E0B, #B45309)',
-      border: '#FBBF24',
-      shadow: 'rgba(245, 158, 11, 0.45)',
-    },
-    resolved: {
-      bg: 'linear-gradient(135deg, #10B981, #047857)',
-      border: '#34D399',
-      shadow: 'rgba(16, 185, 129, 0.45)',
-    },
-  };
-
-  const style = colorMap[highestStatus] || colorMap.blocked;
-  const size = count >= 50 ? 44 : count >= 10 ? 38 : 32;
-
-  return L.divIcon({
-    className: 'custom-cluster-marker',
-    html: `
-      <div class="relative flex items-center justify-center -translate-x-1/2 -translate-y-1/2 cursor-pointer group select-none">
-        <div style="
-          width: ${size}px; 
-          height: ${size}px; 
-          background: ${style.bg}; 
-          border: 2px solid ${style.border}; 
-          box-shadow: 0 4px 14px ${style.shadow};
-        " class="rounded-full flex items-center justify-center text-white font-mono font-black text-xs transition-transform duration-200 group-hover:scale-115">
-          <span>${count}</span>
-        </div>
-      </div>
-    `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -size / 2],
-  });
-};
-
 interface PublicReportItem {
   id: string;
   trackingRef: string;
@@ -300,6 +220,7 @@ interface PublicReportItem {
   notes: string;
   imageUrl?: string;
   createdAt: string;
+  reporterId?: string;
 }
 
 function MapTargetFlyer({ targetLat, targetLng }: { targetLat: number | null; targetLng: number | null }) {
@@ -322,6 +243,8 @@ interface ClusteredMarkersProps {
   targetMarkerInstance: React.MutableRefObject<L.Marker | null>;
   hasAutoOpenedRef: React.MutableRefObject<string | null>;
   targetKey: string | null;
+  savedRefs: string[];
+  userId?: string;
 }
 
 function ProximityClusteredMarkers({
@@ -332,6 +255,8 @@ function ProximityClusteredMarkers({
   targetMarkerInstance,
   hasAutoOpenedRef,
   targetKey,
+  savedRefs,
+  userId,
 }: ClusteredMarkersProps) {
   const map = useMap();
   const [zoom, setZoom] = useState(() => map.getZoom());
@@ -477,12 +402,13 @@ function ProximityClusteredMarkers({
             Math.abs(report.lat - effectiveLat) < 0.0005 &&
             Math.abs(report.lng - effectiveLng) < 0.0005)
         );
+        const isMyReport = savedRefs.includes(report.trackingRef) || Boolean(userId && report.reporterId && report.reporterId === userId);
 
         return (
           <Marker
             key={report.id}
             position={[cluster.lat, cluster.lng]}
-            icon={createCitizenIcon(report.status)}
+            icon={createEsteroMarkerIcon({ status: report.status, isSelected: isTarget })}
             ref={(marker) => {
               if (isTarget && marker) {
                 targetMarkerInstance.current = marker;
@@ -506,8 +432,15 @@ function ProximityClusteredMarkers({
                 {/* Header */}
                 <div className="flex items-center justify-between gap-1 mb-2 border-b border-border-subtle pb-2">
                   <div>
-                    <div className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
-                      {report.trackingRef}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
+                        {report.trackingRef}
+                      </span>
+                      {isMyReport && (
+                        <span className="text-[8px] font-mono font-bold uppercase px-1.5 py-0.2 rounded-xs bg-brand-primary/20 text-brand-primary border border-brand-primary/40 tracking-wider">
+                          YOU
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs font-heading font-black text-text-primary">
                       {report.status === 'resolved' 
@@ -560,16 +493,27 @@ function ProximityClusteredMarkers({
                   </span>
                 </div>
 
-                {/* Action: Immediately Redirect to My Reports Detailed View */}
+                {/* Action: Open in My Reports for own submission, or Report Nearby for community submissions */}
                 <div className="mt-2.5 pt-2 border-t border-border-subtle">
-                  <Link
-                    to={`/citizen/dashboard?report=${encodeURIComponent(report.trackingRef)}`}
-                    className="w-full py-2 px-2.5 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black border border-brand-primary hover:border-brand-secondary transition-all rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer -skew-x-3 active:scale-95 group"
-                    title="Open detailed case view in My Reports"
-                  >
-                    <FileText className="w-3.5 h-3.5 skew-x-3 !text-white group-hover:!text-black group-hover:scale-110 transition-transform" />
-                    <span className="skew-x-3 !text-white group-hover:!text-black font-bold">View in My Reports</span>
-                  </Link>
+                  {isMyReport ? (
+                    <Link
+                      to={`/citizen/dashboard?report=${encodeURIComponent(report.trackingRef)}`}
+                      className="w-full py-2 px-2.5 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black border border-brand-primary hover:border-brand-secondary transition-all rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer -skew-x-3 active:scale-95 group"
+                      title="Open detailed case view in My Reports"
+                    >
+                      <FileText className="w-3.5 h-3.5 skew-x-3 !text-white group-hover:!text-black group-hover:scale-110 transition-transform" />
+                      <span className="skew-x-3 !text-white group-hover:!text-black font-bold">View in My Reports</span>
+                    </Link>
+                  ) : (
+                    <Link
+                      to={`/citizen?lat=${report.lat}&lng=${report.lng}`}
+                      className="w-full py-2 px-2.5 bg-surface/80 hover:bg-brand-primary/20 text-text-primary hover:text-brand-primary border border-border-strong hover:border-brand-primary/50 transition-all rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm cursor-pointer -skew-x-3 active:scale-95 group"
+                      title="Report an issue or update near this location"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5 skew-x-3 text-brand-primary group-hover:scale-110 transition-transform" />
+                      <span className="skew-x-3 font-bold">Report Issue Near Here</span>
+                    </Link>
+                  )}
                 </div>
               </div>
             </Popup>
@@ -582,10 +526,20 @@ function ProximityClusteredMarkers({
 
 export default function PublicEsteroStatusMap() {
   const { theme: globalTheme } = useTheme();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const targetLat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : null;
   const targetLng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : null;
   const targetRef = searchParams.get('ref') || searchParams.get('report') || searchParams.get('id');
+
+  const savedRefs = useMemo(() => {
+    try {
+      const stored = localStorage.getItem('esteroute_my_reports');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }, []);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -626,7 +580,7 @@ export default function PublicEsteroStatusMap() {
         // Excludes 'failed_analysis' (spoofed/rejected images) and 'pending_analysis' from ever becoming public pins
         const { data, error } = await supabase
           .from('reports')
-          .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
+          .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at, reporter_id')
           .in('status', ['triaged', 'acknowledged', 'in_progress', 'dispatched', 'resolved'])
           .or(`status.neq.resolved,created_at.gte.${thirtyDaysAgoIso}`)
           .order('created_at', { ascending: false })
@@ -661,6 +615,7 @@ export default function PublicEsteroStatusMap() {
                 hour: '2-digit',
                 minute: '2-digit',
               }),
+              reporterId: item.reporter_id,
             };
           });
 
@@ -669,7 +624,7 @@ export default function PublicEsteroStatusMap() {
             try {
               const { data: specificItem } = await supabase
                 .from('reports')
-                .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at')
+                .select('report_id, tracking_reference, latitude, longitude, citizen_notes, image_url, status, priority_score, created_at, reporter_id')
                 .or(`tracking_reference.eq.${targetRef},report_id.eq.${targetRef}`)
                 .maybeSingle();
 
@@ -697,6 +652,7 @@ export default function PublicEsteroStatusMap() {
                     hour: '2-digit',
                     minute: '2-digit',
                   }),
+                  reporterId: specificItem.reporter_id,
                 });
               }
             } catch (err) {
@@ -996,6 +952,8 @@ export default function PublicEsteroStatusMap() {
               targetMarkerInstance={targetMarkerInstance}
               hasAutoOpenedRef={hasAutoOpenedRef}
               targetKey={targetKey}
+              savedRefs={savedRefs}
+              userId={user?.id}
             />
           </MapContainer>
         </div>

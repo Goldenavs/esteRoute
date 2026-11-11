@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { 
@@ -7,7 +9,6 @@ import {
   Navigation, 
   ArrowRight, 
   ShieldAlert, 
-  Truck, 
   MapPin, 
   RefreshCw,
   Loader2, 
@@ -28,16 +29,15 @@ import {
   Search,
   ArrowUpDown,
   X,
-  CloudRain,
   Edit3,
-  Check,
-  Sparkles,
   Route,
   ExternalLink
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
+import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import BorderBeam from '../../components/common/BorderBeam';
+import { createEsteroMarkerIcon, createClusterIcon, createDepotMarkerIcon } from '../../lib/mapPins';
 
 export type MapTileType = 'detailed' | 'standard';
 const getTileUrl = (type: MapTileType) => {
@@ -47,74 +47,14 @@ const getTileUrl = (type: MapTileType) => {
   return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 };
 
-// Custom Map Marker Icons
-const criticalIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-const activeIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-const defaultIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-const pendingIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-const resolvedIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-const selectedIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [29, 47],
-  iconAnchor: [14, 47],
-  popupAnchor: [1, -38],
-  shadowSize: [45, 45]
-});
-
+// Custom Map Marker Icons (Precision High-Grade SVG Vector Pins)
 const getMarkerIcon = (status: string, score: number, needsReview: boolean, isSelected?: boolean) => {
-  if (isSelected) return selectedIcon;
-  if (status === 'resolved') return resolvedIcon;
-  if (status === 'pending_analysis') return pendingIcon;
-  if (status === 'failed_analysis' || needsReview) return activeIcon; // Orange for manual review
-  if (status === 'dispatched') return activeIcon;
-  
-  if (status === 'triaged') {
-    if (score >= 70) return criticalIcon;
-    if (score >= 40) return activeIcon;
-    return defaultIcon;
-  }
-  return pendingIcon; // Pending
+  return createEsteroMarkerIcon({
+    status,
+    priorityScore: score,
+    needsReview,
+    isSelected
+  });
 };
 
 interface ReportItem {
@@ -143,33 +83,72 @@ export interface DispatchRouteInfo {
   googleMapsUrl: string;
 }
 
-const CEBU_DEPOT = {
-  name: "Cebu City DPS Sanitation HQ",
-  address: "M.C. Briones St, Cebu City Hall Complex",
-  lat: 10.2934,
-  lng: 123.9015
-};
+interface RouteOriginPoint {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+}
 
-const createDepotMarkerIcon = () => {
-  return L.divIcon({
-    className: 'custom-depot-marker',
-    html: `
-      <div class="relative flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2 cursor-pointer group select-none">
-        <div style="
-          background: linear-gradient(135deg, #059669, #047857);
-          border: 2px solid #34D399;
-          box-shadow: 0 0 16px rgba(16, 185, 129, 0.7);
-        " class="px-2 py-0.5 rounded-sm text-white font-mono font-black text-[9px] tracking-widest flex items-center gap-1 shadow-lg">
-          <span>HQ DEPOT</span>
-        </div>
-        <div class="w-1.5 h-1.5 bg-emerald-500 rotate-45 border-r border-b border-white -mt-0.5"></div>
-      </div>
-    `,
-    iconSize: [64, 26],
-    iconAnchor: [32, 26],
-    popupAnchor: [0, -28]
+const ROUTE_ORIGIN_PRESETS: RouteOriginPoint[] = [
+  {
+    id: 'cebu-hq',
+    name: "Cebu City DPS Sanitation HQ",
+    address: "M.C. Briones St, Cebu City Hall Complex",
+    lat: 10.2934,
+    lng: 123.9015
+  },
+  {
+    id: 'mandaue-depot',
+    name: "Mandaue City Engineering Depot",
+    address: "Centro, Mandaue City Hall",
+    lat: 10.3344,
+    lng: 123.9421
+  },
+  {
+    id: 'subangdaku-station',
+    name: "Subangdaku Flood Control Substation",
+    address: "M. Logarta Ave, Subangdaku River Basin",
+    lat: 10.3242,
+    lng: 123.9287
+  },
+  {
+    id: 'lahug-base',
+    name: "Lahug / Gorordo Emergency Base",
+    address: "Gorordo Ave, North Cebu Corridor",
+    lat: 10.3298,
+    lng: 123.8967
+  }
+];
+
+function OriginMapClickHandler({ onSelect }: { onSelect: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(e) {
+      onSelect(e.latlng.lat, e.latlng.lng);
+    },
   });
-};
+  return null;
+}
+
+function OriginMapFlyTo({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo(center, Math.max(map.getZoom(), 14), { duration: 0.5 });
+  }, [center, map]);
+  return null;
+}
+
+function OriginMapResize() {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
 
 const createStopMarkerIcon = (stopNumber: number, priorityScore: number) => {
   const isUrgent = priorityScore >= 70;
@@ -196,6 +175,344 @@ const createStopMarkerIcon = (stopNumber: number, priorityScore: number) => {
     popupAnchor: [0, -36]
   });
 };
+
+function getClusterHighestStatus(reports: ReportItem[]): 'critical' | 'moderate' | 'dispatched' | 'resolved' | 'review' | 'pending' {
+  if (reports.some(r => r.status === 'triaged' && (r.priority_score || 0) >= 70)) return 'critical';
+  if (reports.some(r => r.status === 'failed_analysis' || r.needs_human_review)) return 'review';
+  if (reports.some(r => r.status === 'dispatched')) return 'dispatched';
+  if (reports.some(r => r.status === 'triaged')) return 'moderate';
+  if (reports.some(r => r.status === 'pending_analysis')) return 'pending';
+  return 'resolved';
+}
+
+interface CommandClusteredMarkersProps {
+  reports: ReportItem[];
+  selectedReportId: string | null;
+  setSelectedReportId: (id: string) => void;
+  markerRefs: React.RefObject<{ [key: string]: L.Marker | null }>;
+  getMarkerIcon: (status: string, score: number, needsReview: boolean, isSelected?: boolean) => L.DivIcon;
+}
+
+function CommandClusteredMarkers({
+  reports,
+  selectedReportId,
+  setSelectedReportId,
+  markerRefs,
+  getMarkerIcon,
+}: CommandClusteredMarkersProps) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+
+  useEffect(() => {
+    const handleZoom = () => setZoom(map.getZoom());
+    map.on('zoomend', handleZoom);
+    return () => {
+      map.off('zoomend', handleZoom);
+    };
+  }, [map]);
+
+  const clusters = useMemo(() => {
+    // Zoom >= 15: show all individual markers (spiderfied by displayLat/displayLng)
+    if (zoom >= 15) {
+      return reports.map(r => ({
+        id: r.report_id,
+        lat: r.displayLat,
+        lng: r.displayLng,
+        reports: [r],
+        highestStatus: getClusterHighestStatus([r]),
+      }));
+    }
+
+    // Zoom < 15: Spatial proximity clustering
+    // Keep selected report unclustered if present so its marker and popup stay visible
+    const nonSelectedReports = selectedReportId
+      ? reports.filter(r => r.report_id !== selectedReportId)
+      : reports;
+
+    const clusterRadius = 45 / Math.pow(2, zoom);
+    const clusterList: {
+      id: string;
+      lat: number;
+      lng: number;
+      reports: ReportItem[];
+      highestStatus: 'critical' | 'moderate' | 'dispatched' | 'resolved' | 'review' | 'pending';
+    }[] = [];
+    const visited = new Set<string>();
+
+    for (let i = 0; i < nonSelectedReports.length; i++) {
+      const report = nonSelectedReports[i];
+      if (visited.has(report.report_id)) continue;
+
+      const nearby: ReportItem[] = [report];
+      visited.add(report.report_id);
+
+      for (let j = i + 1; j < nonSelectedReports.length; j++) {
+        const other = nonSelectedReports[j];
+        if (visited.has(other.report_id)) continue;
+
+        const dLat = Number(report.latitude) - Number(other.latitude);
+        const dLng = Number(report.longitude) - Number(other.longitude);
+        const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+
+        if (dist < clusterRadius) {
+          nearby.push(other);
+          visited.add(other.report_id);
+        }
+      }
+
+      const avgLat = nearby.reduce((sum, r) => sum + Number(r.latitude), 0) / nearby.length;
+      const avgLng = nearby.reduce((sum, r) => sum + Number(r.longitude), 0) / nearby.length;
+
+      clusterList.push({
+        id: nearby.length === 1 ? report.report_id : `cluster-${report.report_id}-${nearby.length}`,
+        lat: avgLat,
+        lng: avgLng,
+        reports: nearby,
+        highestStatus: getClusterHighestStatus(nearby),
+      });
+    }
+
+    if (selectedReportId) {
+      const selected = reports.find(r => r.report_id === selectedReportId);
+      if (selected) {
+        clusterList.unshift({
+          id: selected.report_id,
+          lat: selected.displayLat,
+          lng: selected.displayLng,
+          reports: [selected],
+          highestStatus: getClusterHighestStatus([selected]),
+        });
+      }
+    }
+
+    return clusterList;
+  }, [reports, zoom, selectedReportId]);
+
+  const renderSingleMarker = (report: ReportItem, isSelected: boolean) => {
+    const sameLocationReports = report.locationGroup || [];
+
+    return (
+      <Marker 
+        key={report.report_id} 
+        ref={(ref) => {
+          if (ref) {
+            markerRefs.current[report.report_id] = ref;
+          } else {
+            delete markerRefs.current[report.report_id];
+          }
+        }}
+        position={[report.displayLat, report.displayLng]} 
+        icon={getMarkerIcon(report.status, report.priority_score, !!report.needs_human_review, isSelected)}
+        zIndexOffset={isSelected ? 1000 : (report.coordIndex || 0) * 10}
+        eventHandlers={{
+          click: () => {
+            setSelectedReportId(report.report_id);
+          }
+        }}
+      >
+        <Popup className="custom-popup" closeButton={false}>
+          <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-1 mb-2 border-b border-border-subtle pb-2">
+              <div>
+                <div className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-wider">
+                  {report.tracking_reference}
+                </div>
+                <div className="text-xs font-heading font-black text-text-primary">
+                  {report.status === 'resolved'
+                    ? 'Cleared Waterway'
+                    : report.status === 'dispatched'
+                      ? 'Cleanup Dispatched'
+                      : report.status === 'failed_analysis' || report.needs_human_review
+                        ? 'Manual Review Needed'
+                        : report.status === 'pending_analysis'
+                          ? 'AI Triage in Progress'
+                          : report.priority_score >= 70
+                            ? 'Critical Constriction'
+                            : 'Active Constriction'}
+                </div>
+              </div>
+
+              <span className={twMerge(
+                "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider",
+                report.status === 'resolved'
+                  ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                  : report.status === 'dispatched'
+                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                    : report.status === 'failed_analysis' || report.needs_human_review
+                      ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                      : report.status === 'pending_analysis'
+                        ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                        : report.priority_score >= 70
+                          ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                          : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+              )}>
+                {report.status === 'resolved' ? 'RESOLVED' :
+                 report.status === 'dispatched' ? 'DISPATCHED' :
+                 report.status === 'failed_analysis' || report.needs_human_review ? 'REVIEW' :
+                 report.status === 'pending_analysis' ? 'PENDING' :
+                 `PRIORITY ${report.priority_score || 0}`}
+              </span>
+            </div>
+
+            {/* Image Preview if available */}
+            {report.image_url && (
+              <div className="w-full h-28 mb-2 rounded-sm overflow-hidden border border-border-subtle bg-black/40 relative">
+                <img 
+                  src={report.image_url} 
+                  alt="Canal Condition" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Notes */}
+            <p className="text-[11px] text-text-secondary line-clamp-2 mb-2 leading-relaxed">
+              "{report.citizen_notes || 'Citizen canal blockage observation.'}"
+            </p>
+
+            {/* Footer Info */}
+            <div className="flex items-center justify-between text-[10px] font-mono text-text-muted pt-1 border-t border-border-subtle">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {new Date(report.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span className="text-brand-primary font-bold">
+                {report.status === 'resolved' 
+                  ? 'Restored' 
+                  : report.status === 'failed_analysis'
+                    ? 'Needs Verification'
+                    : (report.priority_score || 0) >= 70 
+                      ? 'High Impact' 
+                      : (report.priority_score || 0) < 40 
+                        ? 'Low Impact' 
+                        : 'Moderate'}
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            {(report.status === 'failed_analysis' || report.needs_human_review) && (
+              <div className="mt-2.5 pt-2 border-t border-border-subtle flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedReportId(report.report_id);
+                    setTimeout(() => {
+                      const el = document.getElementById('manual-triage-card');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                  }}
+                  className="w-full py-2 px-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-sm text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors active:scale-95"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Manual Verify Case</span>
+                </button>
+              </div>
+            )}
+
+            {/* Multiple reports at this location switcher */}
+            {sameLocationReports.length > 1 && (
+              <div className="mt-2 pt-2 border-t border-border-subtle/70 text-[9px] text-text-muted">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-text-secondary">Location Cluster:</span>
+                  <span className="font-mono text-[8px] bg-surface-subtle px-1 rounded">{sameLocationReports.length} reports</span>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {sameLocationReports.map((other: ReportItem) => {
+                    const isThisOne = other.report_id === report.report_id;
+                    return (
+                      <button
+                        key={other.report_id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedReportId(other.report_id);
+                        }}
+                        className={`px-1.5 py-0.5 rounded text-[8px] font-mono cursor-pointer transition-colors ${
+                          isThisOne 
+                            ? 'bg-brand-primary text-white font-bold shadow-xs' 
+                            : 'bg-surface hover:bg-surface-subtle text-text-secondary border border-border-subtle'
+                        }`}
+                        title={`Switch to ${other.tracking_reference}`}
+                      >
+                        {other.tracking_reference.replace('ER-2026-', '#')}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </Popup>
+      </Marker>
+    );
+  };
+
+  return (
+    <>
+      {clusters.map((cluster) => {
+        if (cluster.reports.length === 1) {
+          const report = cluster.reports[0];
+          return renderSingleMarker(report, selectedReportId === report.report_id);
+        }
+
+        const resolvedCount = cluster.reports.filter(r => r.status === 'resolved').length;
+        const activeCount = cluster.reports.length - resolvedCount;
+
+        return (
+          <Marker
+            key={cluster.id}
+            position={[cluster.lat, cluster.lng]}
+            icon={createClusterIcon(cluster.reports.length, cluster.highestStatus)}
+            zIndexOffset={500}
+            eventHandlers={{
+              click: () => {
+                map.setView([cluster.lat, cluster.lng], Math.min(zoom + 3, 16), { animate: true });
+              },
+            }}
+          >
+            <Popup className="custom-popup" closeButton={false}>
+              <div className="bg-surface/95 backdrop-blur-md border border-border-strong rounded-sm shadow-2xl p-3 w-64 text-text-primary font-sans">
+                <div className="flex items-center justify-between border-b border-border-subtle pb-2 mb-2">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-primary">
+                    Sector Cluster
+                  </span>
+                  <span className={twMerge(
+                    "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider",
+                    cluster.highestStatus === 'critical' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                    cluster.highestStatus === 'review' ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" :
+                    cluster.highestStatus === 'dispatched' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                    cluster.highestStatus === 'pending' ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" :
+                    cluster.highestStatus === 'resolved' ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                    "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                  )}>
+                    {cluster.reports.length} Incidents
+                  </span>
+                </div>
+                <p className="text-[11px] text-text-secondary mb-2.5 leading-snug">
+                  {activeCount === 0
+                    ? `${cluster.reports.length} cleared blockage reports in this sector. All cleared!`
+                    : `${cluster.reports.length} waterway incident reports grouped here (${resolvedCount} cleared, ${activeCount} active). Zoom in to inspect individual cases.`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => map.setView([cluster.lat, cluster.lng], Math.min(zoom + 3, 16), { animate: true })}
+                  className="w-full py-1.5 px-2 bg-brand-primary hover:bg-brand-secondary !text-white hover:!text-black text-xs font-mono font-bold uppercase tracking-wider rounded-sm transition-colors text-center cursor-pointer shadow-sm active:scale-95"
+                >
+                  Zoom into Sector ({cluster.reports.length})
+                </button>
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
 
 export default function MainCommandDashboard() { 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -243,8 +560,12 @@ export default function MainCommandDashboard() {
   const [isRouteMode, setIsRouteMode] = useState<boolean>(false);
   const [isGeneratingRoute, setIsGeneratingRoute] = useState<boolean>(false);
   const [dispatchRoute, setDispatchRoute] = useState<DispatchRouteInfo | null>(null);
+  const [routeOrigin, setRouteOrigin] = useState<RouteOriginPoint>(ROUTE_ORIGIN_PRESETS[0]);
+  const [isOriginModalOpen, setIsOriginModalOpen] = useState<boolean>(false);
+  const [tempOrigin, setTempOrigin] = useState<RouteOriginPoint>(ROUTE_ORIGIN_PRESETS[0]);
+  const [isImageFocused, setIsImageFocused] = useState<boolean>(false);
 
-  const calculateOptimalRoute = (activeList: ReportItem[]) => {
+  const calculateOptimalRoute = (activeList: ReportItem[], origin: RouteOriginPoint = routeOrigin) => {
     if (activeList.length === 0) return [];
     
     // Select top prioritized active blockage incidents (up to 6 stops)
@@ -253,8 +574,8 @@ export default function MainCommandDashboard() {
       .slice(0, 6);
 
     const ordered: ReportItem[] = [];
-    let currentLat = CEBU_DEPOT.lat;
-    let currentLng = CEBU_DEPOT.lng;
+    let currentLat = origin.lat;
+    let currentLng = origin.lng;
 
     const getDist = (lat1: number, lng1: number, lat2: number, lng2: number) => {
       const dLat = (lat2 - lat1) * 111.32;
@@ -288,10 +609,12 @@ export default function MainCommandDashboard() {
     return ordered;
   };
 
-  const generateCleaningRoute = async () => {
+  const generateCleaningRoute = async (targetOrigin?: RouteOriginPoint) => {
     if (isGeneratingRoute) return;
 
-    if (isRouteMode) {
+    const origin = targetOrigin || routeOrigin;
+
+    if (isRouteMode && !targetOrigin) {
       setIsRouteMode(false);
       return;
     }
@@ -305,10 +628,10 @@ export default function MainCommandDashboard() {
     setIsGeneratingRoute(true);
 
     try {
-      const orderedStops = calculateOptimalRoute(activeList);
+      const orderedStops = calculateOptimalRoute(activeList, origin);
       
       const waypoints = [
-        [CEBU_DEPOT.lng, CEBU_DEPOT.lat],
+        [origin.lng, origin.lat],
         ...orderedStops.map(s => [Number(s.longitude), Number(s.latitude)])
       ];
 
@@ -336,7 +659,7 @@ export default function MainCommandDashboard() {
 
       if (geometry.length === 0) {
         geometry = [
-          [CEBU_DEPOT.lat, CEBU_DEPOT.lng],
+          [origin.lat, origin.lng],
           ...orderedStops.map(s => [Number(s.latitude), Number(s.longitude)] as [number, number])
         ];
         totalDistanceKm = Math.round(geometry.length * 2.6 * 10) / 10;
@@ -344,7 +667,7 @@ export default function MainCommandDashboard() {
       }
 
       const gMapsStops = [
-        `${CEBU_DEPOT.lat},${CEBU_DEPOT.lng}`,
+        `${origin.lat},${origin.lng}`,
         ...orderedStops.map(s => `${s.latitude},${s.longitude}`)
       ].join('/');
       const googleMapsUrl = `https://www.google.com/maps/dir/${gMapsStops}`;
@@ -361,7 +684,6 @@ export default function MainCommandDashboard() {
       if (mapRef.current && geometry.length > 0) {
         mapRef.current.fitBounds(L.latLngBounds(geometry), { padding: [80, 80] });
       }
-
     } catch (err) {
       console.error("Failed to generate route:", err);
     } finally {
@@ -438,7 +760,16 @@ export default function MainCommandDashboard() {
     });
   }, [reports, reportsByLocation]);
 
-  const [isMapDark, setIsMapDark] = useState<boolean>(true);
+  const { theme: globalTheme, toggleTheme } = useTheme();
+  const [isMapDark, setIsMapDark] = useState<boolean>(globalTheme === 'dark');
+
+  // Synchronize map theme whenever the global navbar theme changes
+  useEffect(() => {
+    queueMicrotask(() => {
+      setIsMapDark(globalTheme === 'dark');
+    });
+  }, [globalTheme]);
+
   const [mapType, setMapType] = useState<MapTileType>('standard');
   const [statusFilter, setStatusFilter] = useState<'all' | 'critical' | 'review' | 'pending' | 'resolved'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -953,112 +1284,60 @@ export default function MainCommandDashboard() {
             url={getTileUrl(mapType)}
           />
           
-          {filteredReports.map((report) => {
-            const isSelected = selectedReportId === report.report_id;
-            const sameLocationReports = report.locationGroup || [];
+          <CommandClusteredMarkers
+            reports={filteredReports}
+            selectedReportId={selectedReportId}
+            setSelectedReportId={setSelectedReportId}
+            markerRefs={markerRefs}
+            getMarkerIcon={getMarkerIcon}
+          />
 
-            return (
-              <Marker 
-                key={report.report_id} 
-                ref={(ref) => {
-                  if (ref) {
-                    markerRefs.current[report.report_id] = ref;
-                  } else {
-                    delete markerRefs.current[report.report_id];
-                  }
-                }}
-                position={[report.displayLat, report.displayLng]} 
-                icon={getMarkerIcon(report.status, report.priority_score, report.needs_human_review, isSelected)}
-                zIndexOffset={isSelected ? 1000 : report.coordIndex * 10}
-                eventHandlers={{
-                  click: () => {
-                    setSelectedReportId(report.report_id);
-                  }
-                }}
-              >
-                <Popup className="custom-popup" closeButton={false}>
-                  <div className="bg-surface/95 backdrop-blur-md border border-border-subtle rounded-sm shadow-2xl p-3 w-52 text-text-primary">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <h3 className="font-mono font-bold text-xs text-text-muted tracking-widest">{report.tracking_reference}</h3>
-                      {isSelected && (
-                        <span className="text-[8px] font-bold uppercase tracking-wider bg-brand-primary/20 text-brand-primary border border-brand-primary/40 px-1 py-0.5 rounded">
-                          ACTIVE
-                        </span>
-                      )}
-                    </div>
-
-                    <p className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm mt-1 mb-2 inline-block ${
-                      report.status === 'resolved' ? 'bg-emerald-600 text-white' :
-                      report.priority_score >= 70 && report.status === 'triaged' ? 'bg-semantic-urgent text-white' :
-                      report.status === 'pending_analysis' ? 'bg-blue-600 text-white animate-pulse' :
-                      'bg-semantic-warning text-white'
-                    }`}>
-                      {report.status === 'resolved' ? 'RESOLVED' :
-                       report.status === 'pending_analysis' ? 'PENDING' :
-                       report.status === 'failed_analysis' ? 'NEEDS REVIEW' :
-                       `AI Score: ${report.priority_score || 'N/A'}`}
-                    </p>
-
-                    <p className="text-[10px] text-text-muted mb-2 font-mono flex items-center justify-between">
-                      <span>{new Date(report.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      <span className="text-[9px] opacity-75">Lat {report.latitude.toFixed(3)}, Lng {report.longitude.toFixed(3)}</span>
-                    </p>
-
-                    {/* Action / Selection Status */}
-                    {isSelected ? (
-                      <div className="w-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[9px] font-black py-1.5 rounded-sm text-center uppercase tracking-widest flex items-center justify-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> ACTIVE IN COMMAND
-                      </div>
-                    ) : (
-                      <button 
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedReportId(report.report_id);
-                        }}
-                        className="w-full bg-brand-primary text-brand-white text-[9px] font-black py-1.5 rounded-sm hover:bg-brand-secondary transition-colors uppercase tracking-widest transform -skew-x-[6deg] cursor-pointer"
-                      >
-                        <span className="inline-block transform skew-x-[6deg]">SELECT REPORT</span>
-                      </button>
-                    )}
-
-                    {/* Multiple reports at this location switcher */}
-                    {sameLocationReports.length > 1 && (
-                      <div className="mt-2.5 pt-2 border-t border-border-subtle/70 text-[9px] text-text-muted">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-text-secondary">Location Cluster:</span>
-                          <span className="font-mono text-[8px] bg-surface-subtle px-1 rounded">{sameLocationReports.length} reports</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {sameLocationReports.map((other: ReportItem) => {
-                            const isThisOne = other.report_id === report.report_id;
-                            return (
-                              <button
-                                key={other.report_id}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedReportId(other.report_id);
-                                }}
-                                className={`px-1.5 py-0.5 rounded text-[8px] font-mono cursor-pointer transition-colors ${
-                                  isThisOne 
-                                    ? 'bg-brand-primary text-white font-bold shadow-xs' 
-                                    : 'bg-surface hover:bg-surface-subtle text-text-secondary border border-border-subtle'
-                                }`}
-                                title={`Switch to ${other.tracking_reference}`}
-                              >
-                                {other.tracking_reference.replace('ER-2026-', '#')}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+          {/* Permanent Operations Base / Depot Reference Marker (Always visible on map) */}
+          <Marker
+            position={[routeOrigin.lat, routeOrigin.lng]}
+            icon={createDepotMarkerIcon({
+              isCustom: routeOrigin.id.includes('custom'),
+              tag: routeOrigin.id.includes('custom') ? 'CUSTOM DEPOT' : 'HQ DEPOT'
+            })}
+            zIndexOffset={1500}
+          >
+            <Popup className="custom-popup" closeButton={false}>
+              <div className="bg-surface/95 backdrop-blur-md border border-border-subtle p-3 rounded-sm shadow-xl text-xs font-sans min-w-[210px]">
+                <div className="font-mono font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-1 flex items-center justify-between">
+                  <span>Operations Base / Depot</span>
+                  <span className="text-[9px] bg-emerald-500/20 px-1 py-0.5 rounded text-emerald-300">
+                    {routeOrigin.id.includes('custom') ? 'CUSTOM BASE' : 'ACTIVE HQ'}
+                  </span>
+                </div>
+                <div className="font-bold text-text-primary mb-0.5">{routeOrigin.name}</div>
+                <div className="text-[11px] text-text-muted mb-1.5">{routeOrigin.address}</div>
+                <div className="text-[9px] font-mono text-text-muted/70 mb-2">
+                  GPS: {routeOrigin.lat.toFixed(4)}, {routeOrigin.lng.toFixed(4)}
+                </div>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempOrigin(routeOrigin);
+                      setIsOriginModalOpen(true);
+                    }}
+                    className="flex-1 py-1 px-2 bg-surface hover:bg-surface-subtle text-text-primary border border-border-subtle hover:border-brand-primary rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
+                  >
+                    Change Base
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      generateCleaningRoute();
+                    }}
+                    className="flex-1 py-1 px-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-xs text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
+                  >
+                    {isRouteMode ? 'Recalculate Route' : 'Route From Here'}
+                  </button>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
 
           {/* AI Optimized Dispatch Route Polyline Layers */}
           {isRouteMode && dispatchRoute && dispatchRoute.geometry.length > 0 && (
@@ -1086,22 +1365,6 @@ export default function MainCommandDashboard() {
                   lineJoin: 'round'
                 }}
               />
-
-              {/* Depot Origin Marker */}
-              <Marker
-                position={[CEBU_DEPOT.lat, CEBU_DEPOT.lng]}
-                icon={createDepotMarkerIcon()}
-              >
-                <Popup className="custom-popup" closeButton={false}>
-                  <div className="bg-surface/95 backdrop-blur-md border border-border-subtle p-3 rounded-sm shadow-xl text-xs font-sans">
-                    <div className="font-mono font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-1">
-                      Dispatch Starting Depot
-                    </div>
-                    <div className="font-bold text-text-primary mb-1">{CEBU_DEPOT.name}</div>
-                    <div className="text-[11px] text-text-muted">{CEBU_DEPOT.address}</div>
-                  </div>
-                </Popup>
-              </Marker>
 
               {/* Numbered Waypoint Badges along the Optimized Cleaning Route */}
               {dispatchRoute.orderedStops.map((stop, idx) => (
@@ -1324,7 +1587,7 @@ export default function MainCommandDashboard() {
             {/* AI Dispatch Route Generator Toggle */}
             <button
               type="button"
-              onClick={generateCleaningRoute}
+              onClick={() => generateCleaningRoute()}
               disabled={isGeneratingRoute}
               className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center gap-1.5 ${
                 isRouteMode
@@ -1344,7 +1607,7 @@ export default function MainCommandDashboard() {
             {/* Map Theme Toggle (Sun / Moon) */}
             <button
               type="button"
-              onClick={() => setIsMapDark((prev) => !prev)}
+              onClick={toggleTheme}
               className={`p-2 sm:p-2.5 backdrop-blur-md border rounded-sm transition-all shadow-md active:scale-95 -skew-x-6 cursor-pointer flex items-center justify-center ${
                 isMapDark
                   ? "bg-surface/90 border-brand-primary/40 text-amber-400 hover:bg-brand-primary/20"
@@ -1538,12 +1801,28 @@ export default function MainCommandDashboard() {
                     </span>
                   </div>
 
-                  {/* Submitted Image */}
-                  <div className="w-full h-48 rounded-sm bg-border-subtle overflow-hidden relative group border border-border-subtle shadow-inner">
-                    <img src={selectedReport.image_url} alt="Reported issue" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  {/* Submitted Image (Clickable for Natural Zoom View) */}
+                  <div 
+                    onClick={() => {
+                      if (selectedReport.image_url) {
+                        setIsImageFocused(true);
+                      }
+                    }}
+                    className="w-full h-48 rounded-sm bg-border-subtle overflow-hidden relative group border border-border-subtle shadow-inner cursor-pointer"
+                    title="Click to expand full evidence photo"
+                  >
+                    <img 
+                      src={selectedReport.image_url} 
+                      alt="Reported issue" 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-                    <div className="absolute bottom-2 left-2 flex gap-1">
+                    <div className="absolute bottom-2 left-2 flex gap-1 z-10">
                       <span className="bg-black/50 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded">Vision Source</span>
+                    </div>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-mono font-bold z-10">
+                      <Maximize2 className="w-4 h-4 text-brand-primary" />
+                      <span>Click to zoom</span>
                     </div>
                   </div>
 
@@ -1567,7 +1846,19 @@ export default function MainCommandDashboard() {
                   <div className="flex gap-3">
                     <div className="flex-1 bg-surface-subtle p-3 rounded-sm border border-border-subtle shadow-sm transform -skew-x-[6deg]">
                        <div className="transform skew-x-[6deg]">
-                         <div className="text-[9px] uppercase font-bold text-text-muted mb-1 tracking-widest">Blockage Severity</div>
+                         <div className="text-[9px] uppercase font-bold text-text-muted mb-1 tracking-widest flex items-center justify-between">
+                           <span>Priority Severity</span>
+                           {selectedReport.status === 'triaged' && selectedReport.priority_score !== undefined && (
+                             <span className={twMerge(
+                               "text-[8px] font-mono font-bold uppercase px-1 py-0.2 rounded-xs",
+                               selectedReport.priority_score >= 80 ? "bg-red-500/20 text-red-400" :
+                               selectedReport.priority_score >= 60 ? "bg-amber-500/20 text-amber-400" :
+                               "bg-emerald-500/20 text-emerald-400"
+                             )}>
+                               {selectedReport.priority_score >= 80 ? 'Urgent' : selectedReport.priority_score >= 60 ? 'High' : selectedReport.priority_score >= 30 ? 'Medium' : 'Low'}
+                             </span>
+                           )}
+                         </div>
                          <div className="text-2xl font-black text-semantic-warning leading-none">
                            {selectedReport.status === 'pending_analysis' ? (
                              <span className="text-sm font-mono text-brand-primary animate-pulse flex items-center gap-1">
@@ -1579,10 +1870,18 @@ export default function MainCommandDashboard() {
                                 0 <span className="text-xs text-red-400 font-sans uppercase">(REJECTED)</span>
                               </span>
                             ) : (
-                              <>{visionResult?.blockage_severity_score ?? selectedReport.priority_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></>
+                              <>{selectedReport.priority_score ?? visionResult?.blockage_severity_score ?? 'N/A'}<span className="text-sm text-text-muted">/100</span></>
                             )
                            )}
                          </div>
+                         {/* Minor Sub-Scores: Vision Blockage & Rain Risk */}
+                         {selectedReport.status !== 'pending_analysis' && visionResult?.is_valid_waterway !== false && (
+                           <div className="text-[9px] font-mono text-text-muted mt-2 pt-1.5 border-t border-border-subtle/60 flex items-center justify-between">
+                             <span>Vision: <strong className="text-text-primary">{visionResult?.blockage_severity_score ?? '—'}%</strong></span>
+                             <span className="text-border-subtle opacity-60">|</span>
+                             <span>Rain: <strong className="text-blue-400">{weatherResult?.rain_probability_index !== undefined ? `${weatherResult.rain_probability_index}%` : '—'}</strong></span>
+                           </div>
+                         )}
                        </div>
                     </div>
                     <div className="flex-1 bg-surface-subtle p-3 rounded-sm border border-border-subtle shadow-sm transform -skew-x-[6deg]">
@@ -1642,196 +1941,176 @@ export default function MainCommandDashboard() {
                     </div>
                   )}
 
-                  {/* Manual Triage & Weather Synthesis Panel (Active when review needed or officer opens manual override) */}
+                  {/* Manual Triage Panel */}
                   {(isManualEditOpen || selectedReport.status === 'failed_analysis' || selectedReport.needs_human_review) && (
-                    <div className="bg-surface border-2 border-brand-primary/40 rounded-sm p-4 flex flex-col gap-3 shadow-xl relative overflow-hidden -skew-x-[3deg]">
-                      <div className="skew-x-[3deg] flex flex-col gap-3">
-                        {/* Header */}
-                        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
-                          <div className="flex items-center gap-1.5 text-xs font-heading font-black uppercase tracking-wider text-brand-primary">
-                            <Edit3 className="w-4 h-4 text-brand-primary" />
-                            <span>Manual Triage & Weather Fusion</span>
-                          </div>
-                          <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm bg-brand-primary/15 text-brand-primary border border-brand-primary/30">
-                            LGU Review
+                    <div id="manual-triage-card" className="bg-surface border-2 border-brand-primary/40 rounded-sm p-4 flex flex-col gap-3 shadow-xl">
+                      {/* Header - No icons, no pill, just "Manual Triage" */}
+                      <div className="border-b border-border-subtle pb-2">
+                        <h3 className="text-xs font-heading font-black uppercase tracking-wider text-text-primary">
+                          Manual Triage
+                        </h3>
+                      </div>
+
+                      {/* Live Weather Forecast Metric (Minimal 1-line, no icon) */}
+                      <div className="flex items-center justify-between text-[11px] font-mono text-text-muted py-1 border-b border-border-subtle/50">
+                        <span>48h Rain Probability:</span>
+                        <span className="font-bold text-blue-400">
+                          {weatherResult?.rain_probability_index !== undefined ? `${weatherResult.rain_probability_index}%` : 'Scanning...'}
+                        </span>
+                      </div>
+
+                      {/* Blockage Severity Slider */}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                            Assessed Blockage Severity:
+                          </span>
+                          <span className={twMerge(
+                            "font-mono font-black text-sm px-2 py-0.5 rounded-sm",
+                            manualSeverity >= 80 ? "text-semantic-urgent bg-semantic-urgent/10 border border-semantic-urgent/30" :
+                            manualSeverity >= 60 ? "text-semantic-warning bg-semantic-warning/10 border border-semantic-warning/30" :
+                            manualSeverity >= 30 ? "text-amber-400 bg-amber-500/10 border border-amber-500/30" :
+                            "text-emerald-400 bg-emerald-500/10 border border-emerald-500/30"
+                          )}>
+                            {manualSeverity}%
                           </span>
                         </div>
 
-                        {/* Live Weather Forecast Metric */}
-                        <div className="bg-surface-subtle p-2.5 rounded-sm border border-border-subtle flex items-center justify-between text-xs font-mono">
-                          <div className="flex items-center gap-2">
-                            <CloudRain className="w-4 h-4 text-blue-400 shrink-0" />
-                            <span className="text-text-muted text-[11px]">Open-Meteo 48h Rain Risk:</span>
-                          </div>
-                          <span className="font-bold text-blue-400 font-mono">
-                            {weatherResult?.rain_probability_index !== undefined ? `${weatherResult.rain_probability_index}%` : 'Scanning...'}
-                          </span>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="100" 
+                          step="1"
+                          value={manualSeverity}
+                          onChange={(e) => setManualSeverity(Number(e.target.value))}
+                          className="w-full accent-brand-primary cursor-pointer h-2 bg-surface-subtle rounded-sm"
+                        />
+
+                        {/* Severity Presets */}
+                        <div className="grid grid-cols-4 gap-1 mt-1">
+                          {[
+                            { label: 'Clear 15%', val: 15 },
+                            { label: 'Mod 45%', val: 45 },
+                            { label: 'Heavy 75%', val: 75 },
+                            { label: 'Full 95%', val: 95 }
+                          ].map((preset) => (
+                            <button
+                              key={preset.val}
+                              type="button"
+                              onClick={() => setManualSeverity(preset.val)}
+                              className={twMerge(
+                                "py-1 text-[9px] font-mono uppercase font-bold rounded-xs border transition-all cursor-pointer active:scale-95 text-center -skew-x-[4deg]",
+                                manualSeverity === preset.val
+                                  ? "bg-brand-primary text-white border-brand-primary"
+                                  : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle hover:border-border-strong"
+                              )}
+                            >
+                              <span className="inline-block skew-x-[4deg]">{preset.label}</span>
+                            </button>
+                          ))}
                         </div>
+                      </div>
 
-                        {/* Blockage Severity Slider */}
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
-                              Assessed Blockage Severity:
-                            </span>
-                            <span className={twMerge(
-                              "font-mono font-black text-sm px-2 py-0.5 rounded-sm",
-                              manualSeverity >= 80 ? "text-semantic-urgent bg-semantic-urgent/10 border border-semantic-urgent/30" :
-                              manualSeverity >= 60 ? "text-semantic-warning bg-semantic-warning/10 border border-semantic-warning/30" :
-                              manualSeverity >= 30 ? "text-amber-400 bg-amber-500/10 border border-amber-500/30" :
-                              "text-emerald-400 bg-emerald-500/10 border border-emerald-500/30"
-                            )}>
-                              {manualSeverity}%
-                            </span>
-                          </div>
-
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            step="1"
-                            value={manualSeverity}
-                            onChange={(e) => setManualSeverity(Number(e.target.value))}
-                            className="w-full accent-brand-primary cursor-pointer h-2 bg-surface-subtle rounded-sm"
-                          />
-
-                          {/* Severity Presets */}
-                          <div className="grid grid-cols-4 gap-1 mt-1">
-                            {[
-                              { label: 'Clear 15%', val: 15 },
-                              { label: 'Mod 45%', val: 45 },
-                              { label: 'Heavy 75%', val: 75 },
-                              { label: 'Full 95%', val: 95 }
-                            ].map((preset) => (
+                      {/* Waste Category Selection (No check icon) */}
+                      <div className="flex flex-col gap-1.5">
+                        <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                          Observed Waste Categories:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {['Plastic', 'Organic', 'Silt', 'Construction', 'Other'].map((cat) => {
+                            const isSelected = manualWaste.includes(cat);
+                            return (
                               <button
-                                key={preset.val}
+                                key={cat}
                                 type="button"
-                                onClick={() => setManualSeverity(preset.val)}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setManualWaste(prev => prev.filter(c => c !== cat));
+                                  } else {
+                                    setManualWaste(prev => [...prev, cat]);
+                                  }
+                                }}
                                 className={twMerge(
-                                  "py-1 text-[9px] font-mono uppercase font-bold rounded-xs border transition-all cursor-pointer active:scale-95 text-center",
-                                  manualSeverity === preset.val
-                                    ? "bg-brand-primary text-white border-brand-primary"
-                                    : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle hover:border-border-strong"
+                                  "px-2.5 py-1 rounded-xs text-[10px] font-mono font-bold uppercase transition-all cursor-pointer border -skew-x-[4deg] active:scale-95",
+                                  isSelected
+                                    ? "bg-brand-primary text-white border-brand-primary shadow-xs"
+                                    : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle"
                                 )}
                               >
-                                {preset.label}
+                                <span className="inline-block skew-x-[4deg]">{cat}</span>
                               </button>
-                            ))}
-                          </div>
+                            );
+                          })}
                         </div>
+                      </div>
 
-                        {/* Waste Category Selection */}
-                        <div className="flex flex-col gap-1.5">
-                          <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
-                            Observed Waste Categories:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {['Plastic', 'Organic', 'Silt', 'Construction', 'Other'].map((cat) => {
-                              const isSelected = manualWaste.includes(cat);
-                              return (
-                                <button
-                                  key={cat}
-                                  type="button"
-                                  onClick={() => {
-                                    if (isSelected) {
-                                      setManualWaste(prev => prev.filter(c => c !== cat));
-                                    } else {
-                                      setManualWaste(prev => [...prev, cat]);
-                                    }
-                                  }}
-                                  className={twMerge(
-                                    "px-2 py-1 rounded-sm text-[10px] font-mono font-bold uppercase transition-all cursor-pointer flex items-center gap-1 border",
-                                    isSelected
-                                      ? "bg-brand-primary text-white border-brand-primary shadow-xs"
-                                      : "bg-surface-subtle text-text-muted hover:text-text-primary border-border-subtle"
-                                  )}
-                                >
-                                  {isSelected && <Check className="w-3 h-3 text-white" />}
-                                  <span>{cat}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
+                      {/* Optional Dispatcher Observation Note */}
+                      <div className="flex flex-col gap-1">
+                        <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
+                          Dispatcher Audit Note (Optional):
+                        </span>
+                        <input
+                          type="text"
+                          value={manualRationale}
+                          onChange={(e) => setManualRationale(e.target.value)}
+                          placeholder="e.g. Verified 75% obstruction with heavy silt"
+                          className="bg-surface-subtle border border-border-subtle rounded-sm px-2.5 py-1.5 text-xs text-text-primary focus:border-brand-primary outline-hidden placeholder:text-text-muted font-mono"
+                        />
+                      </div>
 
-                        {/* Optional Dispatcher Observation Note */}
-                        <div className="flex flex-col gap-1">
-                          <span className="font-bold uppercase tracking-wider text-[10px] text-text-secondary">
-                            Dispatcher Audit Note (Optional):
-                          </span>
-                          <input
-                            type="text"
-                            value={manualRationale}
-                            onChange={(e) => setManualRationale(e.target.value)}
-                            placeholder="e.g. Verified 75% obstruction with heavy silt"
-                            className="bg-surface-subtle border border-border-subtle rounded-sm px-2.5 py-1.5 text-xs text-text-primary focus:border-brand-primary outline-hidden placeholder:text-text-muted"
-                          />
-                        </div>
-
-                        {/* Real-Time Priority Score Preview Formula */}
-                        {(() => {
-                          const rpi = weatherResult?.rain_probability_index ?? 0;
-                          const projectedScore = Math.round(((0.60 * manualSeverity) + (0.40 * rpi)) * 100) / 100;
-                          const priorityLabel = projectedScore < 30 ? "Low" : projectedScore < 60 ? "Medium" : projectedScore < 80 ? "High" : "Urgent";
-                          return (
-                            <div className="bg-brand-primary/10 border border-brand-primary/30 p-2.5 rounded-sm flex items-center justify-between text-xs">
-                              <div className="flex flex-col">
-                                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-text-muted">
-                                  Synthesized Priority (60% Vision + 40% Rain)
-                                </span>
-                                <span className="text-[11px] font-mono text-text-secondary">
-                                  ({(0.60 * manualSeverity).toFixed(1)} + {(0.40 * rpi).toFixed(1)})
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={twMerge(
-                                  "text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-sm",
-                                  priorityLabel === 'Urgent' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                                  priorityLabel === 'High' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
-                                  priorityLabel === 'Medium' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" :
-                                  "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                )}>
-                                  {priorityLabel}
-                                </span>
-                                <span className="text-lg font-mono font-black text-brand-primary">
-                                  {projectedScore}
-                                </span>
-                              </div>
+                      {/* Real-Time Priority Score Preview Formula (Minimal 1-line) */}
+                      {(() => {
+                        const rpi = weatherResult?.rain_probability_index ?? 0;
+                        const projectedScore = Math.round(((0.60 * manualSeverity) + (0.40 * rpi)) * 100) / 100;
+                        const priorityLabel = projectedScore < 30 ? "Low" : projectedScore < 60 ? "Medium" : projectedScore < 80 ? "High" : "Urgent";
+                        return (
+                          <div className="bg-surface-subtle border border-border-subtle px-3 py-2 rounded-sm flex items-center justify-between text-xs font-mono">
+                            <span className="text-[10px] uppercase font-bold text-text-muted">
+                              Synthesized Priority
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-text-muted">
+                                ({(0.60 * manualSeverity).toFixed(1)} + {(0.40 * rpi).toFixed(1)})
+                              </span>
+                              <span className={twMerge(
+                                "text-[10px] font-bold uppercase px-1.5 py-0.2 rounded-xs",
+                                priorityLabel === 'Urgent' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                priorityLabel === 'High' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                                priorityLabel === 'Medium' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" :
+                                "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                              )}>
+                                {priorityLabel}
+                              </span>
+                              <span className="text-sm font-black text-brand-primary">
+                                {projectedScore}
+                              </span>
                             </div>
-                          );
-                        })()}
+                          </div>
+                        );
+                      })()}
 
-                        {/* Submit / Confirm Button */}
-                        <div className="flex gap-2 pt-1">
+                      {/* Submit / Confirm Button */}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleManualTriageSubmit}
+                          disabled={isManualTriageSubmitting}
+                          className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black py-2.5 px-3 rounded-sm font-bold uppercase text-[11px] tracking-wider transition-all flex items-center justify-center cursor-pointer shadow-md active:scale-95 disabled:opacity-50 -skew-x-[6deg]"
+                        >
+                          <span className="inline-block skew-x-[6deg]">
+                            {isManualTriageSubmitting ? 'Synthesizing...' : 'Confirm Manual Triage'}
+                          </span>
+                        </button>
+
+                        {isManualEditOpen && selectedReport.status === 'triaged' && (
                           <button
                             type="button"
-                            onClick={handleManualTriageSubmit}
-                            disabled={isManualTriageSubmitting}
-                            className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white hover:text-black py-2.5 px-3 rounded-sm font-bold uppercase text-[11px] tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
+                            onClick={() => setIsManualEditOpen(false)}
+                            className="px-3.5 py-2 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer -skew-x-[6deg] active:scale-95"
                           >
-                            {isManualTriageSubmitting ? (
-                              <>
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                <span>Synthesizing...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span>Confirm Manual Triage & Weather Score</span>
-                              </>
-                            )}
+                            <span className="inline-block skew-x-[6deg]">Cancel</span>
                           </button>
-
-                          {isManualEditOpen && selectedReport.status === 'triaged' && (
-                            <button
-                              type="button"
-                              onClick={() => setIsManualEditOpen(false)}
-                              className="px-3 py-2 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1855,17 +2134,19 @@ export default function MainCommandDashboard() {
                           </button>
                         )}
 
-                        {/* Re-run AI Analysis Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleReAssess(selectedReport.report_id)}
-                          disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
-                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-                          title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
-                        >
-                          <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
-                          <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
-                        </button>
+                        {/* Re-run AI Analysis Button (Hidden if already in cleanup or resolved) */}
+                        {selectedReport.status !== 'resolved' && selectedReport.status !== 'in_progress' && (
+                          <button
+                            type="button"
+                            onClick={() => handleReAssess(selectedReport.report_id)}
+                            disabled={isReAssessing || selectedReport.status === 'pending_analysis'}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                            title="Re-run Gemini Vision & Multi-Agent Triage Pipeline"
+                          >
+                            <RefreshCw className={twMerge("w-3 h-3", (isReAssessing || selectedReport.status === 'pending_analysis') && "animate-spin")} />
+                            <span>{isReAssessing || selectedReport.status === 'pending_analysis' ? 'Analyzing...' : 'Re-run AI Analysis'}</span>
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -1876,7 +2157,7 @@ export default function MainCommandDashboard() {
                           className="flex-1 bg-brand-primary text-white text-[10px] font-black py-2.5 rounded-sm hover:bg-brand-secondary transition-colors uppercase tracking-widest transform -skew-x-[6deg] shadow-lg cursor-pointer hover:-translate-y-0.5"
                         >
                           <span className="transform skew-x-[6deg] flex items-center justify-center gap-2">
-                            <Truck className="w-3.5 h-3.5" /> Dispatch Crew
+                            <span>Dispatch Field Crew</span>
                           </span>
                         </button>
                       )}
@@ -1999,23 +2280,39 @@ export default function MainCommandDashboard() {
                 </button>
               </div>
 
-              {/* AI Dispatch Route Generator Bar */}
-              <button
-                type="button"
-                onClick={generateCleaningRoute}
-                disabled={isGeneratingRoute}
-                className={twMerge(
-                  "w-full py-2 px-3 rounded-sm font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95 border -skew-x-[3deg]",
-                  isRouteMode
-                    ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/25 shadow-md"
-                    : "bg-brand-primary/10 hover:bg-brand-primary hover:text-white border-brand-primary/30 text-brand-primary"
-                )}
-              >
-                <Route className={twMerge("w-3.5 h-3.5 skew-x-[3deg]", isGeneratingRoute && "animate-spin")} />
-                <span className="skew-x-[3deg]">
-                  {isGeneratingRoute ? 'Calculating Road Route...' : isRouteMode ? 'Hide Dispatch Route' : 'Generate Cleaning Route'}
-                </span>
-              </button>
+              {/* AI Dispatch Route Generator Bar (Strictly 1 Line) */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => generateCleaningRoute()}
+                  disabled={isGeneratingRoute}
+                  className={twMerge(
+                    "flex-1 py-2 px-3 rounded-sm font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95 border -skew-x-[3deg]",
+                    isRouteMode
+                      ? "bg-brand-primary text-white border-brand-primary shadow-brand-primary/25 shadow-md"
+                      : "bg-brand-primary/10 hover:bg-brand-primary hover:text-white border-brand-primary/30 text-brand-primary"
+                  )}
+                  title={isRouteMode ? "Turn Off AI Route Mode" : `Generate Cleaning Route (Starting: ${routeOrigin.name})`}
+                >
+                  <Route className={twMerge("w-3.5 h-3.5 skew-x-[3deg]", isGeneratingRoute && "animate-spin")} />
+                  <span className="skew-x-[3deg] truncate">
+                    {isGeneratingRoute ? 'Calculating Road Route...' : isRouteMode ? 'Hide Dispatch Route' : 'Generate Cleaning Route'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempOrigin(routeOrigin);
+                    setIsOriginModalOpen(true);
+                  }}
+                  className="h-[33px] w-[33px] rounded-sm bg-surface hover:bg-surface-subtle border border-border-subtle hover:border-brand-primary text-text-secondary hover:text-brand-primary flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 -skew-x-[3deg]"
+                  title={`Set Route Starting Origin (Current: ${routeOrigin.name})`}
+                  aria-label="Set Route Starting Origin"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 skew-x-[3deg] text-brand-primary" />
+                </button>
+              </div>
             </div>
 
             {/* Queue List */}
@@ -2111,10 +2408,22 @@ export default function MainCommandDashboard() {
                         {new Date(report.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </div>
                       
-                      {isCritical ? (
-                        <button className="text-[10px] font-black tracking-widest text-brand-white bg-semantic-urgent hover:bg-red-600 px-4 py-1.5 transform -skew-x-[12deg] flex items-center gap-1 transition-colors">
-                          <span className="inline-block transform skew-x-[12deg] flex items-center gap-1">
-                             <Truck className="w-3 h-3" /> DISPATCH
+                      {report.status === 'in_progress' ? (
+                        <span className="text-[10px] font-black tracking-widest text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-xs font-mono uppercase">
+                          DISPATCHED
+                        </span>
+                      ) : isCritical ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateStatus(report.report_id, 'in_progress');
+                          }}
+                          className="text-[10px] font-black tracking-widest text-white bg-semantic-urgent hover:bg-red-600 px-3.5 py-1.5 transform -skew-x-[12deg] flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-md hover:shadow-red-500/25"
+                          title="Dispatch field cleanup crew to this incident"
+                        >
+                          <span className="inline-block transform skew-x-[12deg]">
+                            DISPATCH
                           </span>
                         </button>
                       ) : isResolved ? (
@@ -2122,7 +2431,14 @@ export default function MainCommandDashboard() {
                           <CheckCircle className="w-3.5 h-3.5" /> RESOLVED
                         </span>
                       ) : (
-                        <button className="text-[10px] font-black tracking-widest text-brand-primary hover:text-brand-secondary flex items-center gap-1 group">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedReportId(report.report_id);
+                          }}
+                          className="text-[10px] font-black tracking-widest text-brand-primary hover:text-brand-secondary flex items-center gap-1 group cursor-pointer"
+                        >
                           DETAILS <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                         </button>
                       )}
@@ -2147,6 +2463,226 @@ export default function MainCommandDashboard() {
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
+        )}
+
+        {/* Starting Origin Location Configuration Modal (Portaled to document.body to ensure top z-index & unblocked click events) */}
+        {isOriginModalOpen && createPortal(
+          <div 
+            className="fixed inset-0 z-[2000] pointer-events-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 select-none"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsOriginModalOpen(false);
+            }}
+          >
+            <div 
+              className="bg-surface border-2 border-border-strong rounded-sm shadow-2xl max-w-lg w-full max-h-[86vh] flex flex-col text-text-primary animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header - Unskewed, no MapPin, no X */}
+              <div className="px-5 py-3.5 border-b border-border-subtle bg-surface-subtle shrink-0">
+                <h3 className="font-heading font-black text-sm uppercase tracking-wider text-text-primary">
+                  Set Route Starting Origin
+                </h3>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  Select an LGU station or drop a custom pin on the map
+                </p>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-4">
+                {/* Presets List */}
+                <div>
+                  <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted mb-2">
+                    Available LGU Stations & Presets
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {ROUTE_ORIGIN_PRESETS.map((preset) => {
+                      const isSelected = tempOrigin.id === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setTempOrigin(preset)}
+                          className={twMerge(
+                            "p-2.5 rounded-sm border transition-all cursor-pointer text-left flex flex-col justify-between group",
+                            isSelected
+                              ? "bg-brand-primary/15 border-brand-primary shadow-xs ring-1 ring-brand-primary/50"
+                              : "bg-surface-subtle hover:bg-surface border-border-subtle hover:border-brand-primary/50"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-1.5 w-full">
+                            <span className="font-bold text-xs text-text-primary group-hover:text-brand-primary transition-colors truncate">
+                              {preset.name}
+                            </span>
+                            {isSelected && (
+                              <span className="text-[8px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-400 px-1 py-0.2 rounded shrink-0">
+                                Active
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-text-muted truncate mt-1">
+                            {preset.address}
+                          </div>
+                          <div className="text-[9px] font-mono text-text-muted/70 mt-0.5">
+                            GPS: {preset.lat.toFixed(4)}, {preset.lng.toFixed(4)}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Interactive Mini Map to drop or drag pin */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted">
+                    <span>Interactive Origin Map</span>
+                    <span className="text-brand-primary lowercase font-normal">click to drop pin or drag marker</span>
+                  </div>
+
+                  <div className={`h-48 w-full rounded-sm border border-border-subtle overflow-hidden relative shadow-inner ${isMapDark ? 'dark-map' : ''}`}>
+                    <MapContainer
+                      center={[tempOrigin.lat, tempOrigin.lng]}
+                      zoom={14}
+                      className="w-full h-full"
+                      zoomControl={false}
+                      attributionControl={false}
+                    >
+                      <TileLayer
+                        key={`${mapType}-${isMapDark ? 'dark' : 'light'}`}
+                        url={getTileUrl(mapType)}
+                      />
+                      <Marker
+                        position={[tempOrigin.lat, tempOrigin.lng]}
+                        icon={createDepotMarkerIcon({
+                          isCustom: tempOrigin.id.includes('custom'),
+                          tag: tempOrigin.id.includes('custom') ? 'CUSTOM DEPOT' : 'HQ DEPOT'
+                        })}
+                        draggable={true}
+                        eventHandlers={{
+                          dragend(e) {
+                            const marker = e.target;
+                            const pos = marker.getLatLng();
+                            setTempOrigin({
+                              id: 'custom-pin',
+                              name: 'Custom Depot Pin',
+                              address: `Custom Location (${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)})`,
+                              lat: pos.lat,
+                              lng: pos.lng
+                            });
+                          }
+                        }}
+                      />
+                      <OriginMapClickHandler
+                        onSelect={(lat, lng) => {
+                          setTempOrigin({
+                            id: 'custom-pin',
+                            name: 'Custom Depot Pin',
+                            address: `Custom Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+                            lat,
+                            lng
+                          });
+                        }}
+                      />
+                      <OriginMapFlyTo center={[tempOrigin.lat, tempOrigin.lng]} />
+                      <OriginMapResize />
+                    </MapContainer>
+                  </div>
+
+                  <div className="p-2.5 bg-surface-subtle border border-border-subtle rounded-sm flex items-center justify-between text-xs">
+                    <div className="min-w-0 pr-2">
+                      <span className="font-bold text-text-primary truncate block text-xs">
+                        {tempOrigin.name}
+                      </span>
+                      <span className="text-[10px] text-text-muted truncate block">
+                        {tempOrigin.address}
+                      </span>
+                    </div>
+                    <div className="font-mono text-[10px] text-brand-primary shrink-0 bg-brand-primary/10 px-2 py-0.5 rounded border border-brand-primary/20">
+                      GPS: {tempOrigin.lat.toFixed(4)}, {tempOrigin.lng.toFixed(4)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer - Skewed buttons only */}
+              <div className="px-5 py-3 border-t border-border-subtle bg-surface-subtle flex justify-end gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsOriginModalOpen(false)}
+                  className="px-4 py-1.5 bg-surface-subtle hover:bg-surface border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer -skew-x-[6deg] active:scale-95"
+                >
+                  <span className="inline-block skew-x-[6deg]">Cancel</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRouteOrigin(tempOrigin);
+                    if (isRouteMode) {
+                      generateCleaningRoute(tempOrigin);
+                    }
+                    setIsOriginModalOpen(false);
+                  }}
+                  className="px-4 py-1.5 bg-brand-primary hover:bg-brand-secondary text-white rounded-sm text-xs font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-sm -skew-x-[6deg] active:scale-95"
+                >
+                  <span className="inline-block skew-x-[6deg]">Set as Route Origin</span>
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Evidence Photo Zoom Lightbox Modal (Portaled to document.body) */}
+        {typeof document !== 'undefined' && createPortal(
+          <AnimatePresence>
+            {isImageFocused && selectedReport && selectedReport.image_url && (
+              <div className="fixed inset-0 z-[3100] flex items-center justify-center p-3 sm:p-6 overflow-hidden pointer-events-auto select-none">
+                {/* Lightbox Soft Frosted Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsImageFocused(false)}
+                  className="fixed inset-0 bg-app-bg/90 backdrop-blur-md cursor-pointer"
+                />
+
+                {/* Focused Image Box (Natural / Unskewed) */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="relative z-20 max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3 p-3 sm:p-4 bg-surface/95 border-2 border-brand-primary rounded-sm shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-full flex items-center justify-between pb-2 border-b border-border-subtle text-xs font-mono">
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="font-bold text-text-primary truncate">{selectedReport.tracking_reference}</span>
+                      <span className="text-[10px] text-text-muted">Evidence Photo</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsImageFocused(false)}
+                      className="px-2.5 py-1 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase transition-colors cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 -skew-x-[4deg]"
+                    >
+                      <span className="inline-block skew-x-[4deg] flex items-center gap-1">
+                        <Minimize2 className="w-3.5 h-3.5" />
+                        <span>Close</span>
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="w-full max-h-[75vh] overflow-hidden rounded-sm bg-black/60 flex items-center justify-center">
+                    <img 
+                      src={selectedReport.image_url} 
+                      alt="Full canal evidence" 
+                      className="w-auto h-auto max-w-full max-h-[75vh] object-contain rounded-sm"
+                    />
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
         
       </div>
