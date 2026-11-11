@@ -1414,20 +1414,14 @@ export default function MainCommandDashboard() {
       {/* Floating AI Route HUD Overlay Bar */}
       {isRouteMode && dispatchRoute && (
         <div className="absolute top-18 sm:top-20 left-1/2 -translate-x-1/2 z-[400] max-w-[94%] sm:max-w-2xl w-full pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="bg-surface/95 backdrop-blur-2xl border-2 border-brand-primary/60 rounded-sm shadow-2xl p-3 sm:p-3.5 -skew-x-[3deg] flex flex-col gap-2">
+          <div className="bg-surface/95 backdrop-blur-2xl border-2 border-brand-primary/60 rounded-sm shadow-2xl p-2.5 sm:p-3 -skew-x-[3deg] flex flex-col gap-2">
             <div className="skew-x-[3deg] flex items-center justify-between gap-3">
-              {/* Left: Branding & Status */}
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] font-mono font-black uppercase tracking-widest text-brand-primary truncate flex items-center gap-1.5">
-                    <Navigation className="w-3.5 h-3.5 text-brand-primary" />
-                    <span>esteRoute AI Dispatch Optimizer</span>
-                  </span>
-                  <span className="text-[11px] font-mono font-bold text-text-primary">
-                    {dispatchRoute.orderedStops.length} Clogged Canal Stops • {dispatchRoute.totalDistanceKm} km • ~{dispatchRoute.totalDurationMin} mins
-                  </span>
-                </div>
+              {/* Left: Minimalist Route Summary (No blinking ping or bulky heading) */}
+              <div className="flex items-center gap-2 min-w-0">
+                <Navigation className="w-4 h-4 text-brand-primary shrink-0" />
+                <span className="text-xs font-mono font-bold text-text-primary truncate">
+                  {dispatchRoute.orderedStops.length} Stops • {dispatchRoute.totalDistanceKm} km • ~{dispatchRoute.totalDurationMin} mins
+                </span>
               </div>
 
               {/* Right: Actions */}
@@ -1513,8 +1507,13 @@ export default function MainCommandDashboard() {
         }
 
         /* Custom Scrollbar for side panels */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(63, 114, 175, 0.4) transparent;
+        }
         .custom-scrollbar::-webkit-scrollbar {
           width: 5px;
+          height: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: transparent;
@@ -1792,37 +1791,50 @@ export default function MainCommandDashboard() {
                   {/* Header / ID */}
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-mono font-bold tracking-wider text-text-muted">{selectedReport.tracking_reference}</span>
-                    <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm ${
-                        selectedReport.status === 'triaged' && selectedReport.priority_score >= 70 ? 'bg-semantic-urgent text-white' :
-                        (selectedReport.status === 'failed_analysis' || selectedReport.needs_human_review) ? 'bg-semantic-warning text-white' :
-                        'bg-surface-subtle text-text-secondary border border-border-subtle'
-                    }`}>
-                      {selectedReport.status.replace('_', ' ')}
+                    <span className={twMerge(
+                      "text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm font-mono",
+                      selectedReport.status === 'resolved'
+                        ? "bg-emerald-600 text-white"
+                        : selectedReport.status === 'pending_analysis'
+                          ? "bg-blue-600 text-white"
+                          : selectedReport.status === 'failed_analysis' || selectedReport.needs_human_review
+                            ? "bg-semantic-warning text-white"
+                            : selectedReport.status === 'in_progress' || selectedReport.status === 'dispatched'
+                              ? "bg-amber-500 text-white"
+                              : selectedReport.status === 'triaged' && selectedReport.priority_score >= 70
+                                ? "bg-semantic-urgent text-white"
+                                : selectedReport.status === 'triaged'
+                                  ? "bg-brand-primary text-white"
+                                  : "bg-surface-subtle text-text-secondary border border-border-subtle"
+                    )}>
+                      {selectedReport.status === 'failed_analysis'
+                        ? 'NON-WATERWAY'
+                        : selectedReport.needs_human_review
+                          ? 'NEEDS REVIEW'
+                          : selectedReport.status === 'pending_analysis'
+                            ? 'PENDING'
+                            : selectedReport.status.replace('_', ' ')}
                     </span>
                   </div>
 
-                  {/* Submitted Image (Clickable for Natural Zoom View) */}
+                  {/* Submitted Image (Clickable for Natural Zoom View - Styled identical to Citizen My Reports) */}
                   <div 
                     onClick={() => {
                       if (selectedReport.image_url) {
                         setIsImageFocused(true);
                       }
                     }}
-                    className="w-full h-48 rounded-sm bg-border-subtle overflow-hidden relative group border border-border-subtle shadow-inner cursor-pointer"
-                    title="Click to expand full evidence photo"
+                    className="w-full h-48 rounded-sm overflow-hidden border border-border-subtle bg-black/40 relative group/img cursor-pointer"
+                    title="Click to zoom photo"
                   >
                     <img 
                       src={selectedReport.image_url} 
-                      alt="Reported issue" 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                      alt="Canal Condition" 
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover/img:scale-105" 
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-                    <div className="absolute bottom-2 left-2 flex gap-1 z-10">
-                      <span className="bg-black/50 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded">Vision Source</span>
-                    </div>
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-mono font-bold z-10">
-                      <Maximize2 className="w-4 h-4 text-brand-primary" />
-                      <span>Click to zoom</span>
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-mono font-bold">
+                      <Maximize2 className="w-4 h-4" />
+                      <span>Click to expand</span>
                     </div>
                   </div>
 
@@ -2657,17 +2669,14 @@ export default function MainCommandDashboard() {
                   <div className="w-full flex items-center justify-between pb-2 border-b border-border-subtle text-xs font-mono">
                     <div className="flex items-center gap-2 truncate">
                       <span className="font-bold text-text-primary truncate">{selectedReport.tracking_reference}</span>
-                      <span className="text-[10px] text-text-muted">Evidence Photo</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setIsImageFocused(false)}
-                      className="px-2.5 py-1 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase transition-colors cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 -skew-x-[4deg]"
+                      className="px-2.5 py-1 bg-surface hover:bg-brand-primary hover:text-white border border-border-subtle rounded-sm text-xs font-mono font-bold uppercase transition-colors cursor-pointer flex items-center gap-1 shrink-0 active:scale-95"
                     >
-                      <span className="inline-block skew-x-[4deg] flex items-center gap-1">
-                        <Minimize2 className="w-3.5 h-3.5" />
-                        <span>Close</span>
-                      </span>
+                      <Minimize2 className="w-3.5 h-3.5" />
+                      <span>Close</span>
                     </button>
                   </div>
 
