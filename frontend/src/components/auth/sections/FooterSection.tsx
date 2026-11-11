@@ -52,11 +52,18 @@ export default function FooterSection() {
 
         {/* Brand & Text (Left) */}
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
-          <div className="flex-shrink-0 cursor-default flex items-center gap-3">
+          <div className="flex-shrink-0 cursor-default flex items-center gap-3 group">
             <img src="/Logos/Icon-Full.png" alt="esteRoute" className="w-9 h-9 object-contain" />
-            {/* Text Logo Replacement */}
-            <div className="font-heading font-black text-2xl tracking-tighter uppercase text-brand-primary -skew-x-12 border-2 border-brand-primary/20 bg-surface px-4 py-1">
-              <span className="skew-x-12 block">esteRoute</span>
+            {/* Text Logo Replacement: Unpressable, Only Hoverable, Dynamic este/Route inversion */}
+            <div className="font-heading font-black text-2xl tracking-tighter uppercase -skew-x-12 border-2 border-brand-primary/20 group-hover:border-brand-primary/60 bg-surface px-4 py-1 transition-colors select-none">
+              <span className="skew-x-12 inline-flex items-center">
+                <span className="text-text-primary group-hover:text-brand-primary transition-colors">
+                  este
+                </span>
+                <span className="text-brand-primary group-hover:text-text-primary transition-colors">
+                  Route
+                </span>
+              </span>
             </div>
           </div>
 

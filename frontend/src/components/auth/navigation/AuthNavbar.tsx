@@ -83,8 +83,13 @@ export default function AuthNavbar({
                 className="font-heading text-base sm:text-lg font-black tracking-tighter uppercase group shrink-0 cursor-pointer flex items-center gap-2.5"
               >
                 <img src="/Logos/Icon-Full.png" alt="esteRoute" className="w-6 h-6 sm:w-7 sm:h-7 object-contain" />
-                <span className="text-text-primary group-hover:text-brand-primary transition-colors">
-                  este<span className="text-brand-primary">Route</span>
+                <span className="flex items-center">
+                  <span className="text-text-primary group-hover:text-brand-primary transition-colors">
+                    este
+                  </span>
+                  <span className="text-brand-primary group-hover:text-text-primary transition-colors">
+                    Route
+                  </span>
                 </span>
               </button>
             </div>
@@ -102,22 +107,8 @@ export default function AuthNavbar({
               ))}
             </nav>
 
-            {/* Right: Auth Portal Switches & Theme Toggle (Skew inverted) */}
+            {/* Right: Auth Portal Switches & Theme Toggle (Skew inverted) - LGU Portal first, Citizen second */}
             <div className="hidden lg:flex flex-1 justify-end items-center gap-5 skew-x-12">
-              <button 
-                type="button" 
-                onClick={() => handlePortalSwitch('citizen')} 
-                className={`text-xs xl:text-sm font-bold uppercase tracking-widest cursor-pointer transition-colors ${
-                  activePortal === 'citizen' && activeSection === 'hero' 
-                    ? 'text-brand-primary underline decoration-2 underline-offset-4' 
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                Citizen
-              </button>
-
-              <div className="w-px h-4 bg-border-strong" />
-
               <button 
                 type="button" 
                 onClick={() => handlePortalSwitch('admin')} 
@@ -128,6 +119,20 @@ export default function AuthNavbar({
                 }`}
               >
                 LGU Portal
+              </button>
+
+              <div className="w-px h-4 bg-border-strong" />
+
+              <button 
+                type="button" 
+                onClick={() => handlePortalSwitch('citizen')} 
+                className={`text-xs xl:text-sm font-bold uppercase tracking-widest cursor-pointer transition-colors ${
+                  activePortal === 'citizen' && activeSection === 'hero' 
+                    ? 'text-brand-primary underline decoration-2 underline-offset-4' 
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                Citizen
               </button>
 
               <div className="w-px h-4 bg-border-strong" />
@@ -184,16 +189,6 @@ export default function AuthNavbar({
                   ))}
                   <div className="flex flex-col gap-2.5 pt-2">
                     <button 
-                      onClick={() => handlePortalSwitch('citizen')} 
-                      className={`w-full py-3 text-sm font-bold uppercase tracking-widest text-center rounded-sm border cursor-pointer transition-colors -skew-x-12 ${
-                        activePortal === 'citizen'
-                          ? 'bg-brand-primary text-white border-brand-primary'
-                          : 'bg-surface text-text-primary border-border-subtle'
-                      }`}
-                    >
-                      <span className="skew-x-12 inline-block">Citizen Portal</span>
-                    </button>
-                    <button 
                       onClick={() => handlePortalSwitch('admin')} 
                       className={`w-full py-3 text-sm font-bold uppercase tracking-widest text-center rounded-sm border cursor-pointer transition-colors -skew-x-12 ${
                         activePortal === 'admin'
@@ -202,6 +197,16 @@ export default function AuthNavbar({
                       }`}
                     >
                       <span className="skew-x-12 inline-block">LGU Dispatch Portal</span>
+                    </button>
+                    <button 
+                      onClick={() => handlePortalSwitch('citizen')} 
+                      className={`w-full py-3 text-sm font-bold uppercase tracking-widest text-center rounded-sm border cursor-pointer transition-colors -skew-x-12 ${
+                        activePortal === 'citizen'
+                          ? 'bg-brand-primary text-white border-brand-primary'
+                          : 'bg-surface text-text-primary border-border-subtle'
+                      }`}
+                    >
+                      <span className="skew-x-12 inline-block">Citizen Portal</span>
                     </button>
                   </div>
                 </div>
