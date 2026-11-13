@@ -62,7 +62,7 @@ const customMarkerIcon = createEsteroMarkerIcon({
 });
 
 // Component to dynamically re-center map if geolocation or URL coords successfully fetch on mount
-function MapFlyTo({ position, defaultPosition, hasUrlCoords }: { position: L.LatLng; defaultPosition: L.LatLng; hasUrlCoords?: boolean }) {
+function MapFlyTo({ position, defaultPosition, hasUrlCoords, active }: { position: L.LatLng; defaultPosition: L.LatLng; hasUrlCoords?: boolean; active?: boolean }) {
   const map = useMap();
   const hasInitiallyFlown = useRef(false);
 
@@ -82,21 +82,46 @@ function MapFlyTo({ position, defaultPosition, hasUrlCoords }: { position: L.Lat
         console.warn("MapFlyTo skipped:", err);
       }
     }
-  }, [map, position, defaultPosition, hasUrlCoords]);
+  }, [map, position, defaultPosition, hasUrlCoords, active]);
   return null;
 }
 
 // Component to trigger Leaflet map invalidateSize when container changes size or becomes visible
 function MapResizeHandler({ active }: { active: boolean }) {
   const map = useMap();
+
   useEffect(() => {
-    if (active) {
-      const timer = setTimeout(() => {
+    const container = map.getContainer();
+    const triggerResize = () => {
+      if (container && container.offsetWidth > 0 && container.offsetHeight > 0) {
         map.invalidateSize();
-      }, 150);
-      return () => clearTimeout(timer);
+      }
+    };
+
+    // Staggered triggers to catch Framer Motion opacity/transform transitions and DOM layout settles
+    triggerResize();
+    const t1 = setTimeout(triggerResize, 50);
+    const t2 = setTimeout(triggerResize, 150);
+    const t3 = setTimeout(triggerResize, 350);
+    const t4 = setTimeout(triggerResize, 600);
+
+    let ro: ResizeObserver | null = null;
+    if (container && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        triggerResize();
+      });
+      ro.observe(container);
     }
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      if (ro) ro.disconnect();
+    };
   }, [active, map]);
+
   return null;
 }
 
@@ -892,7 +917,7 @@ export default function BlockageSubmissionForm() {
   );
 
   return (
-    <div className="w-full h-full flex-1 min-h-0 relative md:h-auto md:min-h-0 pb-4 md:pb-0 flex flex-col overflow-hidden md:overflow-visible">
+    <div className="w-full flex-1 min-h-0 relative md:h-auto pb-4 md:pb-0 flex flex-col overflow-visible">
 
       {/* Submission Success Modal (Portaled to document.body to overlay entire layout including navbar) */}
       {typeof document !== 'undefined' && createPortal(
@@ -1254,7 +1279,7 @@ export default function BlockageSubmissionForm() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="w-full flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-8 overflow-hidden md:overflow-visible lg:items-stretch">
+      <form onSubmit={handleSubmit} className="w-full flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-8 overflow-visible lg:items-stretch">
 
         {/* Left Column (Photo & Notes on Desktop; Steps 1 & 3 on Mobile) */}
         <motion.div
@@ -1544,9 +1569,9 @@ export default function BlockageSubmissionForm() {
             mobileStep === 2 ? "flex flex-1 min-h-0 flex-col justify-between" : "hidden"
           )}
         >
-          <section className="group bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 flex-1 min-h-0 flex flex-col min-h-[350px] lg:min-h-[520px] relative overflow-hidden">
+          <section className="group bg-surface/35 hover:bg-surface/85 backdrop-blur-xl border-2 border-border-subtle hover:border-brand-primary transition-all duration-500 rounded-sm p-3.5 sm:p-5 lg:p-6 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 flex-1 min-h-[380px] sm:min-h-[460px] lg:min-h-[520px] flex flex-col relative overflow-hidden">
             <BorderBeam delay={3} />
-            <div className="relative z-20 flex flex-col flex-1 min-h-0">
+            <div className="relative z-20 flex flex-col flex-1 min-h-[320px] sm:min-h-[380px]">
               <div className="flex items-center justify-between mb-2 shrink-0">
                 <div className="flex items-center gap-2 sm:gap-2.5">
                   <div className="p-1.5 sm:p-2 bg-brand-secondary/10 rounded-sm text-brand-secondary -skew-x-3 lg:-skew-x-6">
@@ -1562,7 +1587,7 @@ export default function BlockageSubmissionForm() {
               <div
                 ref={mapContainerRef}
                 className={twMerge(
-                  "w-full flex-1 min-h-0 bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0 lg:min-h-[420px]",
+                  "w-full flex-1 min-h-[300px] xs:min-h-[340px] sm:min-h-[380px] lg:min-h-[420px] h-[320px] xs:h-[360px] sm:h-[400px] lg:h-full bg-app-bg border border-border-subtle rounded-sm overflow-hidden relative shadow-inner z-0",
                   isMapDark && "dark-map"
                 )}
               >
@@ -1572,7 +1597,7 @@ export default function BlockageSubmissionForm() {
                   scrollWheelZoom={true}
                   zoomControl={false}
                   attributionControl={false}
-                  className="w-full h-full z-0"
+                  className="w-full h-full min-h-[300px] xs:min-h-[340px] sm:min-h-[380px] lg:min-h-[420px] z-0"
                 >
                   <TileLayer
                     key={`${mapType}-${isMapDark ? 'dark' : 'light'}`}
@@ -1586,7 +1611,7 @@ export default function BlockageSubmissionForm() {
                     eventHandlers={eventHandlers}
                     ref={markerRef}
                   />
-                  <MapFlyTo position={position} defaultPosition={defaultPosition} hasUrlCoords={hasUrlCoords} />
+                  <MapFlyTo position={position} defaultPosition={defaultPosition} hasUrlCoords={hasUrlCoords} active={mobileStep === 2} />
                   <MapResizeHandler active={mobileStep === 2} />
                   <OffscreenPinTracker position={position} />
                   <CustomMapControls
