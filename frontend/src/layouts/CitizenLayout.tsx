@@ -124,6 +124,7 @@ export default function CitizenLayout() {
     }
     untouchedTimerRef.current = setTimeout(() => {
       if (!isNavHoveredRef.current) {
+        setHeaderCycle('title');
         setIsNavVisible(false);
       }
     }, 3000);
@@ -131,10 +132,7 @@ export default function CitizenLayout() {
 
   // Alternate between Title and Subtitle with comfortable reading duration (Subheading 6.5s, Title 3.5s)
   useEffect(() => {
-    if (isNavVisible) {
-      setHeaderCycle('title');
-      return;
-    }
+    if (isNavVisible) return;
     const displayDuration = headerCycle === 'title' ? 3500 : 6500;
     const timer = setTimeout(() => {
       setHeaderCycle((prev) => (prev === 'title' ? 'subtitle' : 'title'));
@@ -144,8 +142,10 @@ export default function CitizenLayout() {
 
   // Handle navbar active state & untouched countdown
   useEffect(() => {
-    setIsNavVisible(true);
-    resetUntouchedTimer();
+    queueMicrotask(() => {
+      setIsNavVisible(true);
+      resetUntouchedTimer();
+    });
 
     const handleMouseMove = (e: MouseEvent) => {
       if (isMapFullscreenRef.current || document.body.getAttribute('data-camera-active') === 'true') {
