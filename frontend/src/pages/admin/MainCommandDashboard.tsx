@@ -565,10 +565,10 @@ export default function MainCommandDashboard() {
   const calculateOptimalRoute = (activeList: ReportItem[], origin: RouteOriginPoint = routeOrigin) => {
     if (activeList.length === 0) return [];
     
-    // Select top prioritized active blockage incidents (up to 6 stops)
+    // Select top prioritized active blockage incidents (up to 10 stops)
     const candidates = [...activeList]
       .sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0))
-      .slice(0, 6);
+      .slice(0, 10);
 
     const ordered: ReportItem[] = [];
     let currentLat = origin.lat;
